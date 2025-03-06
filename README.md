@@ -1,6 +1,6 @@
-# Netmiko-rs
+# Netssh-rs
 
-A Rust implementation of Netmiko, providing SSH connection handling for network devices. This project aims to provide similar functionality to the Python Netmiko library while leveraging Rust's performance benefits and safety guarantees.
+A Rust implementation of Netssh, providing SSH connection handling for network devices. This project aims to provide similar functionality to the Python Netmiko library while leveraging Rust's performance benefits and safety guarantees.
 
 ## Features
 
@@ -27,7 +27,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-netmiko-rs = "0.1.0"
+netssh-rs = "0.1.0"
 ```
 
 ## Usage
@@ -35,7 +35,7 @@ netmiko-rs = "0.1.0"
 Here's a basic example of connecting to a Cisco IOS device:
 
 ```rust
-use netmiko_rs::ConnectHandler;
+use netssh_rs::ConnectHandler;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut connection = ConnectHandler::connect(
@@ -55,6 +55,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+## Running Examples
+
+The repository includes several examples that demonstrate how to use netssh-rs. You can run them using Cargo:
+
+```bash
+# Run the basic connection example
+cargo run --example basic_connection
+
+# Test logging functionality
+cargo run --example test_logging
+
+# Connect to Cisco devices
+cargo run --example cisco_xr
+cargo run --example cisco_asa
+cargo run --example cisco_devices
+```
+
+### Environment Variables
+
+Most examples require setting environment variables for device credentials:
+
+```bash
+export DEVICE_HOST=192.168.1.1
+export DEVICE_USER=admin
+export DEVICE_PASS=password
+export DEVICE_SECRET=enable_password  # For privileged mode on some devices
+```
+
+### Example Descriptions
+
+- `basic_connection.rs` - Demonstrates a simple SSH connection to a device
+- `test_logging.rs` - Shows how the logging functionality works
+- `cisco_xr.rs` - Example for connecting to Cisco XR devices
+- `cisco_asa.rs` - Example for connecting to Cisco ASA devices
+- `cisco_devices.rs` - Tests connections to multiple Cisco device types
 
 ## Contributing
 

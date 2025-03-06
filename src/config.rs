@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-/// Configuration settings for Netmiko-RS connections
+/// Configuration settings for Netssh-RS connections
 #[derive(Debug, Clone)]
-pub struct NetmikoConfig {
+pub struct NetsshConfig {
     /// Default SSH port if not specified (default: 22)
     pub default_port: u16,
 
@@ -42,7 +42,7 @@ pub struct NetmikoConfig {
     pub session_log_path: String,
 }
 
-impl Default for NetmikoConfig {
+impl Default for NetsshConfig {
     fn default() -> Self {
         Self {
             default_port: 22,
@@ -60,25 +60,25 @@ impl Default for NetmikoConfig {
     }
 }
 
-impl NetmikoConfig {
-    /// Creates a new NetmikoConfig with default settings
+impl NetsshConfig {
+    /// Creates a new NetsshConfig with default settings
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Creates a builder for NetmikoConfig to allow fluent configuration
-    pub fn builder() -> NetmikoConfigBuilder {
-        NetmikoConfigBuilder::default()
+    /// Creates a builder for NetsshConfig to allow fluent configuration
+    pub fn builder() -> NetsshConfigBuilder {
+        NetsshConfigBuilder::default()
     }
 }
 
-/// Builder for NetmikoConfig to allow fluent configuration
+/// Builder for NetsshConfig to allow fluent configuration
 #[derive(Default)]
-pub struct NetmikoConfigBuilder {
-    config: NetmikoConfig,
+pub struct NetsshConfigBuilder {
+    config: NetsshConfig,
 }
 
-impl NetmikoConfigBuilder {
+impl NetsshConfigBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -138,7 +138,7 @@ impl NetmikoConfigBuilder {
         self
     }
 
-    pub fn build(self) -> NetmikoConfig {
+    pub fn build(self) -> NetsshConfig {
         self.config
     }
 }

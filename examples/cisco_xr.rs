@@ -1,4 +1,4 @@
-use netmiko_rs::{initialize_logging, CiscoBaseConnection, CiscoXrSsh};
+use netssh_rs::{initialize_logging, CiscoBaseConnection, CiscoXrSsh};
 use std::env;
 use log::{debug, info};
 
@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config_commands = vec![
         "interface GigabitEthernet0/0/0/0",
-        "description Configured by Netmiko-rs",
+        "description Configured by Netssh-rs",
         "commit",
     ];
 

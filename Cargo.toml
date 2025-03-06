@@ -1,9 +1,9 @@
 [package]
-name = "netmiko-rs"
+name = "netssh-rs"
 version = "0.1.0"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
-description = "A Rust implementation of Netmiko - SSH connection handler for network devices"
+description = "A Rust implementation of Netssh - SSH connection handler for network devices"
 
 [dependencies]
 ssh2 = "0.9.4"

@@ -1,5 +1,5 @@
 use crate::base_connection::BaseConnection;
-use crate::error::NetmikoError;
+use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig};
 use async_trait::async_trait;
 
@@ -11,7 +11,7 @@ pub struct CiscoAsaDevice {
 }
 
 impl CiscoAsaDevice {
-    pub fn new(config: CiscoDeviceConfig) -> Result<Self, NetmikoError> {
+    pub fn new(config: CiscoDeviceConfig) -> Result<Self, NetsshError> {
         Ok(Self {
             connection: BaseConnection::new()?,
             config,
@@ -20,7 +20,7 @@ impl CiscoAsaDevice {
         })
     }
 
-    pub fn connect(&mut self) -> Result<(), NetmikoError> {
+    pub fn connect(&mut self) -> Result<(), NetsshError> {
         self.connection.connect(
             &self.config.host,
             &self.config.username,
@@ -33,7 +33,7 @@ impl CiscoAsaDevice {
         Ok(())
     }
 
-    pub fn enable(&mut self, secret: &str) -> Result<(), NetmikoError> {
+    pub fn enable(&mut self, secret: &str) -> Result<(), NetsshError> {
         // Check if we're already in enable mode
         if self.check_enable_mode()? {
             return Ok(());
@@ -45,7 +45,7 @@ impl CiscoAsaDevice {
 
         // Check if we entered enable mode
         if !self.check_enable_mode()? {
-            return Err(NetmikoError::AuthenticationError(
+            return Err(NetsshError::AuthenticationError(
                 "Failed to enter enable mode".to_string(),
             ));
         }
@@ -53,7 +53,7 @@ impl CiscoAsaDevice {
         Ok(())
     }
 
-    fn check_enable_mode(&mut self) -> Result<bool, NetmikoError> {
+    fn check_enable_mode(&mut self) -> Result<bool, NetsshError> {
         self.connection.write_channel("\n")?;
         let output = self.connection.read_until_pattern("#")?;
         Ok(output.contains("#"))
@@ -62,7 +62,7 @@ impl CiscoAsaDevice {
 
 #[async_trait]
 impl CiscoBaseConnection for CiscoAsaDevice {
-    fn session_preparation(&mut self) -> Result<(), NetmikoError> {
+    fn session_preparation(&mut self) -> Result<(), NetsshError> {
         // Disable paging
         self.disable_paging()?;
 
@@ -75,24 +75,24 @@ impl CiscoBaseConnection for CiscoAsaDevice {
         Ok(())
     }
 
-    fn set_terminal_width(&mut self, width: u32) -> Result<(), NetmikoError> {
+    fn set_terminal_width(&mut self, width: u32) -> Result<(), NetsshError> {
         self.connection.write_channel(&format!("terminal width {}\n", width))?;
         Ok(())
     }
 
-    fn disable_paging(&mut self) -> Result<(), NetmikoError> {
+    fn disable_paging(&mut self) -> Result<(), NetsshError> {
         self.connection.write_channel("terminal pager 0\n")?;
         Ok(())
     }
 
-    fn set_base_prompt(&mut self) -> Result<String, NetmikoError> {
+    fn set_base_prompt(&mut self) -> Result<String, NetsshError> {
         self.connection.write_channel("\n")?;
         let output = self.connection.read_until_pattern(r"[>#]")?;
         
         // Extract prompt from output
         let prompt = output.lines()
             .last()
-            .ok_or_else(|| NetmikoError::CommandError("Failed to get prompt".to_string()))?
+            .ok_or_else(|| NetsshError::CommandError("Failed to get prompt".to_string()))?
             .trim()
             .trim_end_matches(&['>', '#'][..])
             .to_string();
@@ -100,43 +100,43 @@ impl CiscoBaseConnection for CiscoAsaDevice {
         Ok(prompt)
     }
 
-    fn check_config_mode(&mut self) -> Result<bool, NetmikoError> {
+    fn check_config_mode(&mut self) -> Result<bool, NetsshError> {
         self.connection.write_channel("\n")?;
         let output = self.connection.read_until_pattern(r"[>#]")?;
         Ok(output.contains("(config)#"))
     }
 
-    fn config_mode(&mut self, config_command: Option<&str>) -> Result<(), NetmikoError> {
+    fn config_mode(&mut self, config_command: Option<&str>) -> Result<(), NetsshError> {
         let cmd = config_command.unwrap_or("configure terminal");
         self.connection.write_channel(&format!("{}\n", cmd))?;
         
         if !self.check_config_mode()? {
-            return Err(NetmikoError::CommandError("Failed to enter config mode".to_string()));
+            return Err(NetsshError::CommandError("Failed to enter config mode".to_string()));
         }
         Ok(())
     }
 
-    fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetmikoError> {
+    fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetsshError> {
         let cmd = exit_command.unwrap_or("end");
         self.connection.write_channel(&format!("{}\n", cmd))?;
         
         if self.check_config_mode()? {
-            return Err(NetmikoError::CommandError("Failed to exit config mode".to_string()));
+            return Err(NetsshError::CommandError("Failed to exit config mode".to_string()));
         }
         Ok(())
     }
 
-    fn save_config(&mut self) -> Result<(), NetmikoError> {
+    fn save_config(&mut self) -> Result<(), NetsshError> {
         self.connection.write_channel("write memory\n")?;
         Ok(())
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetmikoError> {
+    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
         self.connection.write_channel(&format!("{}\n", command))?;
         self.connection.read_until_pattern(&self.prompt)
     }
 
-    fn change_context(&mut self, context_name: &str) -> Result<(), NetmikoError> {
+    fn change_context(&mut self, context_name: &str) -> Result<(), NetsshError> {
         self.connection.write_channel(&format!("changeto context {}\n", context_name))?;
         self.context = Some(context_name.to_string());
         Ok(())

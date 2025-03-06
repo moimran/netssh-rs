@@ -1,7 +1,7 @@
 use log::LevelFilter;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
-use crate::error::NetmikoError;
+use crate::error::NetsshError;
 use chrono::Local;
 
 struct MultiWriter {
@@ -39,10 +39,10 @@ impl Write for MultiWriter {
 pub fn init_logging(
     debug_enabled: bool,
     _session_logging_enabled: bool, // This is now handled by BaseConnection
-) -> Result<(), NetmikoError> {
+) -> Result<(), NetsshError> {
     // Create logs directory if it doesn't exist
     std::fs::create_dir_all("logs")
-        .map_err(|e| NetmikoError::IoError(e))?;
+        .map_err(|e| NetsshError::IoError(e))?;
 
     // Set up environment for env_logger
     if debug_enabled {
@@ -59,7 +59,7 @@ pub fn init_logging(
 
     // Create the debug writer
     let writer = MultiWriter::new("logs/debug.log")
-        .map_err(|e| NetmikoError::IoError(e))?;
+        .map_err(|e| NetsshError::IoError(e))?;
 
     // Set the writer
     builder.target(env_logger::Target::Pipe(Box::new(writer)));

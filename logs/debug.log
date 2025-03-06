@@ -1,518 +1,124 @@
-2025-01-16 13:25:48 [DEBUG] Connecting to Cisco XR device at 192.168.0.8
-2025-01-16 13:25:48 [DEBUG] Creating new CiscoXrSsh instance
-2025-01-16 13:25:48 [INFO] Creating new BaseConnection instance
-2025-01-16 13:25:48 [DEBUG] Initializing with empty session and channel
-2025-01-16 13:25:48 [DEBUG] Establishing connection to Cisco XR device
-2025-01-16 13:25:48 [DEBUG] Connecting to host: 192.168.0.8:22
-2025-01-16 13:25:48 [INFO] Connecting to 192.168.0.8:22 with username moimran
-2025-01-16 13:25:48 [DEBUG] Establishing TCP connection to 192.168.0.8:22
-2025-01-16 13:25:48 [DEBUG] TCP connection established
-2025-01-16 13:25:48 [DEBUG] Creating SSH session
-2025-01-16 13:25:48 [DEBUG] SSH session created, starting handshake
-2025-01-16 13:25:48 [DEBUG] Starting SSH handshake
-2025-01-16 13:25:49 [DEBUG] SSH handshake completed successfully
-2025-01-16 13:25:49 [DEBUG] Authenticating with username moimran
-2025-01-16 13:25:49 [DEBUG] Attempting password authentication for user: moimran
-2025-01-16 13:25:49 [DEBUG] Authentication successful
-2025-01-16 13:25:49 [DEBUG] Opening SSH channel
-2025-01-16 13:25:49 [DEBUG] SSH channel created successfully
-2025-01-16 13:25:49 [DEBUG] Requesting PTY
-2025-01-16 13:25:49 [DEBUG] Starting shell
-2025-01-16 13:25:49 [INFO] Successfully connected to 192.168.0.8:22
-2025-01-16 13:25:49 [DEBUG] Setting base prompt for XR device
-2025-01-16 13:25:49 [DEBUG] Sending command: 
-
-2025-01-16 13:25:49 [DEBUG] Read output: "\r\n\r\nRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:25:49 [DEBUG] Preparing XR session
-2025-01-16 13:25:49 [DEBUG] Disabling paging
-2025-01-16 13:25:49 [DEBUG] Sending command: terminal length 0
-2025-01-16 13:25:50 [DEBUG] Read output: "terminal length 0\r\n\rThu Jan 16 13:24:24.243 UTC\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:25:50 [DEBUG] Setting terminal width to 511
-2025-01-16 13:25:50 [DEBUG] Sending command: terminal width 511
-2025-01-16 13:25:50 [DEBUG] Read output: "terminal width 511\r\n\rThu Jan 16 13:24:24.743 UTC\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:25:50 [DEBUG] Successfully connected to device with prompt: RP/0/0/CPU0:ios
-2025-01-16 13:25:50 [INFO] Successfully connected to 192.168.0.8
-2025-01-16 13:25:50 [INFO] Sending show commands: ["show version brief", "show platform", "show interfaces brief"]
-2025-01-16 13:25:50 [DEBUG] Sending command: show version brief
-2025-01-16 13:25:50 [DEBUG] Sending command: show version brief
-2025-01-16 13:25:50 [DEBUG] Sending command: show version brief
-2025-01-16 13:25:51 [DEBUG] Read output: "show version brief\r\n\rThu Jan 16 13:24:25.243 UTC\r\n\r\nCisco IOS XR Software, Version 6.1.3[Default]\r\nCopyright (c) 2017 by Cisco Systems, Inc.\r\n\r\nROM: GRUB, Version 1.99(0), DEV RELEASE\r\n\r\nios uptime is 2 hours, 59 minutes\r\nSystem image file is \"bootflash:disk0/xrvr-os-mbi-6.1.3/mbixrvr-rp.vm\"\r\n\r\ncisco IOS XRv Series (Pentium Celeron Stepping 3) processor with 3145215K bytes of memory.\r\nPentium Celeron Stepping 3 processor at 2599MHz, Revision 2.174\r\nIOS XRv Chassis\r\n\r\n3 GigabitEthernet\r\n1 Management Ethernet\r\n97070k bytes of non-volatile configuration memory.\r\n866M bytes of hard disk.\r\n2321392k bytes of disk0: (Sector size 512 bytes).\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:25:51 [DEBUG] Sending command: show platform
-2025-01-16 13:25:51 [DEBUG] Sending command: show platform
-2025-01-16 13:25:51 [DEBUG] Sending command: show platform
-2025-01-16 13:25:51 [DEBUG] Read output: "show platform\r\n\rThu Jan 16 13:24:25.743 UTC\r\nNode\t\tType\t\tPLIM\t\tState\t\tConfig State\r\n-----------------------------------------------------------------------------\r\n0/0/CPU0        RP(Active)      N/A             IOS XR RUN      PWR,NSHUT,MON\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:25:51 [DEBUG] Sending command: show interfaces brief
-2025-01-16 13:25:51 [DEBUG] Sending command: show interfaces brief
-2025-01-16 13:25:51 [DEBUG] Sending command: show interfaces brief
-2025-01-16 13:25:52 [DEBUG] Read output: "show interfaces brief\r\n\rThu Jan 16 13:24:26.243 UTC\r\n\r\n               Intf       Intf        LineP              Encap  MTU        BW\r\n               Name       State       State               Type (byte)    (Kbps)\r\n--------------------------------------------------------------------------------\r\n                Nu0          up          up               Null  1500          0\r\n       Mg0/0/CPU0/0          up          up               ARPA  1514    1000000\r\n          Gi0/0/0/0  admin-down  admin-down               ARPA  1514    1000000\r\n          Gi0/0/0/1  admin-down  admin-down               ARPA  1514    1000000\r\n          Gi0/0/0/2  admin-down  admin-down               ARPA  1514    1000000\r\n\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:25:52 [INFO] Entering config mode
-2025-01-16 13:25:52 [DEBUG] Entering configuration mode
-2025-01-16 13:25:52 [DEBUG] Sending command: configure terminal
-2025-01-16 13:25:52 [DEBUG] Read output: "configure terminal\r\n\rThu Jan 16 13:24:26.743 UTC\r\nRP/0/0/CPU0:ios(config)#"
-2025-01-16 13:25:52 [DEBUG] Checking config mode
-2025-01-16 13:25:52 [DEBUG] Sending command: 
-
-2025-01-16 13:25:53 [DEBUG] Read output: "\r\n\rRP/0/0/CPU0:ios(config)#\r\n\rRP/0/0/CPU0:ios(config)#"
-2025-01-16 13:25:53 [INFO] Sending config commands: ["interface GigabitEthernet0/0/0/0", "description Configured by Netmiko-rs", "commit"]
-2025-01-16 13:25:53 [DEBUG] Sending config command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:25:53 [DEBUG] Sending command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:25:53 [DEBUG] Sending command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:25:53 [DEBUG] Read output: "interface GigabitEthernet0/0/0/0\r\n\rRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:25:53 [DEBUG] Sending config command: description Configured by Netmiko-rs
-2025-01-16 13:25:53 [DEBUG] Sending command: description Configured by Netmiko-rs
-2025-01-16 13:25:53 [DEBUG] Sending command: description Configured by Netmiko-rs
-2025-01-16 13:25:54 [DEBUG] Read output: "description Configured by Netmiko-rs\r\n\rRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:25:54 [DEBUG] Sending config command: commit
-2025-01-16 13:25:54 [DEBUG] Sending command: commit
-2025-01-16 13:25:54 [DEBUG] Sending command: commit
-2025-01-16 13:25:54 [DEBUG] Read output: "commit\r\n\rThu Jan 16 13:24:28.753 UTC\r\nRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:25:54 [INFO] Exiting config mode
-2025-01-16 13:25:54 [DEBUG] Exiting configuration mode
-2025-01-16 13:25:54 [DEBUG] Sending command: end
-2025-01-16 13:25:55 [DEBUG] Read output: "end\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:25:55 [DEBUG] Checking config mode
-2025-01-16 13:25:55 [DEBUG] Sending command: 
-
-2025-01-16 13:25:55 [DEBUG] Read output: "\r\n\rRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:25:55 [INFO] Verifying configuration: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:25:55 [DEBUG] Sending command: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:25:55 [DEBUG] Sending command: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:25:56 [DEBUG] Read output: "show running-config interface GigabitEthernet0/0/0/0\r\n\rThu Jan 16 13:24:30.263 UTC\r\ninterface GigabitEthernet0/0/0/0\r\n description Configured by Netmiko-rs\r\n shutdown\r\n!\r\n\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:25:56 [INFO] Disconnecting from device
-2025-01-16 13:25:56 [DEBUG] Disconnecting from device
-2025-01-16 13:31:17 [DEBUG] [examples/cisco_xr.rs:14] [cisco_xr::cisco_xr] Connecting to Cisco XR device at 192.168.0.8
-2025-01-16 13:31:17 [DEBUG] [src/vendors/cisco/xr.rs:87] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Creating new CiscoXrSsh instance
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:19] [netmiko_rs::base_connection::BaseConnection::new] Creating new base connection
-2025-01-16 13:31:17 [DEBUG] [src/vendors/cisco/xr.rs:101] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Establishing connection to Cisco XR device
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:39] [netmiko_rs::base_connection::BaseConnection::connect] Connecting to moimran@192.168.0.8
-2025-01-16 13:31:17 [INFO] [src/base_connection.rs:42] [netmiko_rs::base_connection::netmiko_rs::base_connection] Connecting to 192.168.0.8:22 with username moimran
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:45] [netmiko_rs::base_connection::BaseConnection::connect] Establishing TCP connection to 192.168.0.8:22
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:52] [netmiko_rs::base_connection::BaseConnection::connect] TCP connection established
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:62] [netmiko_rs::base_connection::BaseConnection::connect] Creating SSH session
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:70] [netmiko_rs::base_connection::BaseConnection::connect] SSH session created, starting handshake
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:72] [netmiko_rs::base_connection::BaseConnection::connect] Starting SSH handshake
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:79] [netmiko_rs::base_connection::BaseConnection::connect] SSH handshake completed successfully
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:81] [netmiko_rs::base_connection::BaseConnection::connect] Authenticating with username moimran
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:83] [netmiko_rs::base_connection::BaseConnection::connect] Attempting password authentication for user: moimran
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:98] [netmiko_rs::base_connection::BaseConnection::connect] Authentication successful
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:100] [netmiko_rs::base_connection::BaseConnection::connect] Opening SSH channel
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:107] [netmiko_rs::base_connection::BaseConnection::connect] SSH channel created successfully
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:109] [netmiko_rs::base_connection::BaseConnection::connect] Requesting PTY
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:116] [netmiko_rs::base_connection::BaseConnection::connect] Starting shell
-2025-01-16 13:31:17 [INFO] [src/base_connection.rs:126] [netmiko_rs::base_connection::netmiko_rs::base_connection] Successfully connected to 192.168.0.8:22
-2025-01-16 13:31:17 [DEBUG] [src/vendors/cisco/xr.rs:31] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Setting base prompt for XR device
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: 
-
-2025-01-16 13:31:17 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "\r\n\r\nRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:18 [DEBUG] [src/vendors/cisco/xr.rs:12] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Preparing XR session
-2025-01-16 13:31:18 [DEBUG] [src/vendors/cisco/xr.rs:25] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Disabling paging
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: terminal length 0
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "terminal length 0\r\n\rThu Jan 16 13:29:52.631 UTC\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:18 [DEBUG] [src/vendors/cisco/xr.rs:19] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Setting terminal width to 511
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: terminal width 511
-2025-01-16 13:31:18 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "terminal width 511\r\n\rThu Jan 16 13:29:53.121 UTC\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:19 [DEBUG] [src/vendors/cisco/xr.rs:105] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Successfully connected to device with prompt: RP/0/0/CPU0:ios
-2025-01-16 13:31:19 [INFO] [examples/cisco_xr.rs:26] [cisco_xr::cisco_xr] Successfully connected to 192.168.0.8
-2025-01-16 13:31:19 [INFO] [examples/cisco_xr.rs:35] [cisco_xr::cisco_xr] Sending show commands: ["show version brief", "show platform", "show interfaces brief"]
-2025-01-16 13:31:19 [DEBUG] [examples/cisco_xr.rs:37] [cisco_xr::cisco_xr] Sending command: show version brief
-2025-01-16 13:31:19 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show version brief
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show version brief
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show version brief\r\n\rThu Jan 16 13:29:53.621 UTC\r\n\r\nCisco IOS XR Software, Version 6.1.3[Default]\r\nCopyright (c) 2017 by Cisco Systems, Inc.\r\n\r\nROM: GRUB, Version 1.99(0), DEV RELEASE\r\n\r\nios uptime is 3 hours, 4 minutes\r\nSystem image file is \"bootflash:disk0/xrvr-os-mbi-6.1.3/mbixrvr-rp.vm\"\r\n\r\ncisco IOS XRv Series (Pentium Celeron Stepping 3) processor with 3145215K bytes of memory.\r\nPentium Celeron Stepping 3 processor at 2599MHz, Revision 2.174\r\nIOS XRv Chassis\r\n\r\n3 GigabitEthernet\r\n1 Management Ethernet\r\n97070k bytes of non-volatile configuration memory.\r\n866M bytes of hard disk.\r\n2321392k bytes of disk0: (Sector size 512 bytes).\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:19 [DEBUG] [examples/cisco_xr.rs:37] [cisco_xr::cisco_xr] Sending command: show platform
-2025-01-16 13:31:19 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show platform
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show platform
-2025-01-16 13:31:19 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show platform\r\n\rThu Jan 16 13:29:54.121 UTC\r\nNode\t\tType\t\tPLIM\t\tState\t\tConfig State\r\n-----------------------------------------------------------------------------\r\n0/0/CPU0        RP(Active)      N/A             IOS XR RUN      PWR,NSHUT,MON\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:20 [DEBUG] [examples/cisco_xr.rs:37] [cisco_xr::cisco_xr] Sending command: show interfaces brief
-2025-01-16 13:31:20 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show interfaces brief
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show interfaces brief
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show interfaces brief\r\n\rThu Jan 16 13:29:54.631 UTC\r\n\r\n               Intf       Intf        LineP              Encap  MTU        BW\r\n               Name       State       State               Type (byte)    (Kbps)\r\n--------------------------------------------------------------------------------\r\n                Nu0          up          up               Null  1500          0\r\n       Mg0/0/CPU0/0          up          up               ARPA  1514    1000000\r\n          Gi0/0/0/0  admin-down  admin-down               ARPA  1514    1000000\r\n          Gi0/0/0/1  admin-down  admin-down               ARPA  1514    1000000\r\n          Gi0/0/0/2  admin-down  admin-down               ARPA  1514    1000000\r\n\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:20 [INFO] [examples/cisco_xr.rs:44] [cisco_xr::cisco_xr] Entering config mode
-2025-01-16 13:31:20 [DEBUG] [src/vendors/cisco/xr.rs:52] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Entering configuration mode
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: configure terminal
-2025-01-16 13:31:20 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "configure terminal\r\n\rThu Jan 16 13:29:55.131 UTC\r\nRP/0/0/CPU0:ios(config)#"
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:21 [DEBUG] [src/vendors/cisco/xr.rs:46] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Checking config mode
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: 
-
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "\r\n\rRP/0/0/CPU0:ios(config)#\r\n\rRP/0/0/CPU0:ios(config)#"
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:21 [INFO] [examples/cisco_xr.rs:53] [cisco_xr::cisco_xr] Sending config commands: ["interface GigabitEthernet0/0/0/0", "description Configured by Netmiko-rs", "commit"]
-2025-01-16 13:31:21 [DEBUG] [examples/cisco_xr.rs:55] [cisco_xr::cisco_xr] Sending config command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:31:21 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:31:21 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "interface GigabitEthernet0/0/0/0\r\n\rRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:22 [DEBUG] [examples/cisco_xr.rs:55] [cisco_xr::cisco_xr] Sending config command: description Configured by Netmiko-rs
-2025-01-16 13:31:22 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: description Configured by Netmiko-rs
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: description Configured by Netmiko-rs
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "description Configured by Netmiko-rs\r\n\rRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:22 [DEBUG] [examples/cisco_xr.rs:55] [cisco_xr::cisco_xr] Sending config command: commit
-2025-01-16 13:31:22 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: commit
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: commit
-2025-01-16 13:31:22 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "commit\r\n\rThu Jan 16 13:29:57.140 UTC\r\nRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:23 [INFO] [examples/cisco_xr.rs:62] [cisco_xr::cisco_xr] Exiting config mode
-2025-01-16 13:31:23 [DEBUG] [src/vendors/cisco/xr.rs:63] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Exiting configuration mode
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: end
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "end\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:23 [DEBUG] [src/vendors/cisco/xr.rs:46] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Checking config mode
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: 
-
-2025-01-16 13:31:23 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:24 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:24 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:24 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "\r\n\rRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:31:24 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:24 [INFO] [examples/cisco_xr.rs:67] [cisco_xr::cisco_xr] Verifying configuration: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:31:24 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:31:24 [DEBUG] [src/base_connection.rs:264] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:31:24 [DEBUG] [src/base_connection.rs:275] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:31:24 [DEBUG] [src/base_connection.rs:195] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:31:24 [DEBUG] [src/base_connection.rs:205] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:31:24 [DEBUG] [src/base_connection.rs:234] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show running-config interface GigabitEthernet0/0/0/0\r\n\rThu Jan 16 13:29:58.650 UTC\r\ninterface GigabitEthernet0/0/0/0\r\n description Configured by Netmiko-rs\r\n shutdown\r\n!\r\n\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:31:24 [DEBUG] [src/base_connection.rs:285] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:31:24 [INFO] [examples/cisco_xr.rs:72] [cisco_xr::cisco_xr] Disconnecting from device
-2025-01-16 13:31:24 [DEBUG] [src/vendors/cisco/xr.rs:110] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Disconnecting from device
-2025-01-16 13:37:56 [DEBUG] [examples/cisco_xr.rs:14] [cisco_xr::cisco_xr] Connecting to Cisco XR device at 192.168.0.8
-2025-01-16 13:37:56 [DEBUG] [src/vendors/cisco/xr.rs:87] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Creating new CiscoXrSsh instance
-2025-01-16 13:37:56 [DEBUG] [src/base_connection.rs:19] [netmiko_rs::base_connection::BaseConnection::new] Creating new base connection
-2025-01-16 13:37:56 [DEBUG] [src/vendors/cisco/xr.rs:101] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Establishing connection to Cisco XR device
-2025-01-16 13:37:56 [DEBUG] [src/base_connection.rs:39] [netmiko_rs::base_connection::BaseConnection::connect] Connecting to moimran@192.168.0.8
-2025-01-16 13:37:56 [INFO] [src/base_connection.rs:42] [netmiko_rs::base_connection::netmiko_rs::base_connection] Connecting to 192.168.0.8:22 with username moimran
-2025-01-16 13:37:56 [DEBUG] [src/base_connection.rs:45] [netmiko_rs::base_connection::BaseConnection::connect] Establishing TCP connection to 192.168.0.8:22
-2025-01-16 13:37:56 [DEBUG] [src/base_connection.rs:52] [netmiko_rs::base_connection::BaseConnection::connect] TCP connection established
-2025-01-16 13:37:56 [DEBUG] [src/base_connection.rs:62] [netmiko_rs::base_connection::BaseConnection::connect] Creating SSH session
-2025-01-16 13:37:56 [DEBUG] [src/base_connection.rs:70] [netmiko_rs::base_connection::BaseConnection::connect] SSH session created, starting handshake
-2025-01-16 13:37:56 [DEBUG] [src/base_connection.rs:72] [netmiko_rs::base_connection::BaseConnection::connect] Starting SSH handshake
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:79] [netmiko_rs::base_connection::BaseConnection::connect] SSH handshake completed successfully
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:81] [netmiko_rs::base_connection::BaseConnection::connect] Authenticating with username moimran
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:83] [netmiko_rs::base_connection::BaseConnection::connect] Attempting password authentication for user: moimran
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:98] [netmiko_rs::base_connection::BaseConnection::connect] Authentication successful
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:100] [netmiko_rs::base_connection::BaseConnection::connect] Opening SSH channel
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:107] [netmiko_rs::base_connection::BaseConnection::connect] SSH channel created successfully
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:109] [netmiko_rs::base_connection::BaseConnection::connect] Requesting PTY
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:116] [netmiko_rs::base_connection::BaseConnection::connect] Starting shell
-2025-01-16 13:37:57 [INFO] [src/base_connection.rs:126] [netmiko_rs::base_connection::netmiko_rs::base_connection] Successfully connected to 192.168.0.8:22
-2025-01-16 13:37:57 [DEBUG] [src/vendors/cisco/xr.rs:31] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Setting base prompt for XR device
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: 
-
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "\r\n\r\nRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:37:57 [DEBUG] [src/vendors/cisco/xr.rs:12] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Preparing XR session
-2025-01-16 13:37:57 [DEBUG] [src/vendors/cisco/xr.rs:25] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Disabling paging
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: terminal length 0
-2025-01-16 13:37:57 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "terminal length 0\r\n\rThu Jan 16 13:36:32.123 UTC\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:37:58 [DEBUG] [src/vendors/cisco/xr.rs:19] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Setting terminal width to 511
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: terminal width 511
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "terminal width 511\r\n\rThu Jan 16 13:36:32.613 UTC\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:37:58 [DEBUG] [src/vendors/cisco/xr.rs:105] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Successfully connected to device with prompt: RP/0/0/CPU0:ios
-2025-01-16 13:37:58 [INFO] [examples/cisco_xr.rs:26] [cisco_xr::cisco_xr] Successfully connected to 192.168.0.8
-2025-01-16 13:37:58 [INFO] [examples/cisco_xr.rs:35] [cisco_xr::cisco_xr] Sending show commands: ["show version brief", "show platform", "show interfaces brief"]
-2025-01-16 13:37:58 [DEBUG] [examples/cisco_xr.rs:37] [cisco_xr::cisco_xr] Sending command: show version brief
-2025-01-16 13:37:58 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show version brief
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show version brief
-2025-01-16 13:37:58 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show version brief\r\n\rThu Jan 16 13:36:33.113 UTC\r\n\r\nCisco IOS XR Software, Version 6.1.3[Default]\r\nCopyright (c) 2017 by Cisco Systems, Inc.\r\n\r\nROM: GRUB, Version 1.99(0), DEV RELEASE\r\n\r\nios uptime is 3 hours, 11 minutes\r\nSystem image file is \"bootflash:disk0/xrvr-os-mbi-6.1.3/mbixrvr-rp.vm\"\r\n\r\ncisco IOS XRv Series (Pentium Celeron Stepping 3) processor with 3145215K bytes of memory.\r\nPentium Celeron Stepping 3 processor at 2599MHz, Revision 2.174\r\nIOS XRv Chassis\r\n\r\n3 GigabitEthernet\r\n1 Management Ethernet\r\n97070k bytes of non-volatile configuration memory.\r\n866M bytes of hard disk.\r\n2321392k bytes of disk0: (Sector size 512 bytes).\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:37:59 [DEBUG] [examples/cisco_xr.rs:37] [cisco_xr::cisco_xr] Sending command: show platform
-2025-01-16 13:37:59 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show platform
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show platform
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show platform\r\n\rThu Jan 16 13:36:33.613 UTC\r\nNode\t\tType\t\tPLIM\t\tState\t\tConfig State\r\n-----------------------------------------------------------------------------\r\n0/0/CPU0        RP(Active)      N/A             IOS XR RUN      PWR,NSHUT,MON\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:37:59 [DEBUG] [examples/cisco_xr.rs:37] [cisco_xr::cisco_xr] Sending command: show interfaces brief
-2025-01-16 13:37:59 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show interfaces brief
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show interfaces brief
-2025-01-16 13:37:59 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show interfaces brief\r\n\rThu Jan 16 13:36:34.123 UTC\r\n\r\n               Intf       Intf        LineP              Encap  MTU        BW\r\n               Name       State       State               Type (byte)    (Kbps)\r\n--------------------------------------------------------------------------------\r\n                Nu0          up          up               Null  1500          0\r\n       Mg0/0/CPU0/0          up          up               ARPA  1514    1000000\r\n          Gi0/0/0/0  admin-down  admin-down               ARPA  1514    1000000\r\n          Gi0/0/0/1  admin-down  admin-down               ARPA  1514    1000000\r\n          Gi0/0/0/2  admin-down  admin-down               ARPA  1514    1000000\r\n\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:38:00 [INFO] [examples/cisco_xr.rs:44] [cisco_xr::cisco_xr] Entering config mode
-2025-01-16 13:38:00 [DEBUG] [src/vendors/cisco/xr.rs:52] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Entering configuration mode
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: configure terminal
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "configure terminal\r\n\rThu Jan 16 13:36:34.623 UTC\r\nRP/0/0/CPU0:ios(config)#"
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:38:00 [DEBUG] [src/vendors/cisco/xr.rs:46] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Checking config mode
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: 
-
-2025-01-16 13:38:00 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "\r\n\rRP/0/0/CPU0:ios(config)#\r\n\rRP/0/0/CPU0:ios(config)#"
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:38:01 [INFO] [examples/cisco_xr.rs:53] [cisco_xr::cisco_xr] Sending config commands: ["interface GigabitEthernet0/0/0/0", "description Configured by Netmiko-rs", "commit"]
-2025-01-16 13:38:01 [DEBUG] [examples/cisco_xr.rs:55] [cisco_xr::cisco_xr] Sending config command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:38:01 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "interface GigabitEthernet0/0/0/0\r\n\rRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:38:01 [DEBUG] [examples/cisco_xr.rs:55] [cisco_xr::cisco_xr] Sending config command: description Configured by Netmiko-rs
-2025-01-16 13:38:01 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: description Configured by Netmiko-rs
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: description Configured by Netmiko-rs
-2025-01-16 13:38:01 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "description Configured by Netmiko-rs\r\n\rRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:38:02 [DEBUG] [examples/cisco_xr.rs:55] [cisco_xr::cisco_xr] Sending config command: commit
-2025-01-16 13:38:02 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: commit
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: commit
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "commit\r\n\rThu Jan 16 13:36:36.623 UTC\r\nRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:38:02 [INFO] [examples/cisco_xr.rs:62] [cisco_xr::cisco_xr] Exiting config mode
-2025-01-16 13:38:02 [DEBUG] [src/vendors/cisco/xr.rs:63] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Exiting configuration mode
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: end
-2025-01-16 13:38:02 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "end\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:38:03 [DEBUG] [src/vendors/cisco/xr.rs:46] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Checking config mode
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: 
-
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "\r\n\rRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:38:03 [INFO] [examples/cisco_xr.rs:67] [cisco_xr::cisco_xr] Verifying configuration: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:38:03 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:282] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:38:03 [DEBUG] [src/base_connection.rs:293] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:38:04 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:38:04 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:38:04 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show running-config interface GigabitEthernet0/0/0/0\r\n\rThu Jan 16 13:36:38.133 UTC\r\ninterface GigabitEthernet0/0/0/0\r\n description Configured by Netmiko-rs\r\n shutdown\r\n!\r\n\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:38:04 [DEBUG] [src/base_connection.rs:303] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:38:04 [INFO] [examples/cisco_xr.rs:72] [cisco_xr::cisco_xr] Disconnecting from device
-2025-01-16 13:38:04 [DEBUG] [src/vendors/cisco/xr.rs:110] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Disconnecting from device
-2025-01-16 13:39:50 [DEBUG] [examples/cisco_xr.rs:14] [cisco_xr::cisco_xr] Connecting to Cisco XR device at 192.168.0.8
-2025-01-16 13:39:50 [DEBUG] [src/vendors/cisco/xr.rs:87] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Creating new CiscoXrSsh instance
-2025-01-16 13:39:50 [DEBUG] [src/base_connection.rs:19] [netmiko_rs::base_connection::BaseConnection::new] Creating new base connection
-2025-01-16 13:39:50 [DEBUG] [src/vendors/cisco/xr.rs:101] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Establishing connection to Cisco XR device
-2025-01-16 13:39:50 [DEBUG] [src/base_connection.rs:39] [netmiko_rs::base_connection::BaseConnection::connect] Connecting to moimran@192.168.0.8
-2025-01-16 13:39:50 [INFO] [src/base_connection.rs:42] [netmiko_rs::base_connection::netmiko_rs::base_connection] Connecting to 192.168.0.8:22 with username moimran
-2025-01-16 13:39:50 [DEBUG] [src/base_connection.rs:45] [netmiko_rs::base_connection::BaseConnection::connect] Establishing TCP connection to 192.168.0.8:22
-2025-01-16 13:39:50 [DEBUG] [src/base_connection.rs:52] [netmiko_rs::base_connection::BaseConnection::connect] TCP connection established
-2025-01-16 13:39:50 [DEBUG] [src/base_connection.rs:62] [netmiko_rs::base_connection::BaseConnection::connect] Creating SSH session
-2025-01-16 13:39:50 [DEBUG] [src/base_connection.rs:70] [netmiko_rs::base_connection::BaseConnection::connect] SSH session created, starting handshake
-2025-01-16 13:39:50 [DEBUG] [src/base_connection.rs:72] [netmiko_rs::base_connection::BaseConnection::connect] Starting SSH handshake
-2025-01-16 13:39:51 [DEBUG] [src/base_connection.rs:79] [netmiko_rs::base_connection::BaseConnection::connect] SSH handshake completed successfully
-2025-01-16 13:39:51 [DEBUG] [src/base_connection.rs:81] [netmiko_rs::base_connection::BaseConnection::connect] Authenticating with username moimran
-2025-01-16 13:39:51 [DEBUG] [src/base_connection.rs:83] [netmiko_rs::base_connection::BaseConnection::connect] Attempting password authentication for user: moimran
-2025-01-16 13:39:51 [DEBUG] [src/base_connection.rs:98] [netmiko_rs::base_connection::BaseConnection::connect] Authentication successful
-2025-01-16 13:39:51 [DEBUG] [src/base_connection.rs:100] [netmiko_rs::base_connection::BaseConnection::connect] Opening SSH channel
-2025-01-16 13:39:51 [DEBUG] [src/base_connection.rs:107] [netmiko_rs::base_connection::BaseConnection::connect] SSH channel created successfully
-2025-01-16 13:39:51 [DEBUG] [src/base_connection.rs:109] [netmiko_rs::base_connection::BaseConnection::connect] Requesting PTY
-2025-01-16 13:39:51 [DEBUG] [src/base_connection.rs:116] [netmiko_rs::base_connection::BaseConnection::connect] Starting shell
-2025-01-16 13:39:51 [INFO] [src/base_connection.rs:126] [netmiko_rs::base_connection::netmiko_rs::base_connection] Successfully connected to 192.168.0.8:22
-2025-01-16 13:39:51 [DEBUG] [src/vendors/cisco/xr.rs:31] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Setting base prompt for XR device
-2025-01-16 13:39:51 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: 
-
-2025-01-16 13:39:51 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "\r\n\r\nRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:52 [DEBUG] [src/vendors/cisco/xr.rs:12] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Preparing XR session
-2025-01-16 13:39:52 [DEBUG] [src/vendors/cisco/xr.rs:25] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Disabling paging
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: terminal length 0
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "terminal length 0\r\n\rThu Jan 16 13:38:26.515 UTC\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:52 [DEBUG] [src/vendors/cisco/xr.rs:19] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Setting terminal width to 511
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: terminal width 511
-2025-01-16 13:39:52 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "terminal width 511\r\n\rThu Jan 16 13:38:27.015 UTC\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:53 [DEBUG] [src/vendors/cisco/xr.rs:105] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Successfully connected to device with prompt: RP/0/0/CPU0:ios
-2025-01-16 13:39:53 [INFO] [examples/cisco_xr.rs:26] [cisco_xr::cisco_xr] Successfully connected to 192.168.0.8
-2025-01-16 13:39:53 [INFO] [examples/cisco_xr.rs:35] [cisco_xr::cisco_xr] Sending show commands: ["show version brief", "show platform", "show interfaces brief"]
-2025-01-16 13:39:53 [DEBUG] [examples/cisco_xr.rs:37] [cisco_xr::cisco_xr] Sending command: show version brief
-2025-01-16 13:39:53 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show version brief
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show version brief
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show version brief\r\n\rThu Jan 16 13:38:27.515 UTC\r\n\r\nCisco IOS XR Software, Version 6.1.3[Default]\r\nCopyright (c) 2017 by Cisco Systems, Inc.\r\n\r\nROM: GRUB, Version 1.99(0), DEV RELEASE\r\n\r\nios uptime is 3 hours, 13 minutes\r\nSystem image file is \"bootflash:disk0/xrvr-os-mbi-6.1.3/mbixrvr-rp.vm\"\r\n\r\ncisco IOS XRv Series (Pentium Celeron Stepping 3) processor with 3145215K bytes of memory.\r\nPentium Celeron Stepping 3 processor at 2599MHz, Revision 2.174\r\nIOS XRv Chassis\r\n\r\n3 GigabitEthernet\r\n1 Management Ethernet\r\n97070k bytes of non-volatile configuration memory.\r\n866M bytes of hard disk.\r\n2321392k bytes of disk0: (Sector size 512 bytes).\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:53 [DEBUG] [examples/cisco_xr.rs:37] [cisco_xr::cisco_xr] Sending command: show platform
-2025-01-16 13:39:53 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show platform
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show platform
-2025-01-16 13:39:53 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show platform\r\n\rThu Jan 16 13:38:28.015 UTC\r\nNode\t\tType\t\tPLIM\t\tState\t\tConfig State\r\n-----------------------------------------------------------------------------\r\n0/0/CPU0        RP(Active)      N/A             IOS XR RUN      PWR,NSHUT,MON\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:54 [DEBUG] [examples/cisco_xr.rs:37] [cisco_xr::cisco_xr] Sending command: show interfaces brief
-2025-01-16 13:39:54 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show interfaces brief
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show interfaces brief
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show interfaces brief\r\n\rThu Jan 16 13:38:28.525 UTC\r\n\r\n               Intf       Intf        LineP              Encap  MTU        BW\r\n               Name       State       State               Type (byte)    (Kbps)\r\n--------------------------------------------------------------------------------\r\n                Nu0          up          up               Null  1500          0\r\n       Mg0/0/CPU0/0          up          up               ARPA  1514    1000000\r\n          Gi0/0/0/0  admin-down  admin-down               ARPA  1514    1000000\r\n          Gi0/0/0/1  admin-down  admin-down               ARPA  1514    1000000\r\n          Gi0/0/0/2  admin-down  admin-down               ARPA  1514    1000000\r\n\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:54 [INFO] [examples/cisco_xr.rs:44] [cisco_xr::cisco_xr] Entering config mode
-2025-01-16 13:39:54 [DEBUG] [src/vendors/cisco/xr.rs:52] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Entering configuration mode
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: configure terminal
-2025-01-16 13:39:54 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "configure terminal\r\n\rThu Jan 16 13:38:29.025 UTC\r\nRP/0/0/CPU0:ios(config)#"
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:55 [DEBUG] [src/vendors/cisco/xr.rs:46] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Checking config mode
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: 
-
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "\r\n\rRP/0/0/CPU0:ios(config)#\r\n\rRP/0/0/CPU0:ios(config)#"
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:55 [INFO] [examples/cisco_xr.rs:53] [cisco_xr::cisco_xr] Sending config commands: ["interface GigabitEthernet0/0/0/0", "description Configured by Netmiko-rs", "commit"]
-2025-01-16 13:39:55 [DEBUG] [examples/cisco_xr.rs:55] [cisco_xr::cisco_xr] Sending config command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:39:55 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: interface GigabitEthernet0/0/0/0
-2025-01-16 13:39:55 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "interface GigabitEthernet0/0/0/0\r\n\rRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:56 [DEBUG] [examples/cisco_xr.rs:55] [cisco_xr::cisco_xr] Sending config command: description Configured by Netmiko-rs
-2025-01-16 13:39:56 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: description Configured by Netmiko-rs
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: description Configured by Netmiko-rs
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "description Configured by Netmiko-rs\r\n\rRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:56 [DEBUG] [examples/cisco_xr.rs:55] [cisco_xr::cisco_xr] Sending config command: commit
-2025-01-16 13:39:56 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: commit
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: commit
-2025-01-16 13:39:56 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "commit\r\n\rThu Jan 16 13:38:31.025 UTC\r\nRP/0/0/CPU0:ios(config-if)#"
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:57 [INFO] [examples/cisco_xr.rs:62] [cisco_xr::cisco_xr] Exiting config mode
-2025-01-16 13:39:57 [DEBUG] [src/vendors/cisco/xr.rs:63] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Exiting configuration mode
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: end
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "end\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:57 [DEBUG] [src/vendors/cisco/xr.rs:46] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Checking config mode
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: 
-
-2025-01-16 13:39:57 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:58 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:58 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:58 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "\r\n\rRP/0/0/CPU0:ios#\r\n\rRP/0/0/CPU0:ios#"
-2025-01-16 13:39:58 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:58 [INFO] [examples/cisco_xr.rs:67] [cisco_xr::cisco_xr] Verifying configuration: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:39:58 [DEBUG] [src/vendors/cisco/xr.rs:80] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Sending command: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:39:58 [DEBUG] [src/base_connection.rs:310] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: show running-config interface GigabitEthernet0/0/0/0
-2025-01-16 13:39:58 [DEBUG] [src/base_connection.rs:321] [netmiko_rs::base_connection::BaseConnection::send_command] Command sent, waiting for processing
-2025-01-16 13:39:58 [DEBUG] [src/base_connection.rs:213] [netmiko_rs::base_connection::BaseConnection::read_channel] Starting read loop
-2025-01-16 13:39:58 [DEBUG] [src/base_connection.rs:223] [netmiko_rs::base_connection::BaseConnection::read_channel] Found prompt character
-2025-01-16 13:39:58 [DEBUG] [src/base_connection.rs:252] [netmiko_rs::base_connection::BaseConnection::read_channel] Read output: "show running-config interface GigabitEthernet0/0/0/0\r\n\rThu Jan 16 13:38:32.545 UTC\r\ninterface GigabitEthernet0/0/0/0\r\n description Configured by Netmiko-rs\r\n shutdown\r\n!\r\n\r\nRP/0/0/CPU0:ios#"
-2025-01-16 13:39:58 [DEBUG] [src/base_connection.rs:331] [netmiko_rs::base_connection::BaseConnection::send_command] Command completed successfully
-2025-01-16 13:39:58 [INFO] [examples/cisco_xr.rs:72] [cisco_xr::cisco_xr] Disconnecting from device
-2025-01-16 13:39:58 [DEBUG] [src/vendors/cisco/xr.rs:110] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Disconnecting from device
-2025-01-17 05:40:06 [DEBUG] [examples/cisco_xr.rs:14] [cisco_xr::cisco_xr] Connecting to Cisco XR device at 192.168.0.8
-2025-01-17 05:40:06 [DEBUG] [src/vendors/cisco/xr.rs:87] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Creating new CiscoXrSsh instance
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:21] [netmiko_rs::base_connection::BaseConnection::new] Creating new base connection
-2025-01-17 05:40:06 [DEBUG] [src/vendors/cisco/xr.rs:101] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Establishing connection to Cisco XR device
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:63] [netmiko_rs::base_connection::BaseConnection::connect] Connecting to moimran@192.168.0.8
-2025-01-17 05:40:06 [INFO] [src/base_connection.rs:68] [netmiko_rs::base_connection::netmiko_rs::base_connection] Connecting to 192.168.0.8:22 with username moimran
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:71] [netmiko_rs::base_connection::BaseConnection::connect] Establishing TCP connection to 192.168.0.8:22
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:78] [netmiko_rs::base_connection::BaseConnection::connect] TCP connection established
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:81] [netmiko_rs::base_connection::BaseConnection::connect] Setting TCP timeouts to 60s
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:88] [netmiko_rs::base_connection::BaseConnection::connect] Creating SSH session
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:96] [netmiko_rs::base_connection::BaseConnection::connect] SSH session created, starting handshake
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:98] [netmiko_rs::base_connection::BaseConnection::connect] Starting SSH handshake
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:105] [netmiko_rs::base_connection::BaseConnection::connect] SSH handshake completed successfully
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:107] [netmiko_rs::base_connection::BaseConnection::connect] Authenticating with username moimran
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:109] [netmiko_rs::base_connection::BaseConnection::connect] Attempting password authentication for user: moimran
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:124] [netmiko_rs::base_connection::BaseConnection::connect] Authentication successful
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:126] [netmiko_rs::base_connection::BaseConnection::connect] Opening SSH channel
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:133] [netmiko_rs::base_connection::BaseConnection::connect] SSH channel created successfully
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:135] [netmiko_rs::base_connection::BaseConnection::connect] Requesting PTY
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:142] [netmiko_rs::base_connection::BaseConnection::connect] Starting shell
-2025-01-17 05:40:06 [INFO] [src/base_connection.rs:152] [netmiko_rs::base_connection::netmiko_rs::base_connection] Successfully connected to 192.168.0.8:22
-2025-01-17 05:40:06 [DEBUG] [src/vendors/cisco/xr.rs:31] [netmiko_rs::vendors::cisco::xr::netmiko_rs::vendors::cisco::xr] Setting base prompt for XR device
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:298] [netmiko_rs::base_connection::BaseConnection::send_command] Sending command: 
-
-2025-01-17 05:40:06 [DEBUG] [src/base_connection.rs:231] [netmiko_rs::base_connection::BaseConnection::read_channel] Reading from channel
+2025-03-06 18:38:44 [DEBUG] [examples/cisco_devices.rs:15] [cisco_devices::cisco_devices] Connecting to Cisco IOS device at 192.168.1.25
+2025-03-06 18:38:44 [DEBUG] [src/base_connection.rs:21] [netssh_rs::base_connection::BaseConnection::new] Creating new base connection
+2025-03-06 18:38:44 [DEBUG] [src/base_connection.rs:63] [netssh_rs::base_connection::BaseConnection::connect] Connecting to moimran@192.168.1.25
+2025-03-06 18:38:44 [INFO] [src/base_connection.rs:68] [netssh_rs::base_connection::netssh_rs::base_connection] Connecting to 192.168.1.25:22 with username moimran
+2025-03-06 18:38:44 [DEBUG] [src/base_connection.rs:71] [netssh_rs::base_connection::BaseConnection::connect] Establishing TCP connection to 192.168.1.25:22
+2025-03-06 18:38:44 [DEBUG] [src/base_connection.rs:78] [netssh_rs::base_connection::BaseConnection::connect] TCP connection established
+2025-03-06 18:38:44 [DEBUG] [src/base_connection.rs:81] [netssh_rs::base_connection::BaseConnection::connect] Setting TCP timeouts to 30s
+2025-03-06 18:38:44 [DEBUG] [src/base_connection.rs:88] [netssh_rs::base_connection::BaseConnection::connect] Creating SSH session
+2025-03-06 18:38:44 [DEBUG] [src/base_connection.rs:96] [netssh_rs::base_connection::BaseConnection::connect] SSH session created, starting handshake
+2025-03-06 18:38:44 [DEBUG] [src/base_connection.rs:98] [netssh_rs::base_connection::BaseConnection::connect] Starting SSH handshake
+2025-03-06 18:38:44 [DEBUG] [src/base_connection.rs:105] [netssh_rs::base_connection::BaseConnection::connect] SSH handshake completed successfully
+2025-03-06 18:38:44 [DEBUG] [src/base_connection.rs:107] [netssh_rs::base_connection::BaseConnection::connect] Authenticating with username moimran
+2025-03-06 18:38:44 [DEBUG] [src/base_connection.rs:109] [netssh_rs::base_connection::BaseConnection::connect] Attempting password authentication for user: moimran
+2025-03-06 18:38:46 [INFO] [src/base_connection.rs:112] [netssh_rs::base_connection::netssh_rs::base_connection] Password authentication failed: [Session(-18)] Authentication failed (username/password)
+2025-03-06 18:39:11 [DEBUG] [examples/cisco_devices.rs:15] [cisco_devices::cisco_devices] Connecting to Cisco IOS device at 192.168.1.25
+2025-03-06 18:39:11 [DEBUG] [src/base_connection.rs:21] [netssh_rs::base_connection::BaseConnection::new] Creating new base connection
+2025-03-06 18:39:11 [DEBUG] [src/base_connection.rs:63] [netssh_rs::base_connection::BaseConnection::connect] Connecting to moimran@192.168.1.25
+2025-03-06 18:39:11 [INFO] [src/base_connection.rs:68] [netssh_rs::base_connection::netssh_rs::base_connection] Connecting to 192.168.1.25:22 with username moimran
+2025-03-06 18:39:11 [DEBUG] [src/base_connection.rs:71] [netssh_rs::base_connection::BaseConnection::connect] Establishing TCP connection to 192.168.1.25:22
+2025-03-06 18:39:11 [DEBUG] [src/base_connection.rs:78] [netssh_rs::base_connection::BaseConnection::connect] TCP connection established
+2025-03-06 18:39:11 [DEBUG] [src/base_connection.rs:81] [netssh_rs::base_connection::BaseConnection::connect] Setting TCP timeouts to 30s
+2025-03-06 18:39:11 [DEBUG] [src/base_connection.rs:88] [netssh_rs::base_connection::BaseConnection::connect] Creating SSH session
+2025-03-06 18:39:11 [DEBUG] [src/base_connection.rs:96] [netssh_rs::base_connection::BaseConnection::connect] SSH session created, starting handshake
+2025-03-06 18:39:11 [DEBUG] [src/base_connection.rs:98] [netssh_rs::base_connection::BaseConnection::connect] Starting SSH handshake
+2025-03-06 18:39:12 [DEBUG] [src/base_connection.rs:105] [netssh_rs::base_connection::BaseConnection::connect] SSH handshake completed successfully
+2025-03-06 18:39:12 [DEBUG] [src/base_connection.rs:107] [netssh_rs::base_connection::BaseConnection::connect] Authenticating with username moimran
+2025-03-06 18:39:12 [DEBUG] [src/base_connection.rs:109] [netssh_rs::base_connection::BaseConnection::connect] Attempting password authentication for user: moimran
+2025-03-06 18:39:14 [INFO] [src/base_connection.rs:112] [netssh_rs::base_connection::netssh_rs::base_connection] Password authentication failed: [Session(-18)] Authentication failed (username/password)
+2025-03-06 18:39:36 [DEBUG] [examples/cisco_devices.rs:15] [cisco_devices::cisco_devices] Connecting to Cisco IOS device at 192.168.1.25
+2025-03-06 18:39:36 [DEBUG] [src/base_connection.rs:21] [netssh_rs::base_connection::BaseConnection::new] Creating new base connection
+2025-03-06 18:39:36 [DEBUG] [src/base_connection.rs:63] [netssh_rs::base_connection::BaseConnection::connect] Connecting to admin@192.168.1.25
+2025-03-06 18:39:36 [INFO] [src/base_connection.rs:68] [netssh_rs::base_connection::netssh_rs::base_connection] Connecting to 192.168.1.25:22 with username admin
+2025-03-06 18:39:36 [DEBUG] [src/base_connection.rs:71] [netssh_rs::base_connection::BaseConnection::connect] Establishing TCP connection to 192.168.1.25:22
+2025-03-06 18:39:36 [DEBUG] [src/base_connection.rs:78] [netssh_rs::base_connection::BaseConnection::connect] TCP connection established
+2025-03-06 18:39:36 [DEBUG] [src/base_connection.rs:81] [netssh_rs::base_connection::BaseConnection::connect] Setting TCP timeouts to 30s
+2025-03-06 18:39:36 [DEBUG] [src/base_connection.rs:88] [netssh_rs::base_connection::BaseConnection::connect] Creating SSH session
+2025-03-06 18:39:36 [DEBUG] [src/base_connection.rs:96] [netssh_rs::base_connection::BaseConnection::connect] SSH session created, starting handshake
+2025-03-06 18:39:36 [DEBUG] [src/base_connection.rs:98] [netssh_rs::base_connection::BaseConnection::connect] Starting SSH handshake
+2025-03-06 18:39:37 [DEBUG] [src/base_connection.rs:105] [netssh_rs::base_connection::BaseConnection::connect] SSH handshake completed successfully
+2025-03-06 18:39:37 [DEBUG] [src/base_connection.rs:107] [netssh_rs::base_connection::BaseConnection::connect] Authenticating with username admin
+2025-03-06 18:39:37 [DEBUG] [src/base_connection.rs:109] [netssh_rs::base_connection::BaseConnection::connect] Attempting password authentication for user: admin
+2025-03-06 18:39:37 [DEBUG] [src/base_connection.rs:124] [netssh_rs::base_connection::BaseConnection::connect] Authentication successful
+2025-03-06 18:39:37 [DEBUG] [src/base_connection.rs:126] [netssh_rs::base_connection::BaseConnection::connect] Opening SSH channel
+2025-03-06 18:39:37 [DEBUG] [src/base_connection.rs:133] [netssh_rs::base_connection::BaseConnection::connect] SSH channel created successfully
+2025-03-06 18:39:37 [DEBUG] [src/base_connection.rs:135] [netssh_rs::base_connection::BaseConnection::connect] Requesting PTY
+2025-03-06 18:39:37 [DEBUG] [src/base_connection.rs:142] [netssh_rs::base_connection::BaseConnection::connect] Starting shell
+2025-03-06 18:39:37 [INFO] [src/base_connection.rs:152] [netssh_rs::base_connection::netssh_rs::base_connection] Successfully connected to 192.168.1.25:22
+2025-03-06 18:39:37 [DEBUG] [src/base_connection.rs:157] [netssh_rs::base_connection::BaseConnection::open_channel] Opening SSH channel
+2025-03-06 18:39:37 [INFO] [src/base_connection.rs:166] [netssh_rs::base_connection::netssh_rs::base_connection] Failed to create channel session: [Session(-21)] Channel open failure (resource shortage)
+2025-03-06 18:40:34 [DEBUG] [examples/cisco_devices.rs:15] [cisco_devices::cisco_devices] Connecting to Cisco IOS device at 192.168.1.25
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:21] [netssh_rs::base_connection::BaseConnection::new] Creating new base connection
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:63] [netssh_rs::base_connection::BaseConnection::connect] Connecting to admin@192.168.1.25
+2025-03-06 18:40:34 [INFO] [src/base_connection.rs:68] [netssh_rs::base_connection::netssh_rs::base_connection] Connecting to 192.168.1.25:22 with username admin
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:71] [netssh_rs::base_connection::BaseConnection::connect] Establishing TCP connection to 192.168.1.25:22
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:78] [netssh_rs::base_connection::BaseConnection::connect] TCP connection established
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:81] [netssh_rs::base_connection::BaseConnection::connect] Setting TCP timeouts to 30s
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:88] [netssh_rs::base_connection::BaseConnection::connect] Creating SSH session
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:96] [netssh_rs::base_connection::BaseConnection::connect] SSH session created, starting handshake
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:98] [netssh_rs::base_connection::BaseConnection::connect] Starting SSH handshake
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:105] [netssh_rs::base_connection::BaseConnection::connect] SSH handshake completed successfully
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:107] [netssh_rs::base_connection::BaseConnection::connect] Authenticating with username admin
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:109] [netssh_rs::base_connection::BaseConnection::connect] Attempting password authentication for user: admin
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:124] [netssh_rs::base_connection::BaseConnection::connect] Authentication successful
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:126] [netssh_rs::base_connection::BaseConnection::connect] Opening SSH channel
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:133] [netssh_rs::base_connection::BaseConnection::connect] SSH channel created successfully
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:135] [netssh_rs::base_connection::BaseConnection::connect] Requesting PTY
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:142] [netssh_rs::base_connection::BaseConnection::connect] Starting shell
+2025-03-06 18:40:34 [INFO] [src/base_connection.rs:152] [netssh_rs::base_connection::netssh_rs::base_connection] Successfully connected to 192.168.1.25:22
+2025-03-06 18:40:34 [DEBUG] [src/vendors/cisco/ios.rs:99] [netssh_rs::vendors::cisco::ios::CiscoIosDevice::session_preparation] Channel already exists, skipping open_channel
+2025-03-06 18:40:34 [DEBUG] [src/vendors/cisco/ios.rs:114] [netssh_rs::vendors::cisco::ios::CiscoIosDevice::set_terminal_width] Setting terminal width to 511
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:190] [netssh_rs::base_connection::BaseConnection::write_channel] Writing to channel: "terminal width 511\n"
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:206] [netssh_rs::base_connection::BaseConnection::write_channel] Successfully wrote to channel
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:269] [netssh_rs::base_connection::BaseConnection::read_until_pattern] Reading until pattern: #
+2025-03-06 18:40:34 [DEBUG] [src/base_connection.rs:231] [netssh_rs::base_connection::BaseConnection::read_channel] Reading from channel
+2025-03-06 18:42:14 [DEBUG] [examples/cisco_devices.rs:15] [cisco_devices::cisco_devices] Connecting to Cisco IOS device at 192.168.1.25
+2025-03-06 18:42:14 [DEBUG] [src/base_connection.rs:21] [netssh_rs::base_connection::BaseConnection::new] Creating new base connection
+2025-03-06 18:42:14 [DEBUG] [src/base_connection.rs:63] [netssh_rs::base_connection::BaseConnection::connect] Connecting to admin@192.168.1.25
+2025-03-06 18:42:14 [INFO] [src/base_connection.rs:68] [netssh_rs::base_connection::netssh_rs::base_connection] Connecting to 192.168.1.25:22 with username admin
+2025-03-06 18:42:14 [DEBUG] [src/base_connection.rs:71] [netssh_rs::base_connection::BaseConnection::connect] Establishing TCP connection to 192.168.1.25:22
+2025-03-06 18:42:14 [DEBUG] [src/base_connection.rs:78] [netssh_rs::base_connection::BaseConnection::connect] TCP connection established
+2025-03-06 18:42:14 [DEBUG] [src/base_connection.rs:81] [netssh_rs::base_connection::BaseConnection::connect] Setting TCP timeouts to 30s
+2025-03-06 18:42:14 [DEBUG] [src/base_connection.rs:88] [netssh_rs::base_connection::BaseConnection::connect] Creating SSH session
+2025-03-06 18:42:14 [DEBUG] [src/base_connection.rs:96] [netssh_rs::base_connection::BaseConnection::connect] SSH session created, starting handshake
+2025-03-06 18:42:14 [DEBUG] [src/base_connection.rs:98] [netssh_rs::base_connection::BaseConnection::connect] Starting SSH handshake
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:105] [netssh_rs::base_connection::BaseConnection::connect] SSH handshake completed successfully
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:107] [netssh_rs::base_connection::BaseConnection::connect] Authenticating with username admin
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:109] [netssh_rs::base_connection::BaseConnection::connect] Attempting password authentication for user: admin
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:124] [netssh_rs::base_connection::BaseConnection::connect] Authentication successful
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:126] [netssh_rs::base_connection::BaseConnection::connect] Opening SSH channel
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:133] [netssh_rs::base_connection::BaseConnection::connect] SSH channel created successfully
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:135] [netssh_rs::base_connection::BaseConnection::connect] Requesting PTY
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:142] [netssh_rs::base_connection::BaseConnection::connect] Starting shell
+2025-03-06 18:42:06 [INFO] [src/base_connection.rs:152] [netssh_rs::base_connection::netssh_rs::base_connection] Successfully connected to 192.168.1.25:22
+2025-03-06 18:42:06 [DEBUG] [src/vendors/cisco/ios.rs:99] [netssh_rs::vendors::cisco::ios::CiscoIosDevice::session_preparation] Channel already exists, skipping open_channel
+2025-03-06 18:42:06 [DEBUG] [src/vendors/cisco/ios.rs:114] [netssh_rs::vendors::cisco::ios::CiscoIosDevice::set_terminal_width] Setting terminal width to 511
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:190] [netssh_rs::base_connection::BaseConnection::write_channel] Writing to channel: "terminal width 511\n"
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:206] [netssh_rs::base_connection::BaseConnection::write_channel] Successfully wrote to channel
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:269] [netssh_rs::base_connection::BaseConnection::read_until_pattern] Reading until pattern: #
+2025-03-06 18:42:06 [DEBUG] [src/base_connection.rs:231] [netssh_rs::base_connection::BaseConnection::read_channel] Reading from channel
+2025-03-06 18:44:17 [DEBUG] [examples/cisco_devices.rs:15] [cisco_devices::cisco_devices] Connecting to Cisco IOS device at 192.168.1.25
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:21] [netssh_rs::base_connection::BaseConnection::new] Creating new base connection
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:63] [netssh_rs::base_connection::BaseConnection::connect] Connecting to admin@192.168.1.25
+2025-03-06 18:44:17 [INFO] [src/base_connection.rs:68] [netssh_rs::base_connection::netssh_rs::base_connection] Connecting to 192.168.1.25:22 with username admin
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:71] [netssh_rs::base_connection::BaseConnection::connect] Establishing TCP connection to 192.168.1.25:22
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:78] [netssh_rs::base_connection::BaseConnection::connect] TCP connection established
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:81] [netssh_rs::base_connection::BaseConnection::connect] Setting TCP timeouts to 30s
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:88] [netssh_rs::base_connection::BaseConnection::connect] Creating SSH session
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:96] [netssh_rs::base_connection::BaseConnection::connect] SSH session created, starting handshake
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:98] [netssh_rs::base_connection::BaseConnection::connect] Starting SSH handshake
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:105] [netssh_rs::base_connection::BaseConnection::connect] SSH handshake completed successfully
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:107] [netssh_rs::base_connection::BaseConnection::connect] Authenticating with username admin
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:109] [netssh_rs::base_connection::BaseConnection::connect] Attempting password authentication for user: admin
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:124] [netssh_rs::base_connection::BaseConnection::connect] Authentication successful
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:126] [netssh_rs::base_connection::BaseConnection::connect] Opening SSH channel
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:133] [netssh_rs::base_connection::BaseConnection::connect] SSH channel created successfully
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:135] [netssh_rs::base_connection::BaseConnection::connect] Requesting PTY
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:142] [netssh_rs::base_connection::BaseConnection::connect] Starting shell
+2025-03-06 18:44:17 [INFO] [src/base_connection.rs:152] [netssh_rs::base_connection::netssh_rs::base_connection] Successfully connected to 192.168.1.25:22
+2025-03-06 18:44:17 [DEBUG] [src/vendors/cisco/ios.rs:100] [netssh_rs::vendors::cisco::ios::CiscoIosDevice::session_preparation] Channel already exists, skipping open_channel
+2025-03-06 18:44:17 [DEBUG] [src/vendors/cisco/ios.rs:115] [netssh_rs::vendors::cisco::ios::CiscoIosDevice::set_terminal_width] Setting terminal width to 511
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:190] [netssh_rs::base_connection::BaseConnection::write_channel] Writing to channel: "terminal width 511\n"
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:206] [netssh_rs::base_connection::BaseConnection::write_channel] Successfully wrote to channel
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:269] [netssh_rs::base_connection::BaseConnection::read_until_pattern] Reading until pattern: #
+2025-03-06 18:44:17 [DEBUG] [src/base_connection.rs:231] [netssh_rs::base_connection::BaseConnection::read_channel] Reading from channel

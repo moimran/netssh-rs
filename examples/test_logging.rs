@@ -1,4 +1,4 @@
-use netmiko_rs::initialize_logging;
+use netssh_rs::initialize_logging;
 use log::{debug, info, warn, error, LevelFilter};
 use std::fs;
 use std::io::Read;

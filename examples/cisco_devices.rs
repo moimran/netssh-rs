@@ -1,79 +1,85 @@
-use netmiko_rs::{
-    initialize_logging,
-    vendors::cisco::{
-        asa::CiscoAsaDevice,
-        ios::CiscoIosDevice,
-        xr::CiscoXrSsh,
-        CiscoDeviceConfig,
-        CiscoBaseConnection,
-    },
-    NetmikoError,
-};
-use std::env;
-use std::time::Duration;
+use netssh_rs::{initialize_logging, CiscoBaseConnection};
+use netssh_rs::vendors::{CiscoIosDevice, CiscoDeviceConfig};
 use log::{debug, info};
 
-fn main() -> Result<(), NetmikoError> {
-    // Initialize logging with both debug and session logging enabled
-    initialize_logging(true , true)?;
-    debug!("Logging initialized successfully");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize logging with debug and session logs enabled
+    initialize_logging(true, true)?;
 
-    // Get environment variables
-    let host = env::var("DEVICE_HOST").unwrap_or_else(|_| "192.168.0.8".to_string());
-    let username = env::var("DEVICE_USER").unwrap_or_else(|_| "admin".to_string());
-    let password = env::var("DEVICE_PASS").unwrap_or_else(|_| "password".to_string());
-    let secret = env::var("DEVICE_SECRET").ok();
+    // Set connection parameters directly
+    let host = "192.168.1.25";
+    let username = "admin";
+    let password = "moimran@123";
+    let secret = "moimran@123";  // Enable secret password
 
-    // Create device configuration
+    debug!("Connecting to Cisco IOS device at {}", host);
+
+    // Create a device configuration
     let config = CiscoDeviceConfig {
-        host,
-        username,
-        password,
-        secret,
-        port: None,
-        timeout: Some(Duration::from_secs(10)),
+        host: host.to_string(),
+        username: username.to_string(),
+        password: Some(password.to_string()),
+        port: Some(22),
+        timeout: Some(std::time::Duration::from_secs(30)),  // Set timeout in seconds
+        secret: Some(secret.to_string()),  // Enable secret password
+        session_log: Some("session.log".to_string()),  // Path to session log file
     };
 
-    // Test each device type
-    test_ios_device(config.clone())?;
-    test_xr_device(config.clone())?;
-    test_asa_device(config)?;
+    // Create a new Cisco IOS device instance with the config
+    let mut device = CiscoIosDevice::new(config)?;
+    
+    // Connect to the device
+    device.connect()?;
 
-    Ok(())
-}
+    info!("Successfully connected to {}", host);
 
-fn test_ios_device(mut config: CiscoDeviceConfig) -> Result<(), NetmikoError> {
-    info!("Testing Cisco IOS device...");
-    let mut device = CiscoIosDevice::new(&config)?;
-    run_common_commands(&mut device)?;
-    Ok(())
-}
+    // Send some show commands
+    let show_commands = vec![
+        "show version",
+        "show inventory",
+        "show ip interface brief",
+    ];
 
-fn test_xr_device(mut config: CiscoDeviceConfig) -> Result<(), NetmikoError> {
-    info!("Testing Cisco XR device...");
-    let mut device = CiscoXrSsh::new(&config.host, &config.username, Some(&config.password), config.timeout)?;
-    run_common_commands(&mut device)?;
-    Ok(())
-}
+    info!("Sending show commands: {:?}", show_commands);
+    for cmd in show_commands {
+        debug!("Sending command: {}", cmd);
+        let output = device.send_command(cmd)?;
+        println!("\nOutput of '{}':", cmd);
+        println!("{}", output);
+    }
 
-fn test_asa_device(mut config: CiscoDeviceConfig) -> Result<(), NetmikoError> {
-    info!("Testing Cisco ASA device...");
-    let mut device = CiscoAsaDevice::new(&config)?;
-    run_common_commands(&mut device)?;
-    Ok(())
-}
+    // Enter config mode and make some changes
+    info!("Entering config mode");
+    device.config_mode(None)?;
 
-fn run_common_commands(device: &mut impl CiscoBaseConnection) -> Result<(), NetmikoError> {
-    // Send some test commands
-    info!("Sending show version...");
-    let output = device.send_command("show version")?;
-    debug!("show version output: {}", output);
+    let config_commands = vec![
+        "interface GigabitEthernet0/0",
+        "description Configured by Netssh-rs",
+    ];
 
-    info!("Entering config mode...");
-    device.config_mode()?;
+    info!("Sending config commands: {:?}", config_commands);
+    for cmd in config_commands {
+        debug!("Sending config command: {}", cmd);
+        let output = device.send_command(cmd)?;
+        println!("\nOutput of '{}':", cmd);
+        println!("{}", output);
+    }
 
-    info!("Exiting config mode...");
-    device.exit_config_mode()?;
+    // Exit config mode
+    info!("Exiting config mode");
+    device.exit_config_mode(None)?;
+
+    // Verify the configuration
+    let verify_cmd = "show running-config interface GigabitEthernet0/0";
+    info!("Verifying configuration: {}", verify_cmd);
+    let output = device.send_command(verify_cmd)?;
+    println!("\nVerification output:");
+    println!("{}", output);
+
+    info!("Disconnecting from device");
+    // Use close method instead of disconnect if available, 
+    // or just let the device drop which should close the connection
+    device.close()?;  // Replace with appropriate method
 
     Ok(())
 }

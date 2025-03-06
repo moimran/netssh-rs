@@ -1,4 +1,4 @@
-use crate::{BaseConnection, NetmikoError};
+use crate::{BaseConnection, NetsshError};
 use crate::vendors::cisco::CiscoBaseConnection;
 use log::debug;
 use std::time::Duration;
@@ -8,26 +8,26 @@ pub struct CiscoXrSsh {
 }
 
 impl CiscoBaseConnection for CiscoXrSsh {
-    fn session_preparation(&mut self) -> Result<(), NetmikoError> {
+    fn session_preparation(&mut self) -> Result<(), NetsshError> {
         debug!("Preparing XR session");
         self.disable_paging()?;
         self.set_terminal_width(511)?;
         Ok(())
     }
 
-    fn set_terminal_width(&mut self, width: u32) -> Result<(), NetmikoError> {
+    fn set_terminal_width(&mut self, width: u32) -> Result<(), NetsshError> {
         debug!("Setting terminal width to {}", width);
         self.base.send_command(&format!("terminal width {}", width))?;
         Ok(())
     }
 
-    fn disable_paging(&mut self) -> Result<(), NetmikoError> {
+    fn disable_paging(&mut self) -> Result<(), NetsshError> {
         debug!("Disabling paging");
         self.base.send_command("terminal length 0")?;
         Ok(())
     }
 
-    fn set_base_prompt(&mut self) -> Result<String, NetmikoError> {
+    fn set_base_prompt(&mut self) -> Result<String, NetsshError> {
         debug!("Setting base prompt for XR device");
         let output = self.base.send_command("\n")?;
         if let Some(prompt) = output.lines().last() {
@@ -35,55 +35,55 @@ impl CiscoBaseConnection for CiscoXrSsh {
                 let prompt = prompt.trim_end_matches('#').to_string();
                 Ok(prompt)
             } else {
-                Err(NetmikoError::PromptError("Failed to find XR prompt ending with #".to_string()))
+                Err(NetsshError::PromptError("Failed to find XR prompt ending with #".to_string()))
             }
         } else {
-            Err(NetmikoError::PromptError("No output received when finding prompt".to_string()))
+            Err(NetsshError::PromptError("No output received when finding prompt".to_string()))
         }
     }
 
-    fn check_config_mode(&mut self) -> Result<bool, NetmikoError> {
+    fn check_config_mode(&mut self) -> Result<bool, NetsshError> {
         debug!("Checking config mode");
         let prompt = self.base.send_command("\n")?;
         Ok(prompt.contains("(config)"))
     }
 
-    fn config_mode(&mut self, config_command: Option<&str>) -> Result<(), NetmikoError> {
+    fn config_mode(&mut self, config_command: Option<&str>) -> Result<(), NetsshError> {
         debug!("Entering configuration mode");
         let cmd = config_command.unwrap_or("configure terminal");
         self.base.send_command(cmd)?;
         if !self.check_config_mode()? {
-            Err(NetmikoError::ConfigError("Failed to enter configuration mode".to_string()))
+            Err(NetsshError::ConfigError("Failed to enter configuration mode".to_string()))
         } else {
             Ok(())
         }
     }
 
-    fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetmikoError> {
+    fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetsshError> {
         debug!("Exiting configuration mode");
         let cmd = exit_command.unwrap_or("end");
         self.base.send_command(cmd)?;
         if self.check_config_mode()? {
-            Err(NetmikoError::ConfigError("Failed to exit configuration mode".to_string()))
+            Err(NetsshError::ConfigError("Failed to exit configuration mode".to_string()))
         } else {
             Ok(())
         }
     }
 
-    fn save_config(&mut self) -> Result<(), NetmikoError> {
+    fn save_config(&mut self) -> Result<(), NetsshError> {
         debug!("Saving configuration");
         self.base.send_command("commit")?;
         Ok(())
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetmikoError> {
+    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
         debug!("Sending command: {}", command);
         self.base.send_command(command)
     }
 }
 
 impl CiscoXrSsh {
-    pub fn new() -> Result<Self, NetmikoError> {
+    pub fn new() -> Result<Self, NetsshError> {
         debug!("Creating new CiscoXrSsh instance");
         Ok(CiscoXrSsh {
             base: BaseConnection::new()?,
@@ -97,7 +97,7 @@ impl CiscoXrSsh {
         password: Option<&str>,
         port: Option<u16>,
         timeout: Option<Duration>,
-    ) -> Result<(), NetmikoError> {
+    ) -> Result<(), NetsshError> {
         debug!("Establishing connection to Cisco XR device");
         self.base.connect(host, username, password, port, timeout)?;
         let prompt = self.set_base_prompt()?;
@@ -106,11 +106,11 @@ impl CiscoXrSsh {
         Ok(())
     }
 
-    pub fn disconnect(&mut self) -> Result<(), NetmikoError> {
+    pub fn disconnect(&mut self) -> Result<(), NetsshError> {
         debug!("Disconnecting from device");
         if let Some(session) = self.base.session.take() {
             session.disconnect(None, "", None)
-                .map_err(|e| NetmikoError::DisconnectError(e.to_string()))?;
+                .map_err(|e| NetsshError::DisconnectError(e.to_string()))?;
         }
         Ok(())
     }

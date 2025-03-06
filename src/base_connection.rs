@@ -1,6 +1,6 @@
-use crate::error::NetmikoError;
+use crate::error::NetsshError;
 use crate::session_log::SessionLog;
-use crate::config::NetmikoConfig;
+use crate::config::NetsshConfig;
 use log::{debug, info};
 use ssh2::Session;
 use std::io::{Read, Write};
@@ -13,13 +13,13 @@ pub struct BaseConnection {
     pub channel: Option<ssh2::Channel>,
     pub base_prompt: Option<String>,
     pub session_log: SessionLog,
-    pub config: NetmikoConfig,
+    pub config: NetsshConfig,
 }
 
 impl BaseConnection {
-    pub fn new() -> Result<Self, NetmikoError> {
+    pub fn new() -> Result<Self, NetsshError> {
         debug!(target: "BaseConnection::new", "Creating new base connection");
-        let config = NetmikoConfig::default();
+        let config = NetsshConfig::default();
         let mut session_log = SessionLog::new();
         
         if config.enable_session_log {
@@ -35,7 +35,7 @@ impl BaseConnection {
         })
     }
 
-    pub fn with_config(config: NetmikoConfig) -> Result<Self, NetmikoError> {
+    pub fn with_config(config: NetsshConfig) -> Result<Self, NetsshError> {
         debug!(target: "BaseConnection::with_config", "Creating base connection with custom config");
         let mut session_log = SessionLog::new();
         
@@ -59,7 +59,7 @@ impl BaseConnection {
         password: Option<&str>,
         port: Option<u16>,
         timeout: Option<Duration>,
-    ) -> Result<(), NetmikoError> {
+    ) -> Result<(), NetsshError> {
         debug!(target: "BaseConnection::connect", "Connecting to {}@{}", username, host);
         
         let port = port.unwrap_or(self.config.default_port);
@@ -72,7 +72,7 @@ impl BaseConnection {
         let tcp = TcpStream::connect(&addr)
             .map_err(|e| {
                 info!("Failed to establish TCP connection: {}", e);
-                NetmikoError::IoError(e)
+                NetsshError::IoError(e)
             })?;
         
         debug!(target: "BaseConnection::connect", "TCP connection established");
@@ -80,16 +80,16 @@ impl BaseConnection {
         if let Some(timeout) = Some(timeout) {
             debug!(target: "BaseConnection::connect", "Setting TCP timeouts to {:?}", timeout);
             tcp.set_read_timeout(Some(self.config.read_timeout))
-                .map_err(|e| NetmikoError::IoError(e))?;
+                .map_err(|e| NetsshError::IoError(e))?;
             tcp.set_write_timeout(Some(self.config.write_timeout))
-                .map_err(|e| NetmikoError::IoError(e))?;
+                .map_err(|e| NetsshError::IoError(e))?;
         }
 
         debug!(target: "BaseConnection::connect", "Creating SSH session");
         let mut session = Session::new()
             .map_err(|e| {
                 info!("Failed to create SSH session: {}", e);
-                NetmikoError::SshError(e)
+                NetsshError::SshError(e)
             })?;
         session.set_tcp_stream(tcp);
 
@@ -99,7 +99,7 @@ impl BaseConnection {
         session.handshake()
             .map_err(|e| {
                 info!("SSH handshake failed: {}", e);
-                NetmikoError::SshError(e)
+                NetsshError::SshError(e)
             })?;
 
         debug!(target: "BaseConnection::connect", "SSH handshake completed successfully");
@@ -110,14 +110,14 @@ impl BaseConnection {
             session.userauth_password(username, pass)
                 .map_err(|e| {
                     info!("Password authentication failed: {}", e);
-                    NetmikoError::AuthenticationError(e.to_string())
+                    NetsshError::AuthenticationError(e.to_string())
                 })?;
         } else {
             debug!(target: "BaseConnection::connect", "Attempting SSH agent authentication for user: {}", username);
             session.userauth_agent(username)
                 .map_err(|e| {
                     info!("SSH agent authentication failed: {}", e);
-                    NetmikoError::AuthenticationError(e.to_string())
+                    NetsshError::AuthenticationError(e.to_string())
                 })?;
         }
 
@@ -127,7 +127,7 @@ impl BaseConnection {
         let mut channel = session.channel_session()
             .map_err(|e| {
                 info!("Failed to create channel session: {}", e);
-                NetmikoError::SshError(e)
+                NetsshError::SshError(e)
             })?;
 
         debug!(target: "BaseConnection::connect", "SSH channel created successfully");
@@ -136,14 +136,14 @@ impl BaseConnection {
         channel.request_pty("xterm", None, None)
             .map_err(|e| {
                 info!("Failed to request PTY: {}", e);
-                NetmikoError::SshError(e)
+                NetsshError::SshError(e)
             })?;
 
         debug!(target: "BaseConnection::connect", "Starting shell");
         channel.shell()
             .map_err(|e| {
                 info!("Failed to start shell: {}", e);
-                NetmikoError::SshError(e)
+                NetsshError::SshError(e)
             })?;
 
         self.session = Some(session);
@@ -153,32 +153,32 @@ impl BaseConnection {
         Ok(())
     }
 
-    pub fn open_channel(&mut self) -> Result<(), NetmikoError> {
+    pub fn open_channel(&mut self) -> Result<(), NetsshError> {
         debug!(target: "BaseConnection::open_channel", "Opening SSH channel");
         let session = self.session.as_mut()
             .ok_or_else(|| {
                 info!("Failed to open channel: no active session");
-                NetmikoError::ConnectionError("No active session".to_string())
+                NetsshError::ConnectionError("No active session".to_string())
             })?;
 
         let mut channel = session.channel_session()
             .map_err(|e| {
                 info!("Failed to create channel session: {}", e);
-                NetmikoError::SshError(e)
+                NetsshError::SshError(e)
             })?;
 
         debug!(target: "BaseConnection::open_channel", "Requesting PTY");
         channel.request_pty("xterm", None, None)
             .map_err(|e| {
                 info!("Failed to request PTY: {}", e);
-                NetmikoError::SshError(e)
+                NetsshError::SshError(e)
             })?;
 
         debug!(target: "BaseConnection::open_channel", "Starting shell");
         channel.shell()
             .map_err(|e| {
                 info!("Failed to start shell: {}", e);
-                NetmikoError::SshError(e)
+                NetsshError::SshError(e)
             })?;
 
         self.channel = Some(channel);
@@ -186,19 +186,19 @@ impl BaseConnection {
         Ok(())
     }
 
-    pub fn write_channel(&mut self, data: &str) -> Result<(), NetmikoError> {
+    pub fn write_channel(&mut self, data: &str) -> Result<(), NetsshError> {
         debug!(target: "BaseConnection::write_channel", "Writing to channel: {:?}", data);
         let channel = self.channel.as_mut()
-            .ok_or_else(|| NetmikoError::ConnectionError("No active channel".to_string()))?;
+            .ok_or_else(|| NetsshError::ConnectionError("No active channel".to_string()))?;
 
         // Convert string to bytes and write to channel
         let bytes = data.as_bytes();
         channel.write_all(bytes)
-            .map_err(|e| NetmikoError::WriteError(format!("Failed to write to channel: {}", e)))?;
+            .map_err(|e| NetsshError::WriteError(format!("Failed to write to channel: {}", e)))?;
 
         // Flush the channel to ensure all data is sent
         channel.flush()
-            .map_err(|e| NetmikoError::WriteError(format!("Failed to flush channel: {}", e)))?;
+            .map_err(|e| NetsshError::WriteError(format!("Failed to flush channel: {}", e)))?;
 
         // Log the written data if session logging is enabled
         self.session_log.write_raw(bytes)?;
@@ -207,18 +207,18 @@ impl BaseConnection {
         Ok(())
     }
 
-    pub fn write_channel_raw(&mut self, data: &[u8]) -> Result<(), NetmikoError> {
+    pub fn write_channel_raw(&mut self, data: &[u8]) -> Result<(), NetsshError> {
         debug!(target: "BaseConnection::write_channel_raw", "Writing raw bytes to channel: {:?}", data);
         let channel = self.channel.as_mut()
-            .ok_or_else(|| NetmikoError::ConnectionError("No active channel".to_string()))?;
+            .ok_or_else(|| NetsshError::ConnectionError("No active channel".to_string()))?;
 
         // Write raw bytes to channel
         channel.write_all(data)
-            .map_err(|e| NetmikoError::WriteError(format!("Failed to write to channel: {}", e)))?;
+            .map_err(|e| NetsshError::WriteError(format!("Failed to write to channel: {}", e)))?;
 
         // Flush the channel to ensure all data is sent
         channel.flush()
-            .map_err(|e| NetmikoError::WriteError(format!("Failed to flush channel: {}", e)))?;
+            .map_err(|e| NetsshError::WriteError(format!("Failed to flush channel: {}", e)))?;
 
         // Log the written data if session logging is enabled
         self.session_log.write_raw(data)?;
@@ -227,11 +227,11 @@ impl BaseConnection {
         Ok(())
     }
 
-    pub fn read_channel(&mut self) -> Result<String, NetmikoError> {
+    pub fn read_channel(&mut self) -> Result<String, NetsshError> {
         debug!(target: "BaseConnection::read_channel", "Reading from channel");
         
         let channel = self.channel.as_mut()
-            .ok_or_else(|| NetmikoError::ChannelError("No channel available".to_string()))?;
+            .ok_or_else(|| NetsshError::ChannelError("No channel available".to_string()))?;
 
         let mut buffer = vec![0; self.config.read_buffer_size];
         let mut output = String::new();
@@ -252,7 +252,7 @@ impl BaseConnection {
                     std::thread::sleep(Duration::from_millis(100));
                     continue;
                 }
-                Err(e) => return Err(NetmikoError::IoError(e)),
+                Err(e) => return Err(NetsshError::IoError(e)),
             }
         }
 
@@ -265,11 +265,11 @@ impl BaseConnection {
         Ok(output)
     }
 
-    pub fn read_until_pattern(&mut self, pattern: &str) -> Result<String, NetmikoError> {
+    pub fn read_until_pattern(&mut self, pattern: &str) -> Result<String, NetsshError> {
         debug!(target: "BaseConnection::read_until_pattern", "Reading until pattern: {}", pattern);
         
         let regex = Regex::new(pattern)
-            .map_err(|e| NetmikoError::PatternError(e.to_string()))?;
+            .map_err(|e| NetsshError::PatternError(e.to_string()))?;
         
         let mut output = String::new();
         let start_time = SystemTime::now();
@@ -288,13 +288,13 @@ impl BaseConnection {
             }
         }
         
-        Err(NetmikoError::TimeoutError(format!(
+        Err(NetsshError::TimeoutError(format!(
             "Pattern '{}' not found within timeout period",
             pattern
         )))
     }
 
-    pub fn send_command(&mut self, command: &str) -> Result<String, NetmikoError> {
+    pub fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
         debug!(target: "BaseConnection::send_command", "Sending command: {}", command);
         
         if self.config.auto_clear_buffer {
@@ -323,10 +323,10 @@ impl BaseConnection {
         }
 
         Err(last_error.unwrap_or_else(|| 
-            NetmikoError::CommandError("Maximum retries exceeded".to_string())))
+            NetsshError::CommandError("Maximum retries exceeded".to_string())))
     }
 
-    pub fn set_session_log(&mut self, filename: &str) -> Result<(), NetmikoError> {
+    pub fn set_session_log(&mut self, filename: &str) -> Result<(), NetsshError> {
         self.session_log.enable(filename)
     }
 }

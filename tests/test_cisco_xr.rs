@@ -1,6 +1,6 @@
 mod common;
 
-use netmiko_rs::CiscoXrSsh;
+use netssh_rs::CiscoXrSsh;
 use common::{setup_logging, MockDevice, DeviceType, get_valid_credentials, get_invalid_credentials};
 
 #[test]
@@ -9,8 +9,8 @@ fn test_connect() {
     let mock_device = MockDevice::new(DeviceType::CiscoXr);
     let (username, password) = get_valid_credentials();
     
-    // Create XR device with mock session
-    let mut xr = CiscoXrSsh::new("mock_host", &username, Some(&password), None).unwrap();
+    // Create XR device with mock session - add port parameter
+    let mut xr = CiscoXrSsh::new("mock_host", &username, Some(&password), Some(22)).unwrap();
     xr.base.session = Some(mock_device.create_mocked_session());
     
     let result = xr.connect();
@@ -28,7 +28,7 @@ fn test_send_commands() {
     let (username, password) = get_valid_credentials();
     
     // Create and connect XR device
-    let mut xr = CiscoXrSsh::new("mock_host", &username, Some(&password), None).unwrap();
+    let mut xr = CiscoXrSsh::new("mock_host", &username, Some(&password), Some(22)).unwrap();
     xr.base.session = Some(mock_device.create_mocked_session());
     xr.connect().unwrap();
     
@@ -52,7 +52,7 @@ fn test_config_mode() {
     let (username, password) = get_valid_credentials();
     
     // Create and connect XR device
-    let mut xr = CiscoXrSsh::new("mock_host", &username, Some(&password), None).unwrap();
+    let mut xr = CiscoXrSsh::new("mock_host", &username, Some(&password), Some(22)).unwrap();
     xr.base.session = Some(mock_device.create_mocked_session());
     xr.connect().unwrap();
     
@@ -76,7 +76,7 @@ fn test_invalid_credentials() {
     let (username, password) = get_invalid_credentials();
     
     // Create XR device with mock session
-    let mut xr = CiscoXrSsh::new("mock_host", &username, Some(&password), None).unwrap();
+    let mut xr = CiscoXrSsh::new("mock_host", &username, Some(&password), Some(22)).unwrap();
     xr.base.session = Some(mock_device.create_mocked_session());
     
     let result = xr.connect();

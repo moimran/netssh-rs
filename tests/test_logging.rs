@@ -1,6 +1,6 @@
 mod common;
 
-use netmiko_rs::{CiscoXrSsh, initialize_logging};
+use netssh_rs::{CiscoXrSsh, initialize_logging};
 use common::{TestDevice, setup_logging};
 use std::path::Path;
 

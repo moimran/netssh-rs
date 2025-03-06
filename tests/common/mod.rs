@@ -9,6 +9,8 @@ pub struct TestDevice {
     pub host: String,
     pub username: String,
     pub password: String,
+    // Adding port field which might be needed for netssh
+    pub port: u16,
 }
 
 impl Default for TestDevice {
@@ -17,6 +19,7 @@ impl Default for TestDevice {
             host: env::var("DEVICE_HOST").unwrap_or_else(|_| "192.168.0.8".to_string()),
             username: env::var("DEVICE_USER").unwrap_or_else(|_| "moimran".to_string()),
             password: env::var("DEVICE_PASS").unwrap_or_else(|_| "password".to_string()),
+            port: env::var("DEVICE_PORT").map(|p| p.parse().unwrap_or(22)).unwrap_or(22),
         }
     }
 }

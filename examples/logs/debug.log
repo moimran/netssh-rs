@@ -1,0 +1,16 @@
+2025-03-06 18:19:08 [DEBUG] [examples/cisco_devices.rs:19] [cisco_devices::cisco_devices] Logging initialized successfully
+2025-03-06 18:19:08 [INFO] [examples/cisco_devices.rs:47] [cisco_devices::cisco_devices] Testing Cisco IOS device...
+2025-03-06 18:19:08 [DEBUG] [src/base_connection.rs:21] [netssh_rs::base_connection::BaseConnection::new] Creating new base connection
+2025-03-06 18:19:08 [INFO] [examples/cisco_devices.rs:76] [cisco_devices::cisco_devices] Sending show version...
+2025-03-06 18:19:08 [DEBUG] [src/vendors/cisco/ios.rs:142] [netssh_rs::vendors::cisco::ios::CiscoIosDevice::send_command] Sending command: show version
+2025-03-06 18:19:08 [DEBUG] [src/base_connection.rs:298] [netssh_rs::base_connection::BaseConnection::send_command] Sending command: show version
+2025-03-06 18:19:08 [DEBUG] [src/base_connection.rs:231] [netssh_rs::base_connection::BaseConnection::read_channel] Reading from channel
+2025-03-06 18:19:08 [DEBUG] [src/base_connection.rs:190] [netssh_rs::base_connection::BaseConnection::write_channel] Writing to channel: "show version\n"
+2025-03-06 18:20:52 [DEBUG] [examples/cisco_devices.rs:19] [cisco_devices::cisco_devices] Logging initialized successfully
+2025-03-06 18:20:52 [INFO] [examples/cisco_devices.rs:47] [cisco_devices::cisco_devices] Testing Cisco IOS device...
+2025-03-06 18:20:52 [DEBUG] [src/base_connection.rs:21] [netssh_rs::base_connection::BaseConnection::new] Creating new base connection
+2025-03-06 18:20:52 [INFO] [examples/cisco_devices.rs:76] [cisco_devices::cisco_devices] Sending show version...
+2025-03-06 18:20:52 [DEBUG] [src/vendors/cisco/ios.rs:142] [netssh_rs::vendors::cisco::ios::CiscoIosDevice::send_command] Sending command: show version
+2025-03-06 18:20:52 [DEBUG] [src/base_connection.rs:298] [netssh_rs::base_connection::BaseConnection::send_command] Sending command: show version
+2025-03-06 18:20:52 [DEBUG] [src/base_connection.rs:231] [netssh_rs::base_connection::BaseConnection::read_channel] Reading from channel
+2025-03-06 18:20:52 [DEBUG] [src/base_connection.rs:190] [netssh_rs::base_connection::BaseConnection::write_channel] Writing to channel: "show version\n"

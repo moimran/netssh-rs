@@ -1,12 +1,12 @@
-use netmiko_rs::{
+use netssh_rs::{
     initialize_logging,
     BaseConnection,
-    NetmikoError,
+    NetsshError,
 };
 use std::env;
 use std::time::Duration;
 
-fn main() -> Result<(), NetmikoError> {
+fn main() -> Result<(), NetsshError> {
     // Initialize logging with both debug and session logging enabled
     initialize_logging(true, true)?;
 

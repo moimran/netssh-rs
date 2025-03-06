@@ -1,4 +1,4 @@
-use crate::error::NetmikoError;
+use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoDeviceConfig, CiscoIosDevice, CiscoXrDevice, CiscoAsaDevice, CiscoBaseConnection};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
@@ -35,9 +35,9 @@ impl ConnectHandler {
         timeout: Option<u64>,
         enable_secret: Option<String>,
         session_log: Option<String>,
-    ) -> Result<Box<dyn CiscoBaseConnection>, NetmikoError> {
+    ) -> Result<Box<dyn CiscoBaseConnection>, NetsshError> {
         if !DEVICE_TYPES.contains_key(device_type) {
-            return Err(NetmikoError::UnsupportedDevice(device_type.to_string()));
+            return Err(NetsshError::UnsupportedDevice(device_type.to_string()));
         }
 
         let config = CiscoDeviceConfig {
@@ -66,7 +66,7 @@ impl ConnectHandler {
                 device.connect()?;
                 Ok(Box::new(device))
             }
-            _ => Err(NetmikoError::UnsupportedDevice(device_type.to_string())),
+            _ => Err(NetsshError::UnsupportedDevice(device_type.to_string())),
         }
     }
 }

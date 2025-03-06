@@ -1,6 +1,6 @@
 mod common;
 
-use netmiko_rs::BaseConnection;
+use netssh_rs::BaseConnection;
 use common::{setup_logging, MockDevice, DeviceType, get_valid_credentials, get_invalid_credentials};
 
 #[test]
