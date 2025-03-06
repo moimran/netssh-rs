@@ -1,6 +1,7 @@
 use netssh_rs::{initialize_logging, CiscoBaseConnection};
 use netssh_rs::vendors::{CiscoIosDevice, CiscoDeviceConfig};
 use log::{debug, info};
+use serde::de;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging with debug and session logs enabled
@@ -14,29 +15,45 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     debug!("Connecting to Cisco IOS device at {}", host);
 
+    // Create a custom NetsshConfig with longer timeouts
+    let custom_config = netssh_rs::config::NetsshConfigBuilder::default()
+        .connection_timeout(std::time::Duration::from_secs(60))
+        .read_timeout(std::time::Duration::from_secs(30))
+        .pattern_timeout(std::time::Duration::from_secs(60))
+        .enable_session_log(true)
+        .session_log_path("logs/session.log".to_string())
+        .build();
+
+    // Create a BaseConnection with the custom config
+    let base_connection = netssh_rs::base_connection::BaseConnection::with_config(custom_config)?;
+
     // Create a device configuration
     let config = CiscoDeviceConfig {
         host: host.to_string(),
         username: username.to_string(),
         password: Some(password.to_string()),
         port: Some(22),
-        timeout: Some(std::time::Duration::from_secs(30)),  // Set timeout in seconds
-        secret: Some(secret.to_string()),  // Enable secret password
-        session_log: Some("session.log".to_string()),  // Path to session log file
+        timeout: Some(std::time::Duration::from_secs(60)),
+        secret: Some(secret.to_string()),
+        session_log: Some("logs/session.log".to_string()),
     };
 
-    // Create a new Cisco IOS device instance with the config
-    let mut device = CiscoIosDevice::new(config)?;
+    // Create a new Cisco IOS device instance with the custom connection and config
+    let mut device = CiscoIosDevice::with_connection(base_connection, config);
     
     // Connect to the device
     device.connect()?;
 
-    info!("Successfully connected to {}", host);
+    info!("Successfully connected toooooo {}", host);
+    info!("check for  enable mode");
+    // Check if we're in enable mode
+    debug!("Checking if device is in enable mode");
+    let in_enable = device.check_enable_mode()?;
+    info!("Device is in enable mode: {}", in_enable);
 
     // Send some show commands
     let show_commands = vec![
-        "show version",
-        "show inventory",
+        "show version | include Version",
         "show ip interface brief",
     ];
 
@@ -76,10 +93,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\nVerification output:");
     println!("{}", output);
 
+    // Save the configuration
+    info!("Saving configuration");
+    device.save_config()?;
+    println!("Configuration saved successfully");
+
+    // Gracefully close the connection
     info!("Disconnecting from device");
-    // Use close method instead of disconnect if available, 
-    // or just let the device drop which should close the connection
-    device.close()?;  // Replace with appropriate method
+    device.close()?;
+    println!("Connection closed successfully");
 
     Ok(())
 }

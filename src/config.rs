@@ -54,7 +54,7 @@ impl Default for NetsshConfig {
             auto_clear_buffer: true,
             retry_count: 3,
             retry_delay: Duration::from_millis(1000),
-            enable_session_log: false,
+            enable_session_log: true,
             session_log_path: String::from("logs/session.log"),
         }
     }

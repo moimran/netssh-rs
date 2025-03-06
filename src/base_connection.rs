@@ -1,3 +1,4 @@
+use crate::channel::SSHChannel;
 use crate::error::NetsshError;
 use crate::session_log::SessionLog;
 use crate::config::NetsshConfig;
@@ -10,10 +11,14 @@ use regex::Regex;
 
 pub struct BaseConnection {
     pub session: Option<Session>,
-    pub channel: Option<ssh2::Channel>,
+    pub channel: SSHChannel,
     pub base_prompt: Option<String>,
     pub session_log: SessionLog,
     pub config: NetsshConfig,
+    pub disable_lf_normalization: bool,
+    pub ansi_escape_codes: bool,
+    pub read_timeout_override: Option<Duration>,
+    _read_buffer: String,
 }
 
 impl BaseConnection {
@@ -28,10 +33,14 @@ impl BaseConnection {
         
         Ok(BaseConnection {
             session: None,
-            channel: None,
+            channel: SSHChannel::new(None),
             base_prompt: None,
             session_log,
             config,
+            disable_lf_normalization: false,
+            ansi_escape_codes: false,
+            read_timeout_override: None,
+            _read_buffer: String::new(),
         })
     }
 
@@ -45,10 +54,14 @@ impl BaseConnection {
         
         Ok(BaseConnection {
             session: None,
-            channel: None,
+            channel: SSHChannel::new(None),
             base_prompt: None,
             session_log,
             config,
+            disable_lf_normalization: false,
+            ansi_escape_codes: false,
+            read_timeout_override: None,
+            _read_buffer: String::new(),
         })
     }
 
@@ -147,7 +160,7 @@ impl BaseConnection {
             })?;
 
         self.session = Some(session);
-        self.channel = Some(channel);
+        self.channel = SSHChannel::new(Some(channel));
 
         info!("Successfully connected to {}:{}", host, port);
         Ok(())
@@ -181,27 +194,19 @@ impl BaseConnection {
                 NetsshError::SshError(e)
             })?;
 
-        self.channel = Some(channel);
+        self.channel = SSHChannel::new(Some(channel));
         debug!(target: "BaseConnection::open_channel", "Successfully opened channel and started shell");
         Ok(())
     }
 
     pub fn write_channel(&mut self, data: &str) -> Result<(), NetsshError> {
         debug!(target: "BaseConnection::write_channel", "Writing to channel: {:?}", data);
-        let channel = self.channel.as_mut()
-            .ok_or_else(|| NetsshError::ConnectionError("No active channel".to_string()))?;
-
-        // Convert string to bytes and write to channel
-        let bytes = data.as_bytes();
-        channel.write_all(bytes)
-            .map_err(|e| NetsshError::WriteError(format!("Failed to write to channel: {}", e)))?;
-
-        // Flush the channel to ensure all data is sent
-        channel.flush()
-            .map_err(|e| NetsshError::WriteError(format!("Failed to flush channel: {}", e)))?;
-
+        
+        // Use the SSHChannel to write data
+        self.channel.write_channel(data)?;
+        
         // Log the written data if session logging is enabled
-        self.session_log.write_raw(bytes)?;
+        self.session_log.write_raw(data.as_bytes())?;
 
         debug!(target: "BaseConnection::write_channel", "Successfully wrote to channel");
         Ok(())
@@ -209,17 +214,13 @@ impl BaseConnection {
 
     pub fn write_channel_raw(&mut self, data: &[u8]) -> Result<(), NetsshError> {
         debug!(target: "BaseConnection::write_channel_raw", "Writing raw bytes to channel: {:?}", data);
-        let channel = self.channel.as_mut()
-            .ok_or_else(|| NetsshError::ConnectionError("No active channel".to_string()))?;
-
-        // Write raw bytes to channel
-        channel.write_all(data)
-            .map_err(|e| NetsshError::WriteError(format!("Failed to write to channel: {}", e)))?;
-
-        // Flush the channel to ensure all data is sent
-        channel.flush()
-            .map_err(|e| NetsshError::WriteError(format!("Failed to flush channel: {}", e)))?;
-
+        
+        // Convert bytes to string using the channel's encoding
+        let data_str = String::from_utf8_lossy(data).to_string();
+        
+        // Use the SSHChannel to write data
+        self.channel.write_channel(&data_str)?;
+        
         // Log the written data if session logging is enabled
         self.session_log.write_raw(data)?;
 
@@ -227,71 +228,217 @@ impl BaseConnection {
         Ok(())
     }
 
+    // Helper method to normalize line feeds (convert \r\n to \n)
+    fn normalize_linefeeds(&self, data: &str) -> String {
+        data.replace("\r\n", "\n")
+    }
+    
+    // Helper method to strip ANSI escape codes
+    fn strip_ansi_escape_codes(&self, data: &str) -> String {
+        // Simple regex to strip ANSI escape codes
+        let re = Regex::new(r"\x1B\[[0-9;]*[a-zA-Z]").unwrap();
+        re.replace_all(data, "").to_string()
+    }
+
     pub fn read_channel(&mut self) -> Result<String, NetsshError> {
         debug!(target: "BaseConnection::read_channel", "Reading from channel");
         
-        let channel = self.channel.as_mut()
-            .ok_or_else(|| NetsshError::ChannelError("No channel available".to_string()))?;
-
-        let mut buffer = vec![0; self.config.read_buffer_size];
-        let mut output = String::new();
-        
-        let start_time = SystemTime::now();
-        
-        while start_time.elapsed()? < self.config.read_timeout {
-            match channel.read(&mut buffer) {
-                Ok(n) if n > 0 => {
-                    let chunk = String::from_utf8_lossy(&buffer[..n]).to_string();
-                    output.push_str(&chunk);
-                    if self.session_log.is_active() {
-                        self.session_log.write(&chunk)?;
-                    }
+        // Create a regex for the prompt if base_prompt is set
+        let prompt_regex = if let Some(ref prompt) = self.base_prompt {
+            let pattern = format!(r"{}[>#]", regex::escape(prompt));
+            match Regex::new(&pattern) {
+                Ok(re) => Some(re),
+                Err(e) => {
+                    debug!(target: "BaseConnection::read_channel", "Failed to create prompt regex: {}", e);
+                    None
                 }
-                Ok(_) => break,
-                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    std::thread::sleep(Duration::from_millis(100));
-                    continue;
-                }
-                Err(e) => return Err(NetsshError::IoError(e)),
             }
-        }
-
-        if output.is_empty() {
-            debug!(target: "BaseConnection::read_channel", "No data read from channel");
         } else {
-            debug!(target: "BaseConnection::read_channel", "Read {} bytes from channel", output.len());
+            None
+        };
+        
+        // Use the SSHChannel to read data with the prompt regex
+        let new_data = if let Some(re) = prompt_regex.as_ref() {
+            debug!(target: "BaseConnection::read_channel", "Reading buffer with prompt regex: {:?}", re);
+            self.channel.read_buffer(Some(re))?
+        } else {
+            debug!(target: "BaseConnection::read_channel", "Reading channel without prompt regex");
+            self.channel.read_channel()?
+        };
+
+        if self.disable_lf_normalization == false && !new_data.is_empty() {
+            // Process line feeds if needed
+            let normalized_data = self.normalize_linefeeds(&new_data);
+            
+            // Strip ANSI escape codes if configured
+            let processed_data = if self.ansi_escape_codes {
+                self.strip_ansi_escape_codes(&normalized_data)
+            } else {
+                normalized_data
+            };
+            
+            debug!(target: "BaseConnection::read_channel", "Read {} bytes from channel", processed_data.len());
+            
+            // Log the data if session logging is enabled
+            if self.session_log.is_active() {
+                self.session_log.write(&processed_data)?;
+            }
+            
+            // If data had been previously saved to the buffer, prepend it to output
+            if !self._read_buffer.is_empty() {
+                let output = self._read_buffer.clone() + &processed_data;
+                self._read_buffer.clear();
+                return Ok(output);
+            }
+            
+            return Ok(processed_data);
+        }
+        
+        // Log the raw data if session logging is enabled and no processing was done
+        if self.session_log.is_active() && !new_data.is_empty() {
+            self.session_log.write(&new_data)?;
+        }
+        
+        // If data had been previously saved to the buffer, prepend it to output
+        if !self._read_buffer.is_empty() {
+            let output = self._read_buffer.clone() + &new_data;
+            self._read_buffer.clear();
+            return Ok(output);
         }
 
-        Ok(output)
+        Ok(new_data)
     }
 
     pub fn read_until_pattern(&mut self, pattern: &str) -> Result<String, NetsshError> {
         debug!(target: "BaseConnection::read_until_pattern", "Reading until pattern: {}", pattern);
         
+        // Use read_timeout_override if set
+        let read_timeout = self.read_timeout_override.unwrap_or(self.config.pattern_timeout);
+        
+        // Special case for prompt patterns
+        if pattern == "[>#]" && self.base_prompt.is_some() {
+            debug!(target: "BaseConnection::read_until_pattern", "Using special handling for prompt pattern");
+            return self.read_until_prompt();
+        }
+        
+        // Compile the regex pattern
         let regex = Regex::new(pattern)
             .map_err(|e| NetsshError::PatternError(e.to_string()))?;
         
+        // If we have a base_prompt and the pattern is for a prompt, use the SSHChannel's read_until_prompt method
+        if (pattern.ends_with("#") || pattern.ends_with(">") || pattern.contains("[>#]")) && self.base_prompt.is_some() {
+            debug!(target: "BaseConnection::read_until_pattern", "Using SSHChannel's read_until_prompt method");
+            return self.channel.read_until_prompt(Some(read_timeout), Some(&regex));
+        }
+
+        if (pattern.ends_with("#") || pattern.ends_with(">") || pattern.contains("[>#]")) {
+            debug!(target: "BaseConnection::read_until_pattern", "Using SSHChannel's read_until_prompt method with no base prompt");
+            return self.channel.read_until_prompt(Some(read_timeout), Some(&regex));
+        }
+        
+        
         let mut output = String::new();
+        let loop_delay = Duration::from_millis(10); // 10ms delay between reads
         let start_time = SystemTime::now();
         
-        while start_time.elapsed()? < self.config.pattern_timeout {
-            let chunk = self.read_channel()?;
-            output.push_str(&chunk);
+        // Keep reading until timeout or pattern is found
+        while start_time.elapsed()? < read_timeout {
+            // Read a chunk of data
+            let new_data = self.read_channel()?;
             
-            if regex.is_match(&output) {
-                debug!(target: "BaseConnection::read_until_pattern", "Pattern found");
-                return Ok(output);
-            }
-            
-            if chunk.is_empty() {
-                std::thread::sleep(Duration::from_millis(100));
+            if !new_data.is_empty() {
+                debug!(target: "BaseConnection::read_until_pattern", "Read chunk: {:?}", new_data);
+                output.push_str(&new_data);
+                
+                // Check if pattern is found
+                if regex.is_match(&output) {
+                    debug!(target: "BaseConnection::read_until_pattern", "Pattern found: {}", pattern);
+                    
+                    // Process the output to split at the pattern
+                    if pattern.contains('(') && !pattern.contains("(?:") {
+                        debug!(target: "BaseConnection::read_until_pattern", "Parenthesis found in pattern, may need special handling");
+                    }
+                    
+                    let results = regex.splitn(&output, 2).collect::<Vec<&str>>();
+                    
+                    if results.len() > 1 && !results[1].is_empty() {
+                        // Store excess data in the read buffer
+                        self._read_buffer = results[1].to_string();
+                        
+                        // Return everything up to and including the pattern
+                        let match_index = output.len() - results[1].len();
+                        return Ok(output[..match_index].to_string());
+                    }
+                    
+                    return Ok(output);
+                }
+            } else {
+                // If no new data, sleep a bit to avoid CPU spinning
+                std::thread::sleep(loop_delay);
             }
         }
         
+        // If we have some output but timed out, return what we have instead of an error
+        if !output.is_empty() {
+            debug!(target: "BaseConnection::read_until_pattern", "Timeout reached but returning partial output: {:?}", output);
+            return Ok(output);
+        }
+        
+        debug!(target: "BaseConnection::read_until_pattern", "Timeout reached with no output");
         Err(NetsshError::TimeoutError(format!(
-            "Pattern '{}' not found within timeout period",
-            pattern
+            "Pattern '{}' not found within timeout period. Final buffer: {:?}",
+            pattern, output
         )))
+    }
+    
+    // Special method to handle reading until a prompt (> or #)
+    pub fn read_until_prompt(&mut self) -> Result<String, NetsshError> {
+        debug!(target: "BaseConnection::read_until_prompt", "Reading until prompt (> or #)");
+        
+        let mut output = String::new();
+        let loop_delay = Duration::from_millis(10); // 10ms delay between reads
+        let start_time = SystemTime::now();
+        
+        // Keep reading until timeout or prompt is found
+        while start_time.elapsed()? < self.config.pattern_timeout {
+            // Read a chunk of data
+            let new_data = self.read_channel()?;
+            
+            if !new_data.is_empty() {
+                debug!(target: "BaseConnection::read_until_prompt", "Read chunk: {:?}", new_data);
+                output.push_str(&new_data);
+                
+                // Check for prompt characters at the end of lines
+                let lines: Vec<&str> = output.lines().collect();
+                if let Some(last_line) = lines.last() {
+                    let trimmed = last_line.trim();
+                    if trimmed.ends_with(">") || trimmed.ends_with("#") {
+                        debug!(target: "BaseConnection::read_until_prompt", "Prompt found: {}", trimmed);
+                        return Ok(output);
+                    }
+                }
+            } else {
+                // If no new data, try sending a newline to get a prompt
+                if output.is_empty() || start_time.elapsed()? > Duration::from_secs(5) {
+                    debug!(target: "BaseConnection::read_until_prompt", "Sending newline to get prompt");
+                    let _ = self.write_channel("\n");
+                }
+                
+                // Sleep a bit to avoid CPU spinning
+                std::thread::sleep(loop_delay);
+            }
+        }
+        
+        // If we have some output but timed out, return what we have instead of an error
+        if !output.is_empty() {
+            debug!(target: "BaseConnection::read_until_prompt", "Timeout reached but returning partial output: {:?}", output);
+            return Ok(output);
+        }
+        
+        debug!(target: "BaseConnection::read_until_prompt", "Timeout reached with no output");
+        Err(NetsshError::TimeoutError(
+            "Prompt not found within timeout period".to_string()
+        ))
     }
 
     pub fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
@@ -304,26 +451,22 @@ impl BaseConnection {
 
         // Write the command
         self.write_channel(&format!("{}\n", command))?;
-
-        // Try to read with retries
-        let mut last_error = None;
-        for retry in 0..self.config.retry_count {
-            match self.read_channel() {
-                Ok(output) => {
-                    debug!(target: "BaseConnection::send_command", "Command output received");
-                    return Ok(output);
-                }
-                Err(e) => {
-                    debug!(target: "BaseConnection::send_command", 
-                          "Retry {} failed: {}", retry + 1, e);
-                    last_error = Some(e);
-                    std::thread::sleep(self.config.retry_delay);
-                }
-            }
-        }
-
-        Err(last_error.unwrap_or_else(|| 
-            NetsshError::CommandError("Maximum retries exceeded".to_string())))
+        
+        // Wait for command echo and prompt
+        // Use a pattern that matches both user mode (>) and privileged mode (#) prompts
+        let output = self.read_until_pattern("[>#]")?;
+        
+        // Remove command echo from output
+        let lines: Vec<&str> = output.lines().collect();
+        let result = if lines.len() > 1 {
+            // Skip the first line (command echo) and join the rest
+            lines[1..].join("\n")
+        } else {
+            output
+        };
+        
+        debug!(target: "BaseConnection::send_command", "Command output received, length: {}", result.len());
+        Ok(result)
     }
 
     pub fn set_session_log(&mut self, filename: &str) -> Result<(), NetsshError> {
