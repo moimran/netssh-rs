@@ -211,10 +211,10 @@ impl CiscoIosDevice {
         debug!(target: "CiscoIosDevice::enable", "Entering enable mode");
         
         // Check if already in enable mode
-        // if self.check_enable_mode()? {
-        //     debug!(target: "CiscoIosDevice::enable", "Already in enable mode");
-        //     return Ok(());
-        // }
+        if self.check_enable_mode()? {
+            debug!(target: "CiscoIosDevice::enable", "Already in enable mode");
+            return Ok(());
+        }
         
         // Send enable command
         self.connection.write_channel("enable\n")?;
@@ -226,29 +226,21 @@ impl CiscoIosDevice {
             // Use a more flexible pattern to match "Password:" with case insensitivity
             let output = self.connection.read_until_pattern("(?i)password")?;
             
-            if !PASSWORD_PATTERN.is_match(&output) {
+            if PASSWORD_PATTERN.is_match(&output) {
+                debug!(target: "CiscoIosDevice::enable", "Sending enable password");
+                self.connection.write_channel(&format!("{}\n", secret))?;
+            } else {
                 warn!(target: "CiscoIosDevice::enable", "Password prompt not found in output: {}", output);
                 return Err(NetsshError::CommandError("Password prompt not found".to_string()));
             }
-            
-            debug!(target: "CiscoIosDevice::enable", "Sending enable password");
-            self.connection.write_channel(&format!("{}\n", secret))?;
-            
-            // Wait for enable prompt (the # character)
-            let output = self.connection.read_until_pattern("#")?;
-            
-            if !output.trim().ends_with("#") {
-                warn!(target: "CiscoIosDevice::enable", "Enable prompt not found after sending password");
-                return Err(NetsshError::CommandError("Failed to enter enable mode".to_string()));
-            }
-        } else {
-            // If no secret provided, just wait for the enable prompt
-            let output = self.connection.read_until_pattern("#")?;
-            
-            if !output.trim().ends_with("#") {
-                warn!(target: "CiscoIosDevice::enable", "Enable prompt not found");
-                return Err(NetsshError::CommandError("Failed to enter enable mode".to_string()));
-            }
+        }
+        
+        // Wait for enable prompt (the # character)
+        let output = self.connection.read_until_pattern("#")?;
+        
+        if !output.trim().ends_with("#") {
+            warn!(target: "CiscoIosDevice::enable", "Enable prompt not found");
+            return Err(NetsshError::CommandError("Failed to enter enable mode".to_string()));
         }
         
         self.in_enable_mode = true;
