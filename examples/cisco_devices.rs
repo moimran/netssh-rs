@@ -1,7 +1,6 @@
 use netssh_rs::{initialize_logging, CiscoBaseConnection};
 use netssh_rs::vendors::{CiscoIosDevice, CiscoDeviceConfig};
 use log::{debug, info};
-use serde::de;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging with debug and session logs enabled

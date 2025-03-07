@@ -52,7 +52,7 @@ impl CiscoIosDevice {
         let mut sleep_time = 0.1 * delay_factor;
         let mut output = String::new();
         
-        debug!(target: "CiscoIosDevice::clear_buffer", "Clearing buffer with backoff={}, backoff_max={}, delay_factor={}", 
+        info!("Clearing buffer with backoff={}, backoff_max={}, delay_factor={}", 
                backoff, backoff_max, delay_factor);
         
         for _ in 0..10 {

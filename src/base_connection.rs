@@ -4,7 +4,6 @@ use crate::session_log::SessionLog;
 use crate::config::NetsshConfig;
 use log::{debug, info};
 use ssh2::Session;
-use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::time::{Duration, SystemTime};
 use regex::Regex;
@@ -331,7 +330,7 @@ impl BaseConnection {
             return self.channel.read_until_prompt(Some(read_timeout), Some(&regex));
         }
 
-        if (pattern.ends_with("#") || pattern.ends_with(">") || pattern.contains("[>#]")) {
+        if pattern.ends_with("#") || pattern.ends_with(">") || pattern.contains("[>#]") {
             debug!(target: "BaseConnection::read_until_pattern", "Using SSHChannel's read_until_prompt method with no base prompt");
             return self.channel.read_until_prompt(Some(read_timeout), Some(&regex));
         }

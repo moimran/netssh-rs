@@ -3,7 +3,7 @@ use log::debug;
 use regex::Regex;
 use ssh2::Channel as SSH2Channel;
 use std::cell::RefCell;
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::time::Duration;
 
 const MAX_BUFFER: usize = 65536; // 64KB, same as in Python's Netmiko
