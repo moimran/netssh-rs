@@ -107,6 +107,7 @@ impl CiscoIosDevice {
         debug!(target: "CiscoIosDevice::close", "Closing connection to device");
         
         // Try to exit config mode if we're in it
+        debug!(target: "CiscoIosDevice::close", "is it in config mode {}", self.in_config_mode);
         if self.in_config_mode {
             let _ = self.exit_config_mode(None);
         }
@@ -117,6 +118,8 @@ impl CiscoIosDevice {
         // Close the channel if it exists
         if let Some(channel) = self.connection.channel.as_mut() {
             debug!(target: "CiscoIosDevice::close", "Closing SSH channel");
+            channel.send_eof().map_err(|e| NetsshError::SshError(e))?;
+            channel.wait_eof().map_err(|e| NetsshError::SshError(e))?;
             channel.close().map_err(|e| NetsshError::SshError(e))?;
             channel.wait_close().map_err(|e| NetsshError::SshError(e))?;
         }
@@ -459,8 +462,8 @@ impl CiscoBaseConnection for CiscoIosDevice {
         debug!(target: "CiscoIosDevice::check_config_mode", "Checking if device is in config mode");
         
         // Clear any pending data in the buffer
-        let buffer_data = self.clear_buffer(None, None, None)?;
-        debug!(target: "CiscoIosDevice::check_config_mode", "Cleared buffer data: {:?}", buffer_data);
+        // let buffer_data = self.clear_buffer(None, None, None)?;
+        // debug!(target: "CiscoIosDevice::check_config_mode", "Cleared buffer data: {:?}", buffer_data);
         
         // Send newline to get prompt
         self.connection.write_channel("\n")?;
@@ -603,6 +606,8 @@ impl CiscoBaseConnection for CiscoIosDevice {
         };
         
         let output = self.connection.read_until_pattern(pattern)?;
+
+        self.connection.session_log.write(&output)?;
         
         // Remove command echo from output
         let lines: Vec<&str> = output.lines().collect();

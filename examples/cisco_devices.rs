@@ -70,7 +70,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     device.config_mode(None)?;
 
     let config_commands = vec![
-        "interface GigabitEthernet0/0",
+        "interface GigabitEthernet1",
         "description Configured by Netssh-rs",
     ];
 
@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     device.exit_config_mode(None)?;
 
     // Verify the configuration
-    let verify_cmd = "show running-config interface GigabitEthernet0/0";
+    let verify_cmd = "show running-config interface GigabitEthernet1";
     info!("Verifying configuration: {}", verify_cmd);
     let output = device.send_command(verify_cmd)?;
     println!("\nVerification output:");
