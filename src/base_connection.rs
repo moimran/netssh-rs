@@ -103,6 +103,8 @@ impl BaseConnection {
         })?;
         session.set_tcp_stream(tcp);
 
+        session.set_blocking(true);
+
         debug!(target: "BaseConnection::connect", "SSH session created, starting handshake");
 
         debug!(target: "BaseConnection::connect", "Starting SSH handshake");
@@ -336,7 +338,10 @@ impl BaseConnection {
 
         // Keep reading until timeout or pattern is found
         while start_time.elapsed()? < read_timeout {
+
+
             // Read a chunk of data
+            std::thread::sleep(Duration::from_millis(500));
             let new_data = self.read_channel()?;
 
             if !new_data.is_empty() {
@@ -390,13 +395,16 @@ impl BaseConnection {
         debug!(target: "BaseConnection::read_until_prompt", "Reading until prompt (> or #)");
 
         let mut output = String::new();
-        let loop_delay = Duration::from_millis(10); // 10ms delay between reads
+        let loop_delay = Duration::from_millis(100); // 10ms delay between reads
         let start_time = SystemTime::now();
 
         // Keep reading until timeout or prompt is found
         while start_time.elapsed()? < self.config.pattern_timeout {
+            std::thread::sleep(loop_delay);
             // Read a chunk of data
             let new_data = self.read_channel()?;
+
+            debug!(target: "BaseConnection::read_until_prompt", "Read chunk====: {:?}", new_data);
 
             if !new_data.is_empty() {
                 debug!(target: "BaseConnection::read_until_prompt", "Read chunk: {:?}", new_data);

@@ -1,10 +1,12 @@
 pub mod ios;
 pub mod xr;
 pub mod asa;
+pub mod nxos;
 
 pub use ios::*;
 pub use xr::CiscoXrSsh;
 pub use asa::*;
+pub use nxos::CiscoNxosSsh;
 
 use crate::error::NetsshError;
 use async_trait::async_trait;
