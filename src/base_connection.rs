@@ -349,6 +349,7 @@ impl BaseConnection {
             if !new_data.is_empty() {
                 debug!(target: "BaseConnection::read_until_pattern", "Read chunk: {:?}", new_data);
                 output.push_str(&new_data);
+                debug!(target: "BaseConnection::read_until_pattern", "============== {}",output);
                 
                 // Check if pattern is found
                 if regex.is_match(&output) {

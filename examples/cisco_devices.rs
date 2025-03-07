@@ -47,13 +47,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Successfully connected toooooo {}", host);
     info!("check for  enable mode");
     // Check if we're in enable mode
-    debug!("Checking if device is in enable mode");
-    let in_enable = device.check_enable_mode()?;
-    info!("Device is in enable mode: {}", in_enable);
+    // debug!("Checking if device is in enable mode");
+    // let in_enable = device.check_enable_mode()?;
+    // info!("Device is in enable mode: {}", in_enable);
 
     // Send some show commands
     let show_commands = vec![
-        "show version | include Version",
+        "show version",
         "show ip interface brief",
     ];
 

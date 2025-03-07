@@ -200,7 +200,7 @@ impl CiscoIosDevice {
         let is_enable = output.lines().any(|line| line.trim().ends_with("#"));
         self.in_enable_mode = is_enable;
         
-        debug!(target: "CiscoIosDevice::check_enable_mode", "Device is in enable mode: {}", is_enable);
+        debug!(target: "CiscoIosDevice::check_enable_mode", "Device is in enable mode (#): {}", is_enable);
         Ok(is_enable)
     }
 
@@ -208,10 +208,10 @@ impl CiscoIosDevice {
         debug!(target: "CiscoIosDevice::enable", "Entering enable mode");
         
         // Check if already in enable mode
-        if self.check_enable_mode()? {
-            debug!(target: "CiscoIosDevice::enable", "Already in enable mode");
-            return Ok(());
-        }
+        // if self.check_enable_mode()? {
+        //     debug!(target: "CiscoIosDevice::enable", "Already in enable mode");
+        //     return Ok(());
+        // }
         
         // Send enable command
         self.connection.write_channel("enable\n")?;
@@ -312,7 +312,7 @@ impl CiscoBaseConnection for CiscoIosDevice {
         
         // Enter enable mode if not already in it
         if !self.check_enable_mode()? {
-            debug!(target: "CiscoIosDevice::session_preparation", "Not in privileged mode, entering enable mode");
+            debug!(target: "CiscoIosDevice::session_preparation", "Not in privileged mode #, entering enable mode");
             self.enable()?;
         } else {
             debug!(target: "CiscoIosDevice::session_preparation", "Already in privileged mode");
@@ -587,8 +587,8 @@ impl CiscoBaseConnection for CiscoIosDevice {
         debug!(target: "CiscoIosDevice::send_command", "Sending command: {}", command);
         
         // Clear buffer before sending command
-        let buffer_data = self.clear_buffer(None, None, None)?;
-        debug!(target: "CiscoIosDevice::send_command", "Cleared buffer data: {:?}", buffer_data);
+        // let buffer_data = self.clear_buffer(None, None, None)?;
+        // debug!(target: "CiscoIosDevice::send_command", "Cleared buffer data: {:?}", buffer_data);
         
         // Send command
         self.connection.write_channel(&format!("{}\n", command))?;
