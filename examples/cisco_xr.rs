@@ -1,6 +1,6 @@
+use log::{debug, info};
 use netssh_rs::{initialize_logging, CiscoBaseConnection, CiscoXrSsh};
 use std::env;
-use log::{debug, info};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging with debug enabled
@@ -15,13 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create a new Cisco XR device instance
     let mut device = CiscoXrSsh::new()?;
-    device.establish_connection(
-        &host,
-        &username,
-        Some(&password),
-        None,
-        None,
-    )?;
+    device.establish_connection(&host, &username, Some(&password), None, None)?;
 
     info!("Successfully connected to {}", host);
 

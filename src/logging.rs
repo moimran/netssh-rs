@@ -1,8 +1,8 @@
+use crate::error::NetsshError;
+use chrono::Local;
 use log::LevelFilter;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
-use crate::error::NetsshError;
-use chrono::Local;
 
 struct MultiWriter {
     debug_file: File,
@@ -41,8 +41,7 @@ pub fn init_logging(
     _session_logging_enabled: bool, // This is now handled by BaseConnection
 ) -> Result<(), NetsshError> {
     // Create logs directory if it doesn't exist
-    std::fs::create_dir_all("logs")
-        .map_err(|e| NetsshError::IoError(e))?;
+    std::fs::create_dir_all("logs").map_err(|e| NetsshError::IoError(e))?;
 
     // Set up environment for env_logger
     if debug_enabled {
@@ -53,13 +52,16 @@ pub fn init_logging(
 
     // Create a custom logger builder
     let mut builder = env_logger::Builder::from_default_env();
-    
+
     // Set the log level
-    builder.filter_level(if debug_enabled { LevelFilter::Debug } else { LevelFilter::Info });
+    builder.filter_level(if debug_enabled {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    });
 
     // Create the debug writer
-    let writer = MultiWriter::new("logs/debug.log")
-        .map_err(|e| NetsshError::IoError(e))?;
+    let writer = MultiWriter::new("logs/debug.log").map_err(|e| NetsshError::IoError(e))?;
 
     // Set the writer
     builder.target(env_logger::Target::Pipe(Box::new(writer)));
