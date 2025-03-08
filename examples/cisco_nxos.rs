@@ -1,7 +1,6 @@
 use log::{debug, info};
-use netssh_rs::{initialize_logging, BaseConnection, CiscoBaseConnection, CiscoNxosSsh};
+use netssh_rs::{initialize_logging, CiscoBaseConnection, CiscoNxosSsh};
 use netssh_rs::vendors::cisco::CiscoDeviceConfig;
-use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging with debug enabled
@@ -43,53 +42,55 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Successfully connected to {}", &host);
 
     // Send some show commands
-    // let show_commands = vec![
-    //     "show version",
-    //     "show interface status",
-    //     "show vlan brief",
-    //     "show ip route",
-    // ];
-
-    // info!("Sending show commands: {:?}", show_commands);
-    // for cmd in show_commands {
-    //     debug!("Sending command: {}", cmd);
-    //     let output = device.send_command(cmd)?;
-    //     println!("\nOutput of '{}':", cmd);
-    //     println!("{}", output);
-    // }
-
-    // Enter config mode and make some changes
-    info!("Entering config mode");
-    device.config_mode(None)?;
-
-    let config_commands = vec![
-        "interface Ethernet1/1",
-        "description Configured by Netssh-rs",
-        "exit",
+    let show_commands = vec![
+        "show version",
+        "show interface status",
+        "show vlan brief",
+        "show ip route",
+        "show interface status",
+        "show running-config",
     ];
 
-    info!("Sending config commands: {:?}", config_commands);
-    for cmd in config_commands {
-        debug!("Sending config command: {}", cmd);
+    info!("Sending show commands: {:?}", show_commands);
+    for cmd in show_commands {
+        debug!("Sending command: {}", cmd);
         let output = device.send_command(cmd)?;
         println!("\nOutput of '{}':", cmd);
         println!("{}", output);
     }
 
-    // Exit config mode
-    info!("Exiting config mode");
-    device.exit_config_mode(None)?;
+    // Enter config mode and make some changes
+    // info!("Entering config mode");
+    // device.config_mode(None)?;
 
-    // Verify the configuration
-    let verify_cmd = "show running-config interface Ethernet1/1";
-    info!("Verifying configuration: {}", verify_cmd);
-    let output = device.send_command(verify_cmd)?;
-    println!("\nVerification output:");
-    println!("{}", output);
+    // let config_commands = vec![
+    //     "interface Ethernet1/1",
+    //     "description Configured by Netssh-rs",
+    //     "exit",
+    // ];
 
-    // Save the configuration
-    info!("Saving configuration");
-    device.save_config()?;
+    // info!("Sending config commands: {:?}", config_commands);
+    // for cmd in config_commands {
+    //     debug!("Sending config command: {}", cmd);
+    //     let output = device.send_command(cmd)?;
+    //     println!("\nOutput of '{}':", cmd);
+    //     println!("{}", output);
+    // }
+
+    // // Exit config mode
+    // info!("Exiting config mode");
+    // device.exit_config_mode(None)?;
+
+    // // Verify the configuration
+    // let verify_cmd = "show running-config interface Ethernet1/1";
+    // info!("Verifying configuration: {}", verify_cmd);
+    // let output = device.send_command(verify_cmd)?;
+    // println!("\nVerification output:");
+    // println!("{}", output);
+
+    // // Save the configuration
+    // info!("Saving configuration");
+    // device.save_config()?;
 
     info!("Disconnecting from device");
     device.disconnect()?;

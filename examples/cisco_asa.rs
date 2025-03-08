@@ -12,29 +12,40 @@ fn main() -> Result<(), NetsshError> {
     initialize_logging(true, true)?;
 
     // Get environment variables
-    let host = env::var("DEVICE_HOST").expect("DEVICE_HOST not set");
-    let username = env::var("DEVICE_USER").expect("DEVICE_USER not set");
-    let password = env::var("DEVICE_PASS").expect("DEVICE_PASS not set");
-    let enable_secret = env::var("DEVICE_SECRET").expect("DEVICE_SECRET not set");
+    let host = "192.168.1.200";
+    let username = "admin";
+    let password = "arhaan@457";
+    let secret = "moimran@124";
     
     // Create device configuration
+    let custom_config = netssh_rs::config::NetsshConfigBuilder::default()
+    .connection_timeout(std::time::Duration::from_secs(60))
+    .read_timeout(std::time::Duration::from_secs(30))
+    .pattern_timeout(std::time::Duration::from_secs(60))
+    .enable_session_log(true)
+    .session_log_path("logs/session.log".to_string())
+    .build();
+
+    // Create a new Cisco NX-OS device instance with configuration
     let config = CiscoDeviceConfig {
-        host,
-        username,
-        password: Some(password),
-        port: None, // Use default port 22
-        timeout: Some(Duration::from_secs(10)),
-        secret: Some(enable_secret.clone()),
-        session_log: Some(String::from("logs/cisco_asa_session.log")),
+        host: host.to_string(),
+        username: username.to_string(),
+        password: Some(password.to_string()),
+        port: Some(22),
+        timeout: Some(std::time::Duration::from_secs(60)),
+        secret: Some(secret.to_string()),
+        session_log: Some("logs/session.log".to_string()),
     };
 
+    let base_connection = netssh_rs::base_connection::BaseConnection::with_config(custom_config)?;
+
     // Connect to device
-    let mut device = CiscoAsaDevice::new(config)?;
+    let mut device = CiscoAsaDevice::with_connection(base_connection, config);
     device.connect()?;
-    device.enable(&enable_secret)?;
+    device.enable()?;
 
     // Send some commands
-    let output = device.send_command("show version ")?;
+    let output = device.send_command("show version")?;
     println!("Output from device: {}", output);
 
     Ok(())

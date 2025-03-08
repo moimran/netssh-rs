@@ -103,8 +103,6 @@ impl BaseConnection {
         })?;
         session.set_tcp_stream(tcp);
 
-        session.set_blocking(true);
-
         debug!(target: "BaseConnection::connect", "SSH session created, starting handshake");
 
         debug!(target: "BaseConnection::connect", "Starting SSH handshake");
@@ -151,6 +149,8 @@ impl BaseConnection {
             info!("Failed to start shell: {}", e);
             NetsshError::SshError(e)
         })?;
+
+        session.set_blocking(true);
 
         self.session = Some(session);
         self.channel = SSHChannel::new(Some(channel));

@@ -408,11 +408,13 @@ impl CiscoBaseConnection for CiscoNxosSsh {
     fn set_base_prompt(&mut self) -> Result<String, NetsshError> {
         debug!(target: "CiscoNxosSsh::set_base_prompt", "Setting base prompt");
 
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+
         // Send newline to get prompt
         self.connection.write_channel("\n")?;
 
         // Wait for a short time to ensure the command is processed
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        self.connection.write_channel("\n")?;
 
         // Read whatever is available
         let pattern = r"[>#]";
