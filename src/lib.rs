@@ -6,8 +6,13 @@ pub mod logging;
 pub mod session_log;
 pub mod vendors;
 
+// Re-export vendor modules
+pub use vendors::cisco;
+pub use vendors::juniper;
+
 pub use base_connection::BaseConnection;
 pub use config::{NetsshConfig, NetsshConfigBuilder};
 pub use error::NetsshError;
 pub use logging::init_logging as initialize_logging;
 pub use vendors::cisco::{CiscoDeviceConnection, CiscoBaseConnection, CiscoXrSsh, CiscoNxosSsh};
+pub use vendors::juniper::{JuniperDeviceConnection, JuniperBaseConnection, JuniperJunosDevice};
