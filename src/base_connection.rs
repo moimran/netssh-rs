@@ -2,10 +2,11 @@ use crate::channel::SSHChannel;
 use crate::config::NetsshConfig;
 use crate::error::NetsshError;
 use crate::session_log::SessionLog;
-use log::{debug, info};
+use log::{debug, info, warn};
 use regex::Regex;
 use ssh2::Session;
 use std::net::TcpStream;
+use std::thread;
 use std::time::{Duration, SystemTime};
 
 pub struct BaseConnection {
@@ -338,8 +339,6 @@ impl BaseConnection {
 
         // Keep reading until timeout or pattern is found
         while start_time.elapsed()? < read_timeout {
-
-
             // Read a chunk of data
             std::thread::sleep(Duration::from_millis(500));
             let new_data = self.read_channel()?;
@@ -441,6 +440,83 @@ impl BaseConnection {
         Err(NetsshError::TimeoutError(
             "Prompt not found within timeout period".to_string(),
         ))
+    }
+
+    /// Clear any data available in the channel.
+    ///
+    /// This function reads data from the channel multiple times with a backoff strategy
+    /// to ensure all buffered data is cleared.
+    ///
+    /// # Arguments
+    ///
+    /// * `backoff` - Whether to increase sleep time when data is detected (default: true)
+    /// * `backoff_max` - Maximum sleep time in seconds when using backoff (default: 3.0)
+    /// * `delay_factor` - Multiplier for sleep time (default: global_delay_factor or 1.0)
+    ///
+    /// # Returns
+    ///
+    /// The accumulated output from the channel
+    pub fn clear_buffer(
+        &mut self,
+        backoff: Option<bool>,
+        backoff_max: Option<f64>,
+        delay_factor: Option<f64>,
+    ) -> Result<String, NetsshError> {
+        let backoff = backoff.unwrap_or(true);
+        let backoff_max = backoff_max.unwrap_or(3.0);
+        let delay_factor = delay_factor.unwrap_or(1.0);
+
+        let mut sleep_time = 0.1 * delay_factor;
+        let mut output = String::new();
+
+        info!(
+            "Clearing buffer with backoff={}, backoff_max={}, delay_factor={}",
+            backoff, backoff_max, delay_factor
+        );
+
+        for _ in 0..10 {
+            // Sleep before reading
+            let sleep_duration = Duration::from_secs_f64(sleep_time);
+            thread::sleep(sleep_duration);
+
+            // Read data from channel
+            let data = match self.read_channel() {
+                Ok(data) => {
+                    debug!(target: "BaseConnection::clear_buffer", "Read {} bytes from channel: {:?}", data.len(), data);
+                    data
+                }
+                Err(e) => {
+                    warn!(target: "BaseConnection::clear_buffer", "Error reading channel: {}", e);
+                    break;
+                }
+            };
+
+            // Strip ANSI escape codes
+            let data = self.strip_ansi_escape_codes(&data);
+            debug!(target: "BaseConnection::clear_buffer", "After stripping ANSI codes: {:?}", data);
+
+            // Add to accumulated output
+            output.push_str(&data);
+
+            // If no data, we're done
+            if data.is_empty() {
+                break;
+            }
+
+            // Double sleep time if backoff is enabled
+            debug!(target: "BaseConnection::clear_buffer", "Clear buffer detects data in the channel");
+            if backoff {
+                sleep_time *= 2.0;
+                if sleep_time > backoff_max {
+                    sleep_time = backoff_max;
+                }
+            }
+        }
+
+        debug!(target: "BaseConnection::clear_buffer", "Buffer cleared, accumulated {} bytes", output.len());
+
+        debug!(target: "BaseConnection::clear_buffer", "Buffer cleared, accumulated {} data", output);
+        Ok(output)
     }
 
     pub fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {

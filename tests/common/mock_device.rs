@@ -7,7 +7,7 @@ mock! {
     pub Session {
         pub fn handshake(&self) -> std::io::Result<()>;
         pub fn userauth_password(&self, username: &str, password: &str) -> std::io::Result<()>;
-        pub fn channel_session(&self) -> std::io::Result<Channel>;
+        pub fn channel_session(&self) -> std::io::Result<MockChannel>;
     }
 }
 
@@ -119,7 +119,12 @@ impl MockDevice {
         session
     }
 
-    fn get_response(&self, command: &str) -> String {
+    fn get_response(&self) -> String {
+        // Just return a default response with the prompt
+        format!("Command output\n{}", self.prompt)
+    }
+    
+    fn get_response_for_command(&self, command: &str) -> String {
         self.responses.get(command)
             .cloned()
             .unwrap_or_else(|| format!("Unknown command: {}\n{}", command, self.prompt))

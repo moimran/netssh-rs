@@ -1,7 +1,6 @@
 use netssh_rs::{
     initialize_logging,
-    vendors::cisco::{asa::CiscoAsaDevice, CiscoDeviceConfig},
-    CiscoBaseConnection,
+    vendors::cisco::{asa::CiscoAsaDevice, CiscoDeviceConfig, CiscoDeviceConnection},
     NetsshError,
 };
 use std::env;

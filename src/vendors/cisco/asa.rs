@@ -1,7 +1,7 @@
 use crate::base_connection::BaseConnection;
 use crate::channel::SSHChannel;
 use crate::error::NetsshError;
-use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig};
+use crate::vendors::cisco::{CiscoDeviceConnection, CiscoDeviceConfig};
 use async_trait::async_trait;
 use lazy_static::lazy_static;
 use log::{debug, info, warn};
@@ -319,7 +319,7 @@ impl CiscoAsaDevice {
 }
 
 #[async_trait]
-impl CiscoBaseConnection for CiscoAsaDevice {
+impl CiscoDeviceConnection for CiscoAsaDevice {
     fn session_preparation(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoAsaDevice::session_preparation", "Preparing session");
 
