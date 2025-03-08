@@ -4,7 +4,7 @@ use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoDeviceConfig, CiscoDeviceConnection};
 use async_trait::async_trait;
 use lazy_static::lazy_static;
-use log::{debug, info, warn};
+use log::{debug, warn};
 use regex::Regex;
 
 lazy_static! {
@@ -13,332 +13,6 @@ lazy_static! {
     static ref PASSWORD_PATTERN: Regex = Regex::new(r"(?i)password").unwrap();
     static ref ANSI_ESCAPE_PATTERN: Regex = Regex::new(r"\x1B\[[0-9;]*[a-zA-Z]").unwrap();
 }
-
-#[async_trait]
-impl CiscoDeviceConnection for CiscoBaseConnection {
-    fn session_preparation(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoBaseConnection::session_preparation", "Preparing session");
-
-        // Only open a channel if one doesn't already exist
-        if self.connection.channel.is_none() {
-            debug!(target: "CiscoBaseConnection::session_preparation", "Opening a new channel");
-            self.connection.open_channel()?;
-        } else {
-            debug!(target: "CiscoBaseConnection::session_preparation", "Channel already exists, skipping open_channel");
-        }
-
-        debug!(target: "CiscoBaseConnection::session_preparation", "Setting base prompt");
-        // Set base prompt
-        self.set_base_prompt()?;
-
-        // Set terminal width
-        self.set_terminal_width(511)?;
-
-        // Disable paging
-        self.disable_paging()?;
-
-        // Enter enable mode if not already in it
-        if !self.check_enable_mode()? {
-            debug!(target: "CiscoBaseConnection::session_preparation", "Not in privileged mode #, entering enable mode");
-            self.enable()?;
-        } else {
-            debug!(target: "CiscoBaseConnection::session_preparation", "Already in privileged mode");
-        }
-
-        debug!(target: "CiscoBaseConnection::session_preparation", "Session preparation completed successfully");
-        Ok(())
-    }
-
-    fn set_terminal_width(&mut self, width: u32) -> Result<(), NetsshError> {
-        debug!(target: "CiscoBaseConnection::set_terminal_width", "Setting terminal width to {}", width);
-
-        // Send the command with a newline
-        let cmd = format!("terminal width {}\n", width);
-        self.connection.write_channel(&cmd)?;
-
-        // Wait for a short time to ensure the command is processed
-        std::thread::sleep(std::time::Duration::from_millis(500));
-
-        // Read whatever is available
-        let output = match self.connection.read_channel() {
-            Ok(out) => out,
-            Err(e) => {
-                warn!(target: "CiscoBaseConnection::set_terminal_width", "Error reading response: {}", e);
-                // Continue anyway, don't fail the connection for this
-                String::new()
-            }
-        };
-
-        if output.contains("Invalid") || output.contains("Error") {
-            warn!(target: "CiscoBaseConnection::set_terminal_width", "Error setting terminal width: {}", output);
-            // Continue anyway, don't fail the connection for this
-        } else {
-            debug!(target: "CiscoBaseConnection::set_terminal_width", "Terminal width command sent successfully");
-        }
-
-        // Always return success, even if there was an error
-        Ok(())
-    }
-
-    fn disable_paging(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoBaseConnection::disable_paging", "Disabling paging");
-
-        // Send the command with a newline - default is "terminal length 0" for most Cisco devices
-        self.connection.write_channel("terminal length 0\n")?;
-
-        // Wait for a short time to ensure the command is processed
-        std::thread::sleep(std::time::Duration::from_millis(500));
-
-        // Read whatever is available
-        let output = match self.connection.read_channel() {
-            Ok(out) => out,
-            Err(e) => {
-                warn!(target: "CiscoBaseConnection::disable_paging", "Error reading response: {}", e);
-                // Continue anyway, don't fail the connection for this
-                String::new()
-            }
-        };
-
-        if output.contains("Invalid") || output.contains("Error") {
-            warn!(target: "CiscoBaseConnection::disable_paging", "Error disabling paging: {}", output);
-            // Continue anyway, don't fail the connection for this
-        } else {
-            debug!(target: "CiscoBaseConnection::disable_paging", "Paging disabled successfully");
-        }
-
-        // Always return success, even if there was an error
-        Ok(())
-    }
-
-    fn set_base_prompt(&mut self) -> Result<String, NetsshError> {
-        debug!(target: "CiscoBaseConnection::set_base_prompt", "Setting base prompt");
-
-        // Send newline to get prompt
-        self.connection.write_channel("\n")?;
-
-        // Wait for a short time to ensure the command is processed
-        std::thread::sleep(std::time::Duration::from_millis(500));
-
-        // Read whatever is available
-        let pattern = r"[>#]";
-        let output = match self.connection.read_until_pattern(pattern) {
-            Ok(out) => out,
-            Err(e) => {
-                warn!(target: "CiscoBaseConnection::set_base_prompt", "Error reading response: {}", e);
-                // Use a default prompt if we can't read the actual one
-                self.prompt = "Router".to_string();
-                // Also set the base_prompt in the BaseConnection
-                self.connection.base_prompt = Some(self.prompt.clone());
-                // Set the prompt in the SSHChannel
-                self.connection.channel.set_base_prompt(&self.prompt);
-                return Ok(self.prompt.clone());
-            }
-        };
-
-        // Find the last line that contains a prompt character
-        if let Some(last_line) = output
-            .lines()
-            .filter(|line| line.contains(">") || line.contains("#"))
-            .last()
-        {
-            // Extract the prompt without the terminator
-            let prompt_end = last_line
-                .find('>')
-                .or_else(|| last_line.find('#'))
-                .unwrap_or(last_line.len());
-            self.prompt = last_line[..prompt_end].trim_end().to_string();
-
-            debug!(target: "CiscoBaseConnection::set_base_prompt", "Base prompt set to: {}", self.prompt);
-
-            // Also set the base_prompt in the BaseConnection
-            self.connection.base_prompt = Some(self.prompt.clone());
-            debug!(target: "CiscoBaseConnection::set_base_prompt", "Set base_prompt in BaseConnection to: {}", self.prompt);
-
-            // Set the prompt in the SSHChannel
-            self.connection.channel.set_base_prompt(&self.prompt);
-            debug!(target: "CiscoBaseConnection::set_base_prompt", "Set base_prompt in SSHChannel");
-        } else {
-            // If we can't find a prompt, use a default
-            warn!(target: "CiscoBaseConnection::set_base_prompt", "Could not find prompt in output: {}", output);
-            self.prompt = "Router".to_string();
-
-            // Also set the base_prompt in the BaseConnection
-            self.connection.base_prompt = Some(self.prompt.clone());
-
-            // Set the prompt in the SSHChannel
-            self.connection.channel.set_base_prompt(&self.prompt);
-        }
-
-        Ok(self.prompt.clone())
-    }
-
-    fn check_config_mode(&mut self) -> Result<bool, NetsshError> {
-        debug!(target: "CiscoBaseConnection::check_config_mode", "Checking if device is in config mode");
-
-        // Send newline to get prompt
-        self.connection.write_channel("\n")?;
-
-        // Wait for a short time to ensure the command is processed
-        std::thread::sleep(std::time::Duration::from_millis(500));
-
-        // Read whatever is available
-        let output = match self.connection.read_channel() {
-            Ok(out) => out,
-            Err(e) => {
-                warn!(target: "CiscoBaseConnection::check_config_mode", "Error reading response: {}", e);
-                // Assume not in config mode if we can't read the prompt
-                self.in_config_mode = false;
-                return Ok(false);
-            }
-        };
-
-        // Check if any line contains the config pattern
-        let is_config = output
-            .lines()
-            .any(|line| line.contains("(config") && line.contains("#"));
-        self.in_config_mode = is_config;
-
-        debug!(target: "CiscoBaseConnection::check_config_mode", "Device is in config mode: {}", is_config);
-        Ok(is_config)
-    }
-
-    fn config_mode(&mut self, config_command: Option<&str>) -> Result<(), NetsshError> {
-        debug!(target: "CiscoBaseConnection::config_mode", "Entering config mode");
-
-        // Check if already in config mode
-        if self.check_config_mode()? {
-            debug!(target: "CiscoBaseConnection::config_mode", "Already in config mode");
-            return Ok(());
-        }
-
-        // Ensure we're in enable mode first
-        if !self.check_enable_mode()? {
-            debug!(target: "CiscoBaseConnection::config_mode", "Not in enable mode, entering enable mode first");
-            self.enable()?;
-        }
-
-        // Send config command
-        let cmd = config_command.unwrap_or("configure terminal");
-        self.connection.write_channel(&format!("{}\n", cmd))?;
-
-        // Wait for config prompt
-        let output = self.connection.read_until_pattern("\\(config\\)#")?;
-
-        if !output.contains("(config)#") {
-            warn!(target: "CiscoBaseConnection::config_mode", "Config prompt not found after config command: {}", output);
-            return Err(NetsshError::CommandError(
-                "Failed to enter config mode".to_string(),
-            ));
-        }
-
-        self.in_config_mode = true;
-        debug!(target: "CiscoBaseConnection::config_mode", "Successfully entered config mode");
-
-        Ok(())
-    }
-
-    fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetsshError> {
-        debug!(target: "CiscoBaseConnection::exit_config_mode", "Exiting config mode");
-
-        // Check if already not in config mode
-        if !self.check_config_mode()? {
-            debug!(target: "CiscoBaseConnection::exit_config_mode", "Already not in config mode");
-            return Ok(());
-        }
-
-        // Send exit command
-        let cmd = exit_command.unwrap_or("end");
-        self.connection.write_channel(&format!("{}\n", cmd))?;
-
-        // Wait for enable prompt
-        let output = self.connection.read_until_pattern("#")?;
-
-        if !output.trim().ends_with("#") || output.contains("(config)") {
-            warn!(target: "CiscoBaseConnection::exit_config_mode", "Enable prompt not found after exit command: {}", output);
-            return Err(NetsshError::CommandError(
-                "Failed to exit config mode".to_string(),
-            ));
-        }
-
-        self.in_config_mode = false;
-        debug!(target: "CiscoBaseConnection::exit_config_mode", "Successfully exited config mode");
-
-        Ok(())
-    }
-
-    fn save_config(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoBaseConnection::save_config", "Saving configuration");
-
-        // Ensure we're in enable mode
-        if !self.check_enable_mode()? {
-            debug!(target: "CiscoBaseConnection::save_config", "Not in enable mode, entering enable mode first");
-            self.enable()?;
-        }
-
-        // Exit config mode if we're in it
-        if self.check_config_mode()? {
-            debug!(target: "CiscoBaseConnection::save_config", "In config mode, exiting config mode first");
-            self.exit_config_mode(None)?;
-        }
-
-        // Send save command - default for IOS/NXOS
-        self.connection
-            .write_channel("copy running-config startup-config\n")?;
-
-        // Wait for confirmation prompt and send enter
-        let output = self.connection.read_until_pattern("\\?")?;
-        if output.contains("?") {
-            self.connection.write_channel("\n")?;
-        }
-
-        // Wait for completion
-        let output = self.connection.read_until_pattern("#")?;
-
-        if output.contains("Error") {
-            warn!(target: "CiscoBaseConnection::save_config", "Error saving configuration: {}", output);
-            return Err(NetsshError::CommandError(format!(
-                "Failed to save configuration: {}",
-                output
-            )));
-        }
-
-        debug!(target: "CiscoBaseConnection::save_config", "Configuration saved successfully");
-        Ok(())
-    }
-
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        debug!(target: "CiscoBaseConnection::send_command", "Sending command: {}", command);
-
-        // Send command
-        self.connection.write_channel(&format!("{}\n", command))?;
-
-        // Wait for command echo and prompt
-        let pattern = if self.in_config_mode {
-            r"\(config.*\)#"
-        } else if self.in_enable_mode {
-            "#"
-        } else {
-            ">"
-        };
-
-        let output = self.connection.read_until_pattern(pattern)?;
-
-        self.connection.session_log.write(&output)?;
-
-        // Remove command echo from output
-        let lines: Vec<&str> = output.lines().collect();
-        let result = if lines.len() > 1 {
-            // Skip the first line (command echo) and join the rest
-            lines[1..].join("\n")
-        } else {
-            output
-        };
-
-        debug!(target: "CiscoBaseConnection::send_command", "Command output received, length: {}", result.len());
-        Ok(result)
-    }
-}
-
 
 pub struct CiscoBaseConnection {
     pub connection: BaseConnection,
@@ -384,7 +58,7 @@ impl CiscoBaseConnection {
             self.connection.set_session_log(log_file)?;
         }
 
-        self.set_base_prompt()?;
+        self.session_preparation()?;
 
         Ok(())
     }
@@ -542,11 +216,8 @@ impl CiscoBaseConnection {
         // Set base prompt
         self.set_base_prompt()?;
 
-        // Set terminal width
-        self.set_terminal_width(511)?;
-
-        // Disable paging
-        self.disable_paging()?;
+        // Call terminal_settings which can be overridden by device-specific implementations
+        self.terminal_settings()?;
 
         // Enter enable mode if not already in it
         if !self.check_enable_mode()? {
@@ -557,6 +228,20 @@ impl CiscoBaseConnection {
         }
 
         debug!(target: "CiscoBaseConnection::session_preparation", "Session preparation completed successfully");
+        Ok(())
+    }
+
+    /// Configure terminal settings - can be overridden by device-specific implementations
+    pub fn terminal_settings(&mut self) -> Result<(), NetsshError> {
+        debug!(target: "CiscoBaseConnection::terminal_settings", "Configuring base terminal settings");
+        
+        // Set terminal width
+        self.set_terminal_width(511)?;
+
+        // Disable paging
+        self.disable_paging()?;
+        
+        debug!(target: "CiscoBaseConnection::terminal_settings", "Base terminal settings configured successfully");
         Ok(())
     }
 
@@ -847,5 +532,48 @@ impl CiscoBaseConnection {
 
         debug!(target: "CiscoBaseConnection::send_command", "Command output received, length: {}", result.len());
         Ok(result)
+    }
+}
+
+#[async_trait]
+impl CiscoDeviceConnection for CiscoBaseConnection {
+    fn session_preparation(&mut self) -> Result<(), NetsshError> {
+        self.session_preparation()
+    }
+
+    fn terminal_settings(&mut self) -> Result<(), NetsshError> {
+        self.terminal_settings()
+    }
+
+    fn set_terminal_width(&mut self, width: u32) -> Result<(), NetsshError> {
+        self.set_terminal_width(width)
+    }
+
+    fn disable_paging(&mut self) -> Result<(), NetsshError> {
+        self.disable_paging()
+    }
+
+    fn set_base_prompt(&mut self) -> Result<String, NetsshError> {
+        self.set_base_prompt()
+    }
+
+    fn check_config_mode(&mut self) -> Result<bool, NetsshError> {
+        self.check_config_mode()
+    }
+
+    fn config_mode(&mut self, config_command: Option<&str>) -> Result<(), NetsshError> {
+        self.config_mode(config_command)
+    }
+
+    fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetsshError> {
+        self.exit_config_mode(exit_command)
+    }
+
+    fn save_config(&mut self) -> Result<(), NetsshError> {
+        self.save_config()
+    }
+
+    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
+        self.send_command(command)
     }
 }

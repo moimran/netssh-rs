@@ -1,5 +1,4 @@
 use netssh_rs::initialize_logging;
-use netssh_rs::vendors::cisco::CiscoDeviceConnection;
 use netssh_rs::vendors::{CiscoIosDevice, CiscoDeviceConfig};
 use log::{debug, info};
 

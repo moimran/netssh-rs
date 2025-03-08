@@ -25,15 +25,15 @@ fn test_connect() {
     };
     
     // Set the session directly
-    xr.connection.session = Some(mock_device.create_mocked_session());
+    xr.base.connection.session = Some(mock_device.create_mocked_session());
     
     // Connect using the establish_connection method
     let result = xr.establish_connection(&config.host, &config.username, config.password.as_deref(), config.port, config.timeout);
     assert!(result.is_ok());
     
-    assert!(xr.connection.session.is_some());
-    assert!(xr.connection.channel.is_some());
-    assert!(xr.connection.base_prompt.is_some());
+    assert!(xr.base.connection.session.is_some());
+    assert!(xr.base.connection.channel.is_some());
+    assert!(xr.base.connection.base_prompt.is_some());
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn test_send_commands() {
     };
     
     // Set the session directly
-    xr.connection.session = Some(mock_device.create_mocked_session());
+    xr.base.connection.session = Some(mock_device.create_mocked_session());
     
     // Connect using the establish_connection method
     xr.establish_connection(&config.host, &config.username, config.password.as_deref(), config.port, config.timeout).unwrap();
@@ -90,7 +90,7 @@ fn test_config_mode() {
     };
     
     // Set the session directly
-    xr.connection.session = Some(mock_device.create_mocked_session());
+    xr.base.connection.session = Some(mock_device.create_mocked_session());
     
     // Connect using the establish_connection method
     xr.establish_connection(&config.host, &config.username, config.password.as_deref(), config.port, config.timeout).unwrap();
@@ -125,7 +125,7 @@ fn test_invalid_credentials() {
     };
     
     // Set the session directly
-    xr.connection.session = Some(mock_device.create_mocked_session());
+    xr.base.connection.session = Some(mock_device.create_mocked_session());
     
     // Connect using the establish_connection method
     let result = xr.establish_connection(&config.host, &config.username, config.password.as_deref(), config.port, config.timeout);

@@ -17,6 +17,7 @@ use std::time::Duration;
 #[async_trait]
 pub trait CiscoDeviceConnection {
     fn session_preparation(&mut self) -> Result<(), NetsshError>;
+    fn terminal_settings(&mut self) -> Result<(), NetsshError>;
     fn set_terminal_width(&mut self, width: u32) -> Result<(), NetsshError>;
     fn disable_paging(&mut self) -> Result<(), NetsshError>;
     fn set_base_prompt(&mut self) -> Result<String, NetsshError>;
