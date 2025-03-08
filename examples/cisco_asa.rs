@@ -1,11 +1,9 @@
 use netssh_rs::{
     initialize_logging,
-    vendors::cisco::{asa::CiscoAsaDevice, CiscoDeviceConfig},
-    CiscoBaseConnection,
+    vendors::cisco::{asa::CiscoAsaDevice, CiscoDeviceConfig, CiscoDeviceConnection},
     NetsshError,
 };
-use std::env;
-use std::time::Duration;
+// No need for these imports
 
 fn main() -> Result<(), NetsshError> {
     // Initialize logging with both debug and session logging enabled

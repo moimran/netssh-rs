@@ -17,7 +17,7 @@ fn main() -> Result<(), NetsshError> {
 
     // Create and configure connection
     let mut connection = BaseConnection::new()?;
-    connection.set_session_log(String::from("logs/basic_connection.log"))?;
+    connection.set_session_log("logs/basic_connection.log")?;
 
     // Connect to device
     connection.connect(

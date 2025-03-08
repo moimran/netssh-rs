@@ -10,4 +10,4 @@ pub use base_connection::BaseConnection;
 pub use config::{NetsshConfig, NetsshConfigBuilder};
 pub use error::NetsshError;
 pub use logging::init_logging as initialize_logging;
-pub use vendors::cisco::{CiscoBaseConnection, CiscoXrSsh, CiscoNxosSsh};
+pub use vendors::cisco::{CiscoDeviceConnection, CiscoBaseConnection, CiscoXrSsh, CiscoNxosSsh};

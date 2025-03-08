@@ -1,5 +1,6 @@
 use log::{debug, info};
-use netssh_rs::{initialize_logging, CiscoBaseConnection, CiscoNxosSsh};
+use netssh_rs::{initialize_logging, CiscoNxosSsh};
+use netssh_rs::vendors::cisco::CiscoDeviceConnection;
 use netssh_rs::vendors::cisco::CiscoDeviceConfig;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

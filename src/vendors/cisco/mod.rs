@@ -2,19 +2,22 @@ pub mod ios;
 pub mod xr;
 pub mod asa;
 pub mod nxos;
+pub mod ciscodevicebase;
 
 pub use ios::*;
 pub use xr::CiscoXrSsh;
 pub use asa::*;
 pub use nxos::CiscoNxosSsh;
+pub use ciscodevicebase::CiscoBaseConnection;
 
 use crate::error::NetsshError;
 use async_trait::async_trait;
 use std::time::Duration;
 
 #[async_trait]
-pub trait CiscoBaseConnection {
+pub trait CiscoDeviceConnection {
     fn session_preparation(&mut self) -> Result<(), NetsshError>;
+    fn terminal_settings(&mut self) -> Result<(), NetsshError>;
     fn set_terminal_width(&mut self, width: u32) -> Result<(), NetsshError>;
     fn disable_paging(&mut self) -> Result<(), NetsshError>;
     fn set_base_prompt(&mut self) -> Result<String, NetsshError>;
@@ -28,17 +31,7 @@ pub trait CiscoBaseConnection {
     }
 }
 
-pub trait CiscoBaseConnectionTrait {
-    fn session_preparation(&mut self) -> Result<(), crate::error::NetsshError>;
-    fn set_terminal_width(&mut self, width: u32) -> Result<(), crate::error::NetsshError>;
-    fn disable_paging(&mut self) -> Result<(), crate::error::NetsshError>;
-    fn set_base_prompt(&mut self) -> Result<String, crate::error::NetsshError>;
-    fn check_config_mode(&mut self) -> Result<bool, crate::error::NetsshError>;
-    fn config_mode(&mut self, config_command: Option<&str>) -> Result<(), crate::error::NetsshError>;
-    fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), crate::error::NetsshError>;
-    fn save_config(&mut self) -> Result<(), crate::error::NetsshError>;
-    fn send_command(&mut self, command: &str) -> Result<String, crate::error::NetsshError>;
-}
+// Removing redundant trait
 
 #[derive(Debug, Clone)]
 pub struct CiscoDeviceConfig {
