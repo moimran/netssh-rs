@@ -21,7 +21,17 @@ pub struct BaseConnection {
     _read_buffer: String,
 }
 
+// Constants for sleep durations
+const DEFAULT_COMMAND_WAIT_MS: u64 = 500;
+const DEFAULT_LOOP_DELAY_MS: u64 = 10;
+
 impl BaseConnection {
+    // Helper method to sleep for a configurable duration
+    fn sleep_for_command(&self, duration_ms: Option<u64>) {
+        let duration = Duration::from_millis(duration_ms.unwrap_or(DEFAULT_COMMAND_WAIT_MS));
+        debug!(target: "BaseConnection::sleep_for_command", "Sleeping for {:?}", duration);
+        thread::sleep(duration);
+    }
     pub fn new() -> Result<Self, NetsshError> {
         debug!(target: "BaseConnection::new", "Creating new base connection");
         let config = NetsshConfig::default();
@@ -340,7 +350,7 @@ impl BaseConnection {
         // Keep reading until timeout or pattern is found
         while start_time.elapsed()? < read_timeout {
             // Read a chunk of data
-            std::thread::sleep(Duration::from_millis(500));
+            self.sleep_for_command(None);
             let new_data = self.read_channel()?;
 
             if !new_data.is_empty() {
@@ -399,7 +409,7 @@ impl BaseConnection {
 
         // Keep reading until timeout or prompt is found
         while start_time.elapsed()? < self.config.pattern_timeout {
-            std::thread::sleep(loop_delay);
+            thread::sleep(Duration::from_millis(DEFAULT_LOOP_DELAY_MS));
             // Read a chunk of data
             let new_data = self.read_channel()?;
 
