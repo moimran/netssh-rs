@@ -9,9 +9,9 @@ pub mod ios_network_device;
 pub mod asa_network_device;
 
 pub use ios::CiscoIosDevice;
-pub use xr::CiscoXrSsh;
+pub use xr::CiscoXrDevice;
 pub use asa::CiscoAsaDevice;
-pub use nxos::CiscoNxosSsh;
+pub use nxos::CiscoNxosDevice;
 pub use ciscodevicebase::CiscoBaseConnection;
 
 use crate::error::NetsshError;

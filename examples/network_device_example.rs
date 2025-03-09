@@ -1,20 +1,20 @@
 use netssh_rs::{
-    DeviceConfig, DeviceFactory, DeviceService, NetworkDeviceConnection, NetsshError
+    DeviceConfig, DeviceFactory, DeviceService, NetsshError
 };
 
 fn main() -> Result<(), NetsshError> {
     // Initialize logging
-    // netssh_rs::initialize_logging(false, true)?;
+    netssh_rs::initialize_logging(true, true)?;
 
     // Create a device configuration
     let config = DeviceConfig {
-        device_type: "cisco_asa".to_string(),
+        device_type: "cisco_nxos".to_string(),
         host: "192.168.1.59".to_string(),
         username: "admin".to_string(),
         password: Some("moimran@123".to_string()),
         port: Some(22),
         timeout: Some(std::time::Duration::from_secs(60)),
-        secret: Some("moimran@123".to_string()),
+        secret: Some("moimran@124".to_string()),
         session_log: Some("logs/device_session.log".to_string()),
     };
 

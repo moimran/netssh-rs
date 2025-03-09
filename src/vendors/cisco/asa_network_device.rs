@@ -1,4 +1,4 @@
-use crate::device_connection::{NetworkDeviceConnection};
+use crate::device_connection::NetworkDeviceConnection;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoDeviceConnection, CiscoAsaDevice};
 use async_trait::async_trait;

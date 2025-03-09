@@ -1,6 +1,6 @@
 use netssh_rs::{
     DeviceConfig, DeviceFactory, DeviceService, NetworkDeviceConnection, NetsshError,
-    CiscoIosDevice, CiscoXrSsh, CiscoNxosSsh, CiscoAsaDevice, JuniperJunosDevice
+    CiscoIosDevice, CiscoXrDevice, CiscoNxosDevice, CiscoAsaDevice, JuniperJunosDevice
 };
 
 fn main() -> Result<(), NetsshError> {
@@ -110,7 +110,7 @@ fn main() -> Result<(), NetsshError> {
         session_log: xr_config.session_log.clone(),
     };
     let base_connection = netssh_rs::BaseConnection::new()?;
-    let xr_device = CiscoXrSsh::with_connection(base_connection, cisco_config);
+    let xr_device = CiscoXrDevice::with_connection(base_connection, cisco_config);
     println!("  Device type: {}", xr_device.get_device_type());
     
     // Cisco NX-OS example
@@ -126,7 +126,7 @@ fn main() -> Result<(), NetsshError> {
         session_log: nxos_config.session_log.clone(),
     };
     let base_connection = netssh_rs::BaseConnection::new()?;
-    let nxos_device = CiscoNxosSsh::with_connection(base_connection, cisco_config);
+    let nxos_device = CiscoNxosDevice::with_connection(base_connection, cisco_config);
     println!("  Device type: {}", nxos_device.get_device_type());
     
     // Cisco ASA example

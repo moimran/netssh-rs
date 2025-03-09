@@ -1,6 +1,6 @@
 use crate::device_connection::{DeviceConfig, NetworkDeviceConnection};
 use crate::error::NetsshError;
-use crate::vendors::cisco::{CiscoDeviceConfig, CiscoXrSsh, CiscoNxosSsh, CiscoIosDevice, CiscoAsaDevice};
+use crate::vendors::cisco::{CiscoDeviceConfig, CiscoXrDevice, CiscoNxosDevice, CiscoIosDevice, CiscoAsaDevice};
 use crate::vendors::juniper::{JuniperDeviceConfig, JuniperJunosDevice};
 use crate::base_connection::BaseConnection;
 
@@ -44,7 +44,7 @@ impl DeviceFactory {
                 let base_connection = BaseConnection::new()?;
                 
                 // Create the device with the base connection and config
-                let device = CiscoXrSsh::with_connection(base_connection, cisco_config);
+                let device = CiscoXrDevice::with_connection(base_connection, cisco_config);
                 Ok(Box::new(device))
             },
             "cisco_nxos" => {
@@ -62,7 +62,7 @@ impl DeviceFactory {
                 let base_connection = BaseConnection::new()?;
                 
                 // Create the device with the base connection and config
-                let device = CiscoNxosSsh::with_connection(base_connection, cisco_config);
+                let device = CiscoNxosDevice::with_connection(base_connection, cisco_config);
                 Ok(Box::new(device))
             },
             "cisco_asa" => {

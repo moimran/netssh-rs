@@ -1,10 +1,10 @@
 use crate::device_connection::{NetworkDeviceConnection};
 use crate::error::NetsshError;
-use crate::vendors::cisco::{CiscoDeviceConnection, CiscoNxosSsh};
+use crate::vendors::cisco::{CiscoDeviceConnection, CiscoNxosDevice};
 use async_trait::async_trait;
 
 #[async_trait]
-impl NetworkDeviceConnection for CiscoNxosSsh {
+impl NetworkDeviceConnection for CiscoNxosDevice {
     fn connect(&mut self) -> Result<(), NetsshError> {
         self.connect()
     }

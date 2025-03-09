@@ -22,7 +22,7 @@ pub use error::NetsshError;
 pub use logging::init_logging as initialize_logging;
 
 // Re-export vendor-specific types
-pub use vendors::cisco::{CiscoDeviceConnection, CiscoBaseConnection, CiscoXrSsh, CiscoNxosSsh, CiscoIosDevice, CiscoAsaDevice};
+pub use vendors::cisco::{CiscoDeviceConnection, CiscoBaseConnection, CiscoXrDevice, CiscoNxosDevice, CiscoIosDevice, CiscoAsaDevice};
 pub use vendors::juniper::{JuniperDeviceConnection, JuniperBaseConnection, JuniperJunosDevice};
 
 // Re-export new abstraction layer

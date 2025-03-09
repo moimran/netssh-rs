@@ -4,11 +4,11 @@ use crate::vendors::cisco::{CiscoDeviceConnection, CiscoDeviceConfig, CiscoBaseC
 use async_trait::async_trait;
 use log::debug;
 
-pub struct CiscoNxosSsh {
+pub struct CiscoNxosDevice {
     pub base: CiscoBaseConnection,
 }
 
-impl CiscoNxosSsh {
+impl CiscoNxosDevice {
     pub fn new(config: CiscoDeviceConfig) -> Result<Self, NetsshError> {
         Ok(Self {
             base: CiscoBaseConnection::new(config)?,
@@ -69,7 +69,7 @@ impl CiscoNxosSsh {
 }
 
 #[async_trait]
-impl CiscoDeviceConnection for CiscoNxosSsh {
+impl CiscoDeviceConnection for CiscoNxosDevice {
     fn session_preparation(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoNxosSsh::session_preparation", "Preparing NX-OS session");
 
