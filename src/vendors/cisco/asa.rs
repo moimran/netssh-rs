@@ -136,6 +136,9 @@ impl CiscoDeviceConnection for CiscoAsaDevice {
             debug!(target: "CiscoAsaDevice::session_preparation", "Channel already exists, skipping open_channel");
         }
 
+        // add delay to wait for the device to be ready
+        std::thread::sleep(std::time::Duration::from_millis(500));
+
         debug!(target: "CiscoAsaDevice::session_preparation", "Setting base prompt");
         // Set base prompt
         self.set_base_prompt()?;
@@ -143,7 +146,7 @@ impl CiscoDeviceConnection for CiscoAsaDevice {
         // Enter enable mode if not already in it
         if !self.check_enable_mode()? {
             debug!(target: "CiscoAsaDevice::session_preparation", "Not in privileged mode #, entering enable mode");
-            self.base.enable()?;
+            self.enable()?;
         } else {
             debug!(target: "CiscoAsaDevice::session_preparation", "Already in privileged mode");
         }

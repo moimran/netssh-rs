@@ -4,11 +4,11 @@ use crate::vendors::cisco::{CiscoDeviceConnection, CiscoDeviceConfig, CiscoBaseC
 use async_trait::async_trait;
 use log::debug;
 
-pub struct CiscoNxosSsh {
+pub struct CiscoNxosDevice {
     pub base: CiscoBaseConnection,
 }
 
-impl CiscoNxosSsh {
+impl CiscoNxosDevice {
     pub fn new(config: CiscoDeviceConfig) -> Result<Self, NetsshError> {
         Ok(Self {
             base: CiscoBaseConnection::new(config)?,
@@ -66,15 +66,10 @@ impl CiscoNxosSsh {
     pub fn strip_ansi_escape_codes(&self, data: &str) -> String {
         self.base.strip_ansi_escape_codes(data)
     }
-
-    pub fn disconnect(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::disconnect", "Disconnecting from device");
-        self.close()
-    }
 }
 
 #[async_trait]
-impl CiscoDeviceConnection for CiscoNxosSsh {
+impl CiscoDeviceConnection for CiscoNxosDevice {
     fn session_preparation(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoNxosSsh::session_preparation", "Preparing NX-OS session");
 

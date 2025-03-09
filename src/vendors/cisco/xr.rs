@@ -5,11 +5,11 @@ use async_trait::async_trait;
 use log::debug;
 use std::time::Duration;
 
-pub struct CiscoXrSsh {
+pub struct CiscoXrDevice {
     pub base: CiscoBaseConnection,
 }
 
-impl CiscoXrSsh {
+impl CiscoXrDevice {
     pub fn new() -> Result<Self, NetsshError> {
         Ok(Self {
             base: CiscoBaseConnection::new(CiscoDeviceConfig::default())?,
@@ -97,7 +97,7 @@ impl CiscoXrSsh {
 }
 
 #[async_trait]
-impl CiscoDeviceConnection for CiscoXrSsh {
+impl CiscoDeviceConnection for CiscoXrDevice {
     fn session_preparation(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoXrSsh::session_preparation", "Preparing XR session");
 
