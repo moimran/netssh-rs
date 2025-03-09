@@ -66,11 +66,6 @@ impl CiscoNxosSsh {
     pub fn strip_ansi_escape_codes(&self, data: &str) -> String {
         self.base.strip_ansi_escape_codes(data)
     }
-
-    pub fn disconnect(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::disconnect", "Disconnecting from device");
-        self.close()
-    }
 }
 
 #[async_trait]

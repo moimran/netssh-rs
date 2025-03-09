@@ -3,10 +3,14 @@ pub mod xr;
 pub mod asa;
 pub mod nxos;
 pub mod ciscodevicebase;
+pub mod xr_network_device;
+pub mod nxos_network_device;
+pub mod ios_network_device;
+pub mod asa_network_device;
 
-pub use ios::*;
+pub use ios::CiscoIosDevice;
 pub use xr::CiscoXrSsh;
-pub use asa::*;
+pub use asa::CiscoAsaDevice;
 pub use nxos::CiscoNxosSsh;
 pub use ciscodevicebase::CiscoBaseConnection;
 

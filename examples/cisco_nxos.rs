@@ -94,7 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // device.save_config()?;
 
     info!("Disconnecting from device");
-    device.disconnect()?;
+    device.close()?;
 
     Ok(())
 }

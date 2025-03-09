@@ -3,6 +3,7 @@ use async_trait::async_trait;
 
 pub mod juniperdevicebase;
 pub mod junos;
+pub mod junos_network_device;
 
 pub use juniperdevicebase::JuniperBaseConnection;
 pub use junos::JuniperJunosDevice;

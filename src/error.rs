@@ -65,4 +65,7 @@ pub enum NetsshError {
 
     #[error("Session log error: {0}")]
     SessionLogError(String),
+    
+    #[error("Unsupported operation: {0}")]
+    UnsupportedOperation(String),
 }

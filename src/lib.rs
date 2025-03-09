@@ -1,8 +1,13 @@
 pub mod base_connection;
 pub mod channel;
 pub mod config;
+pub mod device_connection;
+pub mod device_connection_impl;
+pub mod device_factory;
+pub mod device_service;
 pub mod error;
 pub mod logging;
+pub mod rest_api;
 pub mod session_log;
 pub mod vendors;
 
@@ -10,9 +15,18 @@ pub mod vendors;
 pub use vendors::cisco;
 pub use vendors::juniper;
 
+// Re-export core types
 pub use base_connection::BaseConnection;
 pub use config::{NetsshConfig, NetsshConfigBuilder};
 pub use error::NetsshError;
 pub use logging::init_logging as initialize_logging;
-pub use vendors::cisco::{CiscoDeviceConnection, CiscoBaseConnection, CiscoXrSsh, CiscoNxosSsh};
+
+// Re-export vendor-specific types
+pub use vendors::cisco::{CiscoDeviceConnection, CiscoBaseConnection, CiscoXrSsh, CiscoNxosSsh, CiscoIosDevice, CiscoAsaDevice};
 pub use vendors::juniper::{JuniperDeviceConnection, JuniperBaseConnection, JuniperJunosDevice};
+
+// Re-export new abstraction layer
+pub use device_connection::{NetworkDeviceConnection, DeviceConfig, DeviceInfo};
+pub use device_factory::DeviceFactory;
+pub use device_service::{DeviceService, Interface};
+pub use rest_api::{DeviceController, ConfigRepository, ApiError};
