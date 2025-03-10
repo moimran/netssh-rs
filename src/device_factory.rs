@@ -9,7 +9,7 @@ pub struct DeviceFactory;
 
 impl DeviceFactory {
     /// Create a device connection based on the provided configuration
-    pub fn create_device(config: &DeviceConfig) -> Result<Box<dyn NetworkDeviceConnection>, NetsshError> {
+    pub fn create_device(config: &DeviceConfig) -> Result<Box<dyn NetworkDeviceConnection + Send>, NetsshError> {
         match config.device_type.as_str() {
             "cisco_ios" => {
                 let cisco_config = CiscoDeviceConfig {

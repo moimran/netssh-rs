@@ -1,6 +1,8 @@
+pub mod api;
 pub mod base_connection;
 pub mod channel;
 pub mod config;
+pub mod connection_manager;
 pub mod device_connection;
 pub mod device_connection_impl;
 pub mod device_factory;
