@@ -481,14 +481,10 @@ impl CiscoBaseConnection {
         self.connection
             .write_channel("copy running-config startup-config\n")?;
 
-        // Wait for confirmation prompt and send enter
-        let output = self.connection.read_until_pattern("\\?")?;
-        if output.contains("?") {
-            self.connection.write_channel("\n")?;
-        }
-
         // Wait for completion
-        let output = self.connection.read_until_pattern("#")?;
+        let output = self.connection.read_until_pattern(&self.prompt)?;
+
+        debug!(target: "CiscoBaseConnection::save_config", "Save command output: {}", output);
 
         if output.contains("Error") {
             warn!(target: "CiscoBaseConnection::save_config", "Error saving configuration: {}", output);

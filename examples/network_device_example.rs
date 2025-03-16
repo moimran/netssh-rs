@@ -20,55 +20,35 @@ fn main() -> Result<(), NetsshError> {
 
     // Create a device using the factory
     println!("Creating device...");
-    let device = DeviceFactory::create_device(&config)?;
+    let mut device = DeviceFactory::create_device(&config)?;
     
-    // Create a service with the device
-    println!("Creating service...");
-    let mut service = DeviceService::new(device);
     
     // Connect to the device
     println!("Connecting to device...");
-    service.connect()?;
+    device.connect()?;
     
-    // // Get device information
-    // println!("Getting device information...");
-    // let info = service.get_device_info()?;
-    // println!("Device Info:");
-    // println!("  Vendor: {}", info.vendor);
-    // println!("  Model: {}", info.model);
-    // println!("  OS Version: {}", info.os_version);
-    // println!("  Hostname: {}", info.hostname);
-    // println!("  Uptime: {}", info.uptime);
-    
-    // // Get interfaces
-    // println!("Getting interfaces...");
-    // let interfaces = service.get_interfaces()?;
-    // println!("Interfaces:");
-    // for interface in interfaces {
-    //     println!("  Name: {}", interface.name);
-    //     println!("  Status: {}", interface.status);
-    //     if let Some(ip) = interface.ip_address {
-    //         println!("  IP Address: {}", ip);
-    //     }
-    //     if let Some(desc) = interface.description {
-    //         println!("  Description: {}", desc);
-    //     }
-    //     println!();
-    // }
-    
-    // // Configure an interface
-    // println!("Configuring interface...");
-    // service.configure_interface("GigabitEthernet0/0/0/0", "Configured by NetworkDeviceConnection")?;
-    
-    // // Execute a command
-    // println!("Executing command...");
-    let output = service.execute_command("show running-config")?;
-    println!("Command output:");
-    println!("{}", output);
+    // Configure an interface
+    println!("Configuring interface...");
+    // service.configure_interface("Ethernet1/64", "Configured by NetworkDeviceConnection")?;
+
+
+    let sh_run =  device.send_command("show run")?;
+    println!("{}", sh_run);
+
+    device.enter_config_mode(None)?;
+    device.send_command("interface Ethernet1/62")?;
+    device.send_command("description Configured by NetworkDeviceConnection")?;
+    device.exit_config_mode(None)?;
+
+    device.save_configuration()?;
+
+    // let sh_run =  device.send_command("show run")?;
+    // println!("{}", sh_run);
+
     
     // Close the connection
     println!("Closing connection...");
-    service.close()?;
+    device.close()?;
     
     println!("Done!");
     Ok(())
