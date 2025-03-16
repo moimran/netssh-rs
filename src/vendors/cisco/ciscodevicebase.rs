@@ -519,11 +519,11 @@ impl CiscoBaseConnection {
 
         // Remove command echo from output
         let lines: Vec<&str> = output.lines().collect();
-        let result = if lines.len() > 1 {
-            // Skip the first line (command echo) and join the rest
-            lines[1..].join("\n")
+        let result = if lines.len() > 2 {
+            // Skip the first line (command echo) and last line (prompt), join the rest
+            lines[1..lines.len()-1].join("\n")
         } else {
-            output
+            output.to_string()
         };
 
         debug!(target: "CiscoBaseConnection::send_command", "Command output received, length: {}", result.len());
