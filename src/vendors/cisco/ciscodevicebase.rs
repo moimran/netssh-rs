@@ -479,7 +479,7 @@ impl CiscoBaseConnection {
 
         // Send save command - default for IOS/NXOS
         self.connection
-            .write_channel("copy running-config startup-config\n")?;
+            .write_channel("write mem\n")?;
 
         // Wait for completion
         let output = self.connection.read_until_pattern(&self.prompt)?;

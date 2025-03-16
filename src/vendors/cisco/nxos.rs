@@ -2,7 +2,7 @@ use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoDeviceConnection, CiscoDeviceConfig, CiscoBaseConnection};
 use async_trait::async_trait;
-use log::debug;
+use log::{debug, warn};
 
 pub struct CiscoNxosDevice {
     pub base: CiscoBaseConnection,
@@ -159,8 +159,39 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
     }
 
     fn save_config(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::save_config", "Delegating to CiscoBaseConnection::save_config");
-        self.base.save_config()
+        debug!(target: "CiscoNxosSsh::save_config", "Saving configuration");
+
+        // Ensure we're in enable mode
+        if !self.check_enable_mode()? {
+            debug!(target: "CiscoNxosSsh::save_config", "Not in enable mode, entering enable mode first");
+            self.enable()?;
+        }
+
+        // Exit config mode if we're in it
+        if self.check_config_mode()? {
+            debug!(target: "CiscoNxosSsh::save_config", "In config mode, exiting config mode first");
+            self.exit_config_mode(None)?;
+        }
+
+        // Send save command - default for IOS/NXOS
+        self.base.connection
+            .write_channel("copy running-config startup-config\n")?;
+
+        // Wait for completion
+        let output = self.base.connection.read_until_pattern(&self.base.prompt)?;
+
+        debug!(target: "CiscoNxosSsh::save_config", "Save command output: {}", output);
+
+        if output.contains("Error") {
+            warn!(target: "CiscoNxosSsh::save_config", "Error saving configuration: {}", output);
+            return Err(NetsshError::CommandError(format!(
+                "Failed to save configuration: {}",
+                output
+            )));
+        }
+
+        debug!(target: "CiscoNxosSsh::save_config", "Configuration saved successfully");
+        Ok(())
     }
 
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
