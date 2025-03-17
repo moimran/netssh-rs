@@ -12,6 +12,7 @@ pub mod logging;
 pub mod rest_api;
 pub mod session_log;
 pub mod vendors;
+pub mod python;
 
 // Re-export vendor modules
 pub use vendors::cisco;
