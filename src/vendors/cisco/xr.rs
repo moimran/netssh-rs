@@ -198,14 +198,13 @@ impl CiscoDeviceConnection for CiscoXrDevice {
         // Exit config mode if we're in it
         if self.check_config_mode()? {
             debug!(target: "CiscoXrSsh::save_config", "In config mode, exiting config mode first");
-            self.exit_config_mode(None)?;
         }
 
         // Send save command - XR uses "commit"
         self.base.connection.write_channel("commit\n")?;
 
         // Wait for completion
-        let output = self.base.connection.read_until_pattern("#")?;
+        let output = self.base.connection.read_until_pattern(&self.base.prompt)?;
 
         if output.contains("Error") {
             debug!(target: "CiscoXrSsh::save_config", "Error saving configuration: {}", output);
