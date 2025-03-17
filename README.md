@@ -12,6 +12,7 @@ A Rust implementation of Netssh, providing SSH connection handling for network d
 - Thread-safe session management
 - Concurrent connection handling
 - Async support
+- **Python bindings** for using netssh-rs from Python code
 
 ## Supported Device Types
 
@@ -201,7 +202,61 @@ export DEVICE_SECRET=enable_password  # For privileged mode on some devices
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+## Python Bindings
+
+Netssh-rs includes Python bindings that allow you to use the library from Python code. This provides the performance benefits of Rust with the convenience of Python.
+
+### Installation
+
+```bash
+# Install from source
+uv pip install maturin
+cd netssh-rs
+make setup
+make develop
+```
+
+### Python Usage
+
+```python
+import netssh_rs
+
+# Initialize logging
+netssh_rs.initialize_logging(debug=True, console=True)
+
+# Create a device configuration
+config = netssh_rs.PyDeviceConfig(
+    device_type="cisco_ios",
+    host="192.168.1.1",
+    username="admin",
+    password="password",
+    port=22,
+    timeout_seconds=60,
+    secret="enable_secret",
+    session_log="logs/device_session.log"
+)
+
+# Create and connect to a device
+with netssh_rs.PyNetworkDevice.create(config) as device:
+    device.connect()
+    
+    # Send commands
+    output = device.send_command("show version")
+    print(output)
+    
+    # Configure device
+    device.enter_config_mode(None)
+    device.send_command("interface GigabitEthernet1")
+    device.send_command("description Configured by Python")
+    device.exit_config_mode(None)
+    
+    # Save configuration
+    device.save_configuration()
+```
+
+For more details, see the [Python README](python/README.md).
 
 ## License
 
+This project is licensed under the MIT License - see the LICENSE file for details.
 This project is licensed under the MIT License - see the LICENSE file for details.

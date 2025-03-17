@@ -1,0 +1,14 @@
+# Core dependencies
+fastapi>=0.95.0
+uvicorn>=0.22.0
+pydantic>=2.0.0
+asyncio>=3.4.3
+
+# For development and testing
+pytest>=7.3.1
+pytest-asyncio>=0.21.0
+httpx>=0.24.0
+
+# For building the Rust extension
+maturin>=1.0.0
+setuptools-rust>=1.5.2

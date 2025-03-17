@@ -1,4 +1,4 @@
-use crate::error::NetsshError;
+ use crate::error::NetsshError;
 use async_trait::async_trait;
 
 /// Common interface for all network devices regardless of vendor

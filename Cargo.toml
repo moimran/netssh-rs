@@ -5,7 +5,15 @@ edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
 description = "A Rust implementation of Netssh - SSH connection handler for network devices"
 
+# Add PyO3 configuration for Python bindings
+[lib]
+name = "netssh_rs"
+# "cdylib" is necessary for Python modules
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
+# PyO3 for Python bindings
+pyo3 = { version = "0.19", features = ["extension-module"] }
 ssh2 = "0.9.4"
 log = "0.4"
 env_logger = { version = "0.10", features = ["auto-color", "humantime"] }
