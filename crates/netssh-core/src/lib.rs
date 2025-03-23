@@ -8,6 +8,7 @@ pub mod device_factory;
 pub mod device_service;
 pub mod error;
 pub mod logging;
+pub mod parallel_execution;
 pub mod semaphore;
 pub mod session_log;
 pub mod settings;
@@ -51,6 +52,7 @@ pub use buffer_pool::{BufferPool, BorrowedBuffer};
 pub use config::{NetsshConfig, NetsshConfigBuilder};
 pub use error::NetsshError;
 pub use logging::init_logging as initialize_logging;
+pub use parallel_execution::{CommandResult, CommandStatus, ParallelExecutionManager, BatchCommandResults, ParallelExecutionConfig, FailureStrategy};
 pub use semaphore::{TimeoutSemaphore, SemaphorePermit, SemaphoreError};
 pub use settings::{Settings, get_network_timeout, get_ssh_timeout, get_concurrency_setting, get_buffer_setting};
 

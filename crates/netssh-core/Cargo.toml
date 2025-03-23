@@ -12,7 +12,7 @@ log.workspace = true
 env_logger.workspace = true
 async-trait.workspace = true
 regex.workspace = true
-chrono.workspace = true
+chrono = { workspace = true, features = ["serde"] }
 thiserror.workspace = true
 tokio.workspace = true
 serde.workspace = true

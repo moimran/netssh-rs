@@ -1,4 +1,4 @@
- use crate::error::NetsshError;
+use crate::error::NetsshError;
 use async_trait::async_trait;
 
 /// Common interface for all network devices regardless of vendor
@@ -55,7 +55,7 @@ pub struct DeviceInfo {
 }
 
 /// Generic device configuration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct DeviceConfig {
     pub device_type: String,
     pub host: String,

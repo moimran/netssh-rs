@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use std::sync::RwLock;
 use std::fs;
 use std::path::Path;
-use log::{debug, error, info};
+use log::{debug, error};
 
 /// Global Settings for netssh-rs
 /// This file provides a central place to configure all timeout values and other settings
@@ -237,10 +237,9 @@ impl Settings {
     }
 
     /// Load settings from TOML string
-    pub fn load_from_toml(toml: &str) -> Result<Self, String> {
-        // Using unwrap for simplicity, would need to add toml crate to dependencies
-        // and proper error handling in production
-        Err("TOML parsing not implemented yet".to_string())
+    pub fn load_from_toml(_toml: &str) -> Result<Self, String> {
+        // TODO: Implement TOML parsing once the format is finalized
+        Err("TOML loading not yet implemented".to_string())
     }
 
     /// Initialize global settings
