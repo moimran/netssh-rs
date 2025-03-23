@@ -29,6 +29,7 @@ serde_json = "1.0"
 lazy_static = "1.4"
 parking_lot = "0.12"
 rpassword = "7.0"
+rand = "0.8"
 
 # Python bindings
 pyo3 = { version = "0.19", features = ["extension-module"] }

@@ -10,6 +10,34 @@ pub mod logging;
 pub mod session_log;
 pub mod vendors;
 
+// Import lazy_static for common regex patterns
+#[macro_use]
+extern crate lazy_static;
+
+// Common regex patterns module
+pub mod patterns {
+    use regex::Regex;
+
+    lazy_static! {
+        // Common network device prompt patterns
+        pub static ref PROMPT_PATTERN: Regex = Regex::new(r"[>#]$").unwrap();
+        pub static ref CONFIG_PROMPT_PATTERN: Regex = Regex::new(r"\(config[^)]*\)#$").unwrap();
+        
+        // Common ANSI escape code pattern
+        pub static ref ANSI_ESCAPE_PATTERN: Regex = Regex::new(r"\x1b\[[0-9;]*[a-zA-Z]").unwrap();
+        
+        // Common line ending normalization pattern
+        pub static ref CRLF_PATTERN: Regex = Regex::new(r"\r\n").unwrap();
+        
+        // Common patterns for parsing command outputs
+        pub static ref IP_ADDRESS_PATTERN: Regex = Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").unwrap();
+        pub static ref MAC_ADDRESS_PATTERN: Regex = Regex::new(r"\b([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})\b").unwrap();
+        
+        // Common error patterns
+        pub static ref ERROR_PATTERN: Regex = Regex::new(r"(?i)error|invalid|failed|denied|timeout").unwrap();
+    }
+}
+
 // Re-export vendor modules
 pub use vendors::cisco;
 pub use vendors::juniper;

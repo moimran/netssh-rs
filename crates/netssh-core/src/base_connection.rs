@@ -1,6 +1,7 @@
 use crate::channel::SSHChannel;
 use crate::config::NetsshConfig;
 use crate::error::NetsshError;
+use crate::patterns::{ANSI_ESCAPE_PATTERN, CRLF_PATTERN};
 use crate::session_log::SessionLog;
 use log::{debug, info, warn};
 use regex::Regex;
@@ -8,6 +9,7 @@ use ssh2::Session;
 use std::net::TcpStream;
 use std::thread;
 use std::time::{Duration, SystemTime};
+use rand;
 
 pub struct BaseConnection {
     pub session: Option<Session>,
@@ -92,62 +94,72 @@ impl BaseConnection {
         let addr = format!("{}:{}", host, port);
 
         debug!(target: "BaseConnection::connect", "Establishing TCP connection to {}", addr);
-        let tcp = TcpStream::connect(&addr).map_err(|e| {
-            info!("Failed to establish TCP connection: {}", e);
-            NetsshError::IoError(e)
-        })?;
+        let tcp = match TcpStream::connect(&addr) {
+            Ok(stream) => {
+                debug!(target: "BaseConnection::connect", "TCP connection established");
+                stream
+            },
+            Err(e) => {
+                info!("Failed to establish TCP connection: {}", e);
+                return Err(NetsshError::connection_failed(addr, e));
+            }
+        };
 
-        debug!(target: "BaseConnection::connect", "TCP connection established");
-
-        if let Some(timeout) = Some(timeout) {
-            debug!(target: "BaseConnection::connect", "Setting TCP timeouts to {:?}", timeout);
-            tcp.set_read_timeout(Some(self.config.read_timeout))
-                .map_err(|e| NetsshError::IoError(e))?;
-            tcp.set_write_timeout(Some(self.config.write_timeout))
-                .map_err(|e| NetsshError::IoError(e))?;
+        debug!(target: "BaseConnection::connect", "Setting TCP timeouts to {:?}", timeout);
+        if let Err(e) = tcp.set_read_timeout(Some(self.config.read_timeout)) {
+            return Err(NetsshError::IoError(e));
+        }
+        
+        if let Err(e) = tcp.set_write_timeout(Some(self.config.write_timeout)) {
+            return Err(NetsshError::IoError(e));
         }
 
         debug!(target: "BaseConnection::connect", "Creating SSH session");
-        let mut session = Session::new().map_err(|e| {
-            info!("Failed to create SSH session: {}", e);
-            NetsshError::SshError(e)
-        })?;
+        let mut session = match Session::new() {
+            Ok(session) => session,
+            Err(e) => {
+                info!("Failed to create SSH session: {}", e);
+                return Err(NetsshError::SshError(e));
+            }
+        };
         session.set_tcp_stream(tcp);
 
-        debug!(target: "BaseConnection::connect", "SSH session created, starting handshake");
-
         debug!(target: "BaseConnection::connect", "Starting SSH handshake");
-        session.handshake().map_err(|e| {
+        if let Err(e) = session.handshake() {
             info!("SSH handshake failed: {}", e);
-            NetsshError::SshError(e)
-        })?;
+            return Err(NetsshError::ssh_handshake_failed(e));
+        }
 
         debug!(target: "BaseConnection::connect", "SSH handshake completed successfully");
-
         debug!(target: "BaseConnection::connect", "Authenticating with username {}", username);
+        
         if let Some(pass) = password {
             debug!(target: "BaseConnection::connect", "Attempting password authentication for user: {}", username);
-            session.userauth_password(username, pass).map_err(|e| {
+            if let Err(e) = session.userauth_password(username, pass) {
                 info!("Password authentication failed: {}", e);
-                NetsshError::AuthenticationError(e.to_string())
-            })?;
+                return Err(NetsshError::authentication_failed(username, e));
+            }
         } else {
             debug!(target: "BaseConnection::connect", "Attempting SSH agent authentication for user: {}", username);
-            session.userauth_agent(username).map_err(|e| {
+            if let Err(e) = session.userauth_agent(username) {
                 info!("SSH agent authentication failed: {}", e);
-                NetsshError::AuthenticationError(e.to_string())
-            })?;
+                return Err(NetsshError::authentication_failed(username, e));
+            }
         }
 
         debug!(target: "BaseConnection::connect", "Authentication successful");
-
         debug!(target: "BaseConnection::connect", "Opening SSH channel");
-        let mut channel = session.channel_session().map_err(|e| {
-            info!("Failed to create channel session: {}", e);
-            NetsshError::SshError(e)
-        })?;
-
-        debug!(target: "BaseConnection::connect", "SSH channel created successfully");
+        
+        let mut channel = match session.channel_session() {
+            Ok(channel) => {
+                debug!(target: "BaseConnection::connect", "SSH channel created successfully");
+                channel
+            },
+            Err(e) => {
+                info!("Failed to create channel session: {}", e);
+                return Err(NetsshError::channel_failed("Failed to create channel session", Some(e)));
+            }
+        };
 
         debug!(target: "BaseConnection::connect", "Requesting PTY");
         channel.request_pty("xterm", None, None).map_err(|e| {
@@ -163,10 +175,15 @@ impl BaseConnection {
 
         session.set_blocking(true);
 
+        // After successful connection, enable keepalive mechanism
+        debug!(target: "BaseConnection::connect", "Enabling SSH keep-alive");
+        session.set_keepalive(true, 60); // Send keepalive every 60 seconds
+        
+        // Store the session
         self.session = Some(session);
         self.channel = SSHChannel::new(Some(channel));
-
-        info!("Successfully connected to {}:{}", host, port);
+        
+        debug!(target: "BaseConnection::connect", "Connection established successfully");
         Ok(())
     }
 
@@ -230,14 +247,14 @@ impl BaseConnection {
 
     // Helper method to normalize line feeds (convert \r\n to \n)
     fn normalize_linefeeds(&self, data: &str) -> String {
-        data.replace("\r\n", "\n")
+        // Use the pre-compiled pattern for better performance
+        CRLF_PATTERN.replace_all(data, "\n").to_string()
     }
 
     // Helper method to strip ANSI escape codes
     fn strip_ansi_escape_codes(&self, data: &str) -> String {
-        // Simple regex to strip ANSI escape codes
-        let re = Regex::new(r"\x1B\[[0-9;]*[a-zA-Z]").unwrap();
-        re.replace_all(data, "").to_string()
+        // Use the pre-compiled pattern for better performance
+        ANSI_ESCAPE_PATTERN.replace_all(data, "").to_string()
     }
 
     pub fn read_channel(&mut self) -> Result<String, NetsshError> {
@@ -312,90 +329,86 @@ impl BaseConnection {
     pub fn read_until_pattern(&mut self, pattern: &str) -> Result<String, NetsshError> {
         debug!(target: "BaseConnection::read_until_pattern", "Reading until pattern: {}", pattern);
 
-        // Use read_timeout_override if set
-        let read_timeout = self
-            .read_timeout_override
-            .unwrap_or(self.config.pattern_timeout);
+        // Get current time for timeout tracking
+        let start = SystemTime::now();
+        
+        // Pre-compile the regex pattern for better performance
+        let pattern_regex = match Regex::new(pattern) {
+            Ok(re) => re,
+            Err(e) => {
+                debug!(target: "BaseConnection::read_until_pattern", "Invalid regex pattern: {}", e);
+                return Err(NetsshError::PatternError(format!("Invalid regex pattern: {}", e)));
+            }
+        };
 
-        // Special case for prompt patterns
-        if pattern == "[>#]" && self.base_prompt.is_some() {
-            debug!(target: "BaseConnection::read_until_pattern", "Using special handling for prompt pattern");
-            return self.read_until_prompt();
-        }
+        // Use a single, pre-allocated String to avoid multiple allocations during reads
+        let mut output = String::with_capacity(16384); // Start with a reasonable capacity
+        
+        // Use the effective timeout value (override or config default)
+        let timeout = self.read_timeout_override.unwrap_or(self.config.read_timeout);
+        debug!(target: "BaseConnection::read_until_pattern", "Using timeout: {:?}", timeout);
 
-        // Compile the regex pattern
-        let regex = Regex::new(pattern).map_err(|e| NetsshError::PatternError(e.to_string()))?;
-
-        // If we have a base_prompt and the pattern is for a prompt, use the SSHChannel's read_until_prompt method
-        if (pattern.ends_with("#") || pattern.ends_with(">") || pattern.contains("[>#]"))
-            && self.base_prompt.is_some()
-        {
-            debug!(target: "BaseConnection::read_until_pattern", "Using SSHChannel's read_until_prompt method");
-            return self
-                .channel
-                .read_until_prompt(Some(read_timeout), Some(&regex));
-        }
-
-        if pattern.ends_with("#") || pattern.ends_with(">") || pattern.contains("[>#]") {
-            debug!(target: "BaseConnection::read_until_pattern", "Using SSHChannel's read_until_prompt method with no base prompt");
-            return self
-                .channel
-                .read_until_prompt(Some(read_timeout), Some(&regex));
-        }
-
-        let mut output = String::new();
-        let loop_delay = Duration::from_millis(10); // 10ms delay between reads
-        let start_time = SystemTime::now();
-
-        // Keep reading until timeout or pattern is found
-        while start_time.elapsed()? < read_timeout {
-            // Read a chunk of data
-            self.sleep_for_command(None);
-            let new_data = self.read_channel()?;
-
-            if !new_data.is_empty() {
-                debug!(target: "BaseConnection::read_until_pattern", "Read chunk: {:?}", new_data);
-                output.push_str(&new_data);
-
-                // Check if pattern is found
-                if regex.is_match(&output) {
-                    debug!(target: "BaseConnection::read_until_pattern", "Pattern found: {}", pattern);
-
-                    // Process the output to split at the pattern
-                    if pattern.contains('(') && !pattern.contains("(?:") {
-                        debug!(target: "BaseConnection::read_until_pattern", "Parenthesis found in pattern, may need special handling");
-                    }
-
-                    let results = regex.splitn(&output, 2).collect::<Vec<&str>>();
-
-                    if results.len() > 1 && !results[1].is_empty() {
-                        // Store excess data in the read buffer
-                        self._read_buffer = results[1].to_string();
-
-                        // Return everything up to and including the pattern
-                        let match_index = output.len() - results[1].len();
-                        return Ok(output[..match_index].to_string());
-                    }
-
-                    return Ok(output);
+        loop {
+            // Check for timeout
+            match start.elapsed() {
+                Ok(elapsed) if elapsed > timeout => {
+                    debug!(target: "BaseConnection::read_until_pattern", "Timeout reached after {:?}", elapsed);
+                    return Err(NetsshError::timeout(format!("finding pattern '{}'", pattern)));
                 }
-            } else {
-                // If no new data, sleep a bit to avoid CPU spinning
-                std::thread::sleep(loop_delay);
+                Ok(_) => {}, // Still within timeout
+                Err(e) => return Err(NetsshError::SystemTimeError(e)),
+            }
+
+            // Read data from channel
+            match self.channel.read_buffer(None) {
+                Ok(data) => {
+                    if !data.is_empty() {
+                        debug!(target: "BaseConnection::read_until_pattern", "Read {} bytes", data.len());
+                        
+                        // Clean the data if configured
+                        let clean_data = if self.ansi_escape_codes {
+                            self.strip_ansi_escape_codes(&data)
+                        } else {
+                            data
+                        };
+
+                        // Process line feed normalization if needed
+                        let normalized_data = if !self.disable_lf_normalization {
+                            self.normalize_linefeeds(&clean_data)
+                        } else {
+                            clean_data
+                        };
+
+                        // Add the new data to our accumulated output
+                        output.push_str(&normalized_data);
+                        
+                        // Log the session data if enabled
+                        if self.session_log.is_enabled() {
+                            self.session_log.write(&normalized_data)?;
+                        }
+
+                        // Check if the pattern exists in the data
+                        if pattern_regex.is_match(&output) {
+                            debug!(target: "BaseConnection::read_until_pattern", "Found pattern match");
+                            break;
+                        }
+                    }
+
+                    // Sleep a bit to avoid CPU spinning
+                    thread::sleep(Duration::from_millis(DEFAULT_LOOP_DELAY_MS));
+                }
+                Err(e) => {
+                    debug!(target: "BaseConnection::read_until_pattern", "Error reading from channel: {}", e);
+                    if self.session_log.is_enabled() {
+                        self.session_log.write(&format!("Error: {}\n", e))?;
+                    }
+                    return Err(e);
+                }
             }
         }
 
-        // If we have some output but timed out, return what we have instead of an error
-        if !output.is_empty() {
-            debug!(target: "BaseConnection::read_until_pattern", "Timeout reached but returning partial output: {:?}", output);
-            return Ok(output);
-        }
-
-        debug!(target: "BaseConnection::read_until_pattern", "Timeout reached with no output");
-        Err(NetsshError::TimeoutError(format!(
-            "Pattern '{}' not found within timeout period. Final buffer: {:?}",
-            pattern, output
-        )))
+        debug!(target: "BaseConnection::read_until_pattern", "Read complete, found pattern");
+        Ok(output)
     }
 
     // Special method to handle reading until a prompt (> or #)
@@ -531,32 +544,188 @@ impl BaseConnection {
     pub fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
         debug!(target: "BaseConnection::send_command", "Sending command: {}", command);
 
-        if self.config.auto_clear_buffer {
-            // Clear any pending data in the buffer
-            let _ = self.read_channel();
-        }
-
-        // Write the command
+        // Write the command to the channel
         self.write_channel(&format!("{}\n", command))?;
 
-        // Wait for command echo and prompt
-        // Use a pattern that matches both user mode (>) and privileged mode (#) prompts
-        let output = self.read_until_pattern("[>#]")?;
+        // Sleep to allow the command to be processed
+        self.sleep_for_command(None);
 
-        // Remove command echo from output
-        let lines: Vec<&str> = output.lines().collect();
-        let result = if lines.len() > 1 {
-            // Skip the first line (command echo) and join the rest
-            lines[1..].join("\n")
-        } else {
-            output
-        };
-
-        debug!(target: "BaseConnection::send_command", "Command output received, length: {}", result.len());
-        Ok(result)
+        // Read the response
+        let response = self.read_until_prompt()?;
+        
+        debug!(target: "BaseConnection::send_command", "Command complete, response length: {}", response.len());
+        Ok(response)
+    }
+    
+    /// Send multiple commands in a batch to reduce round-trip latency
+    pub fn send_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError> {
+        debug!(target: "BaseConnection::send_commands", "Sending {} commands in batch", commands.len());
+        
+        let mut responses = Vec::with_capacity(commands.len());
+        
+        // For single commands, use the standard method
+        if commands.len() == 1 {
+            let response = self.send_command(commands[0])?;
+            responses.push(response);
+            return Ok(responses);
+        }
+        
+        // For multiple commands, optimize by sending them all at once
+        // with minimal delay between them
+        for command in commands {
+            debug!(target: "BaseConnection::send_commands", "Writing command: {}", command);
+            self.write_channel(&format!("{}\n", command))?;
+            
+            // Use a shorter delay between commands in batch mode
+            thread::sleep(Duration::from_millis(50));
+            
+            // Read until prompt after each command to capture its response
+            let response = self.read_until_prompt()?;
+            responses.push(response);
+        }
+        
+        debug!(target: "BaseConnection::send_commands", "Batch command execution complete");
+        Ok(responses)
+    }
+    
+    /// Send commands in configuration mode
+    pub fn send_config_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError> {
+        debug!(target: "BaseConnection::send_config_commands", "Sending {} config commands", commands.len());
+        
+        // This implementation assumes a device that enters config mode with "configure terminal"
+        // and exits with "end" - device-specific implementations should override this method
+        
+        // Enter config mode
+        self.send_command("configure terminal")?;
+        
+        let mut responses = Vec::with_capacity(commands.len());
+        
+        // Send all configuration commands
+        for command in commands {
+            let response = self.send_command(command)?;
+            responses.push(response);
+        }
+        
+        // Exit config mode
+        self.send_command("end")?;
+        
+        debug!(target: "BaseConnection::send_config_commands", "Config commands execution complete");
+        Ok(responses)
     }
 
     pub fn set_session_log(&mut self, filename: &str) -> Result<(), NetsshError> {
         self.session_log.enable(filename)
+    }
+
+    /// Send a keep-alive message to prevent SSH connection timeout
+    pub fn keep_alive(&mut self) -> Result<(), NetsshError> {
+        debug!(target: "BaseConnection::keep_alive", "Sending keep-alive");
+        
+        if let Some(ref session) = self.session {
+            // Check if the session is still active
+            if !session.authenticated() {
+                return Err(NetsshError::ConnectionError(
+                    "SSH session is no longer authenticated".to_string(),
+                ));
+            }
+            
+            // Send an empty command as keep-alive
+            match self.write_channel("\n") {
+                Ok(_) => {
+                    // Discard any output
+                    let _ = self.clear_buffer(None, None, None);
+                    debug!(target: "BaseConnection::keep_alive", "Keep-alive successful");
+                    Ok(())
+                },
+                Err(e) => {
+                    debug!(target: "BaseConnection::keep_alive", "Keep-alive failed: {}", e);
+                    Err(e)
+                }
+            }
+        } else {
+            Err(NetsshError::ConnectionError(
+                "No active SSH session for keep-alive".to_string(),
+            ))
+        }
+    }
+    
+    /// Start a background keepalive task (for async contexts)
+    #[cfg(feature = "async")]
+    pub async fn start_keepalive_task(&self) -> Result<tokio::task::JoinHandle<()>, NetsshError> {
+        use tokio::time::{interval, Duration as TokioDuration};
+        
+        // Clone necessary data for the background task
+        let host = self.config.host.clone();
+        let username = self.config.username.clone();
+        let port = self.config.default_port;
+        let password = self.config.password.clone();
+        
+        // Create a new background task for keep-alive
+        let handle = tokio::spawn(async move {
+            let mut interval = interval(TokioDuration::from_secs(60));
+            let mut connection = match BaseConnection::new() {
+                Ok(conn) => conn,
+                Err(_) => return,
+            };
+            
+            loop {
+                interval.tick().await;
+                
+                // If connection is closed, try to reconnect
+                if connection.session.is_none() {
+                    if let Err(_) = connection.connect(&host, &username, password.as_deref(), Some(port), None) {
+                        // Failed to reconnect, try again next cycle
+                        continue;
+                    }
+                }
+                
+                // Send keep-alive
+                if let Err(_) = connection.keep_alive() {
+                    // Keep-alive failed, close and try to reconnect next cycle
+                    let _ = connection.close();
+                }
+            }
+        });
+        
+        Ok(handle)
+    }
+    
+    /// Handle a timeout with exponential backoff retry
+    pub fn handle_timeout<F, T>(&self, mut operation: F, max_retries: usize) -> Result<T, NetsshError>
+    where 
+        F: FnMut() -> Result<T, NetsshError>,
+    {
+        let mut retry_count = 0;
+        let mut backoff_ms = 100; // Start with 100ms backoff
+        
+        loop {
+            match operation() {
+                Ok(result) => return Ok(result),
+                Err(e) => {
+                    // Check if we've hit our retry limit
+                    if retry_count >= max_retries {
+                        return Err(e);
+                    }
+                    
+                    // Only retry on timeout errors
+                    match e {
+                        NetsshError::TimeoutError(_) | NetsshError::Timeout { .. } => {
+                            // Exponential backoff with jitter
+                            let jitter = rand::random::<u64>() % 50;
+                            let sleep_time = Duration::from_millis(backoff_ms + jitter);
+                            
+                            debug!(target: "BaseConnection::handle_timeout", 
+                                "Operation timed out, retrying in {:?} (retry {}/{})", 
+                                sleep_time, retry_count + 1, max_retries);
+                            
+                            thread::sleep(sleep_time);
+                            retry_count += 1;
+                            backoff_ms = std::cmp::min(backoff_ms * 2, 5000); // Cap at 5 seconds
+                        },
+                        _ => return Err(e), // For non-timeout errors, don't retry
+                    }
+                }
+            }
+        }
     }
 }

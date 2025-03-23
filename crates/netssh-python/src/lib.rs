@@ -1,8 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::exceptions::PyRuntimeError;
 use std::time::Duration;
-use std::collections::HashMap;
 
 use netssh_core::device_connection::{NetworkDeviceConnection, DeviceConfig, DeviceInfo};
 use netssh_core::device_factory::DeviceFactory;

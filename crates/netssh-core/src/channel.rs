@@ -6,13 +6,16 @@ use std::cell::RefCell;
 use std::io::{Read, Write};
 use std::time::Duration;
 
-const MAX_BUFFER: usize = 65536; // 64KB, same as in Python's Netmiko
+// Optimal buffer size based on typical network device response sizes
+const DEFAULT_BUFFER_SIZE: usize = 16384; // 16KB
 
 pub struct SSHChannel {
     remote_conn: RefCell<Option<SSH2Channel>>,
     encoding: String,
     base_prompt: Option<String>,
     prompt_regex: Option<Regex>,
+    // Add a reusable buffer to avoid allocations
+    read_buffer: RefCell<Vec<u8>>,
 }
 
 // Implement Clone for SSHChannel
@@ -24,6 +27,7 @@ impl Clone for SSHChannel {
             encoding: self.encoding.clone(),
             base_prompt: self.base_prompt.clone(),
             prompt_regex: self.prompt_regex.clone(),
+            read_buffer: RefCell::new(Vec::with_capacity(DEFAULT_BUFFER_SIZE)),
         }
     }
 }
@@ -35,6 +39,7 @@ impl SSHChannel {
             encoding: String::from("utf-8"),
             base_prompt: None,
             prompt_regex: None,
+            read_buffer: RefCell::new(Vec::with_capacity(DEFAULT_BUFFER_SIZE)),
         }
     }
 
@@ -92,17 +97,40 @@ impl SSHChannel {
             NetsshError::ReadError("Attempt to read, but there is no active channel.".to_string())
         })?;
 
-        let mut buffer = vec![0; MAX_BUFFER];
-        let mut output = String::new();
+        // Reuse the existing buffer instead of allocating a new one
+        let mut buffer = self.read_buffer.borrow_mut();
+        
+        // Ensure buffer has enough capacity, but don't reallocate if already adequate
+        let current_capacity = buffer.capacity();
+        if current_capacity < DEFAULT_BUFFER_SIZE {
+            buffer.reserve(DEFAULT_BUFFER_SIZE - current_capacity);
+        }
+        
+        // Clear but preserve capacity
+        buffer.clear();
+        
+        // Resize to capacity for reading
+        let capacity = buffer.capacity();
+        buffer.resize(capacity, 0);
+        
+        let mut output = String::with_capacity(DEFAULT_BUFFER_SIZE);
 
-        // Check if data is available (similar to recv_ready in Python)
+        // Check if data is available
         debug!(target: "SSHChannel::read_buffer", "Checking if data is available to read");
         match channel.read(&mut buffer) {
             Ok(n) if n > 0 => {
                 debug!(target: "SSHChannel::read_buffer", "Read {} bytes from channel", n);
 
-                // Convert bytes to string using the specified encoding
-                let chunk = String::from_utf8_lossy(&buffer[..n]).to_string();
+                // Convert only the valid bytes (0..n) to a string to avoid UTF-8 validation on unused parts
+                let chunk = match std::str::from_utf8(&buffer[..n]) {
+                    Ok(s) => s.to_string(),
+                    Err(e) => {
+                        debug!(target: "SSHChannel::read_buffer", "UTF-8 conversion error: {}", e);
+                        // Fallback to lossy conversion only when needed
+                        String::from_utf8_lossy(&buffer[..n]).to_string()
+                    }
+                };
+                
                 output.push_str(&chunk);
 
                 // Check if we found the prompt
@@ -137,7 +165,7 @@ impl SSHChannel {
             }
         }
 
-        debug!(target: "SSHChannel::read_buffer", "Read buffer result: {:?}", output);
+        debug!(target: "SSHChannel::read_buffer", "Read buffer result length: {}", output.len());
         Ok(output)
     }
 
@@ -151,27 +179,59 @@ impl SSHChannel {
             ));
         }
 
-        let mut output = String::new();
-        let prompt_regex = self.prompt_regex.as_ref();
+        let mut remote_conn = self.remote_conn.borrow_mut();
+        let channel = remote_conn.as_mut().unwrap(); // Safe because we checked is_none()
 
-        // Keep reading until no more data is available or we find the prompt
+        // Reuse the existing buffer
+        let mut buffer = self.read_buffer.borrow_mut();
+        
+        // Ensure buffer has appropriate capacity 
+        let current_capacity = buffer.capacity();
+        if current_capacity < DEFAULT_BUFFER_SIZE {
+            buffer.reserve(DEFAULT_BUFFER_SIZE - current_capacity);
+        }
+        buffer.clear();
+        let capacity = buffer.capacity();
+        buffer.resize(capacity, 0);
+        
+        // Use a string with pre-allocated capacity to reduce reallocations
+        let mut output = String::with_capacity(DEFAULT_BUFFER_SIZE);
+        
+        // Keep reading until no more data
+        let mut read_something = false;
+        
         loop {
-            let new_output = self.read_buffer(prompt_regex)?;
-            if new_output.is_empty() {
-                break;
-            }
-            output.push_str(&new_output);
-
-            // Check if we found the prompt
-            if let Some(re) = prompt_regex {
-                if re.is_match(&output) {
-                    debug!(target: "SSHChannel::read_channel", "Found prompt, breaking read loop");
+            match channel.read(&mut buffer) {
+                Ok(n) if n > 0 => {
+                    read_something = true;
+                    // Optimize UTF-8 validation by only processing bytes we've read
+                    match std::str::from_utf8(&buffer[..n]) {
+                        Ok(s) => output.push_str(s),
+                        Err(_) => output.push_str(&String::from_utf8_lossy(&buffer[..n])),
+                    }
+                }
+                Ok(0) if read_something => {
+                    // We've read everything and connection is still open
                     break;
+                }
+                Ok(0) => {
+                    // Connection closed without sending data
+                    debug!(target: "SSHChannel::read_channel", "Channel closed by remote host");
+                    return Err(NetsshError::ReadError("Channel closed by remote host".to_string()));
+                }
+                Ok(_) => {
+                    break; // No more data to read
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    break; // No more data available right now
+                }
+                Err(e) => {
+                    return Err(NetsshError::IoError(e));
                 }
             }
         }
 
-        debug!(target: "SSHChannel::read_channel", "Read channel result: {:?}", output);
+        debug!(target: "SSHChannel::read_channel", "Read channel complete, read {} bytes", output.len());
         Ok(output)
     }
 
@@ -205,45 +265,16 @@ impl SSHChannel {
 
         // Keep reading until we find the prompt or timeout
         while start_time.elapsed() < timeout {
-            let mut buffer = vec![0; 1024];
-            let mut remote_conn = self.remote_conn.borrow_mut();
-            let channel = remote_conn.as_mut().ok_or_else(|| {
-                NetsshError::ReadError(
-                    "Attempt to read, but there is no active channel.".to_string(),
-                )
-            })?;
+            let new_output = self.read_buffer(Some(prompt_regex))?;
+            if new_output.is_empty() {
+                break;
+            }
+            output.push_str(&new_output);
 
-            match channel.read(&mut buffer) {
-                Ok(n) if n > 0 => {
-                    let chunk = String::from_utf8_lossy(&buffer[..n]).to_string();
-                    debug!(target: "SSHChannel::read_until_prompt", "Read chunk: {:?}", chunk);
-                    output.push_str(&chunk);
-
-                    // Check if we found the prompt
-                    if prompt_regex.is_match(&output) {
-                        debug!(target: "SSHChannel::read_until_prompt", "Found prompt, breaking read loop");
-                        break;
-                    }
-                }
-                Ok(0) => {
-                    debug!(target: "SSHChannel::read_until_prompt", "Channel stream closed by remote device");
-                    break;
-                }
-                Ok(_) => {
-                    debug!(target: "SSHChannel::read_until_prompt", "No data available to read");
-                    std::thread::sleep(Duration::from_millis(100));
-                }
-                Err(e)
-                    if e.kind() == std::io::ErrorKind::WouldBlock
-                        || e.kind() == std::io::ErrorKind::TimedOut =>
-                {
-                    debug!(target: "SSHChannel::read_until_prompt", "Timed out or would block, waiting...");
-                    std::thread::sleep(Duration::from_millis(100));
-                }
-                Err(e) => {
-                    debug!(target: "SSHChannel::read_until_prompt", "Error reading from channel: {}", e);
-                    return Err(NetsshError::IoError(e));
-                }
+            // Check if we found the prompt
+            if prompt_regex.is_match(&output) {
+                debug!(target: "SSHChannel::read_until_prompt", "Found prompt, breaking read loop");
+                break;
             }
         }
 

@@ -105,6 +105,10 @@ impl SessionLog {
         self.enabled
     }
 
+    pub fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
     pub fn write(&mut self, data: &str) -> Result<(), NetsshError> {
         self.write_raw(data.as_bytes())
     }

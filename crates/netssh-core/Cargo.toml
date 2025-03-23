@@ -20,6 +20,12 @@ serde_json.workspace = true
 lazy_static.workspace = true
 parking_lot.workspace = true
 rpassword.workspace = true
+# Add rand for jitter in backoff algorithm
+rand.workspace = true
+
+[features]
+default = []
+async = ["tokio/full"]
 
 [dev-dependencies]
 mockall.workspace = true

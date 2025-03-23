@@ -68,4 +68,73 @@ pub enum NetsshError {
     
     #[error("Unsupported operation: {0}")]
     UnsupportedOperation(String),
+
+    #[error("Connection error: failed to connect to {addr}: {source}")]
+    ConnectionFailed {
+        addr: String,
+        #[source]
+        source: io::Error,
+    },
+
+    #[error("SSH handshake failed: {source}")]
+    SshHandshakeFailed {
+        #[source]
+        source: ssh2::Error,
+    },
+
+    #[error("Authentication failed for user {username}: {source}")]
+    AuthenticationFailed {
+        username: String,
+        #[source]
+        source: ssh2::Error,
+    },
+
+    #[error("Channel operation failed: {message}")]
+    ChannelFailed {
+        message: String,
+        #[source]
+        source: Option<ssh2::Error>,
+    },
+
+    #[error("Regex error: {0}")]
+    RegexError(#[from] regex::Error),
+
+    #[error("Timeout occurred while {action}")]
+    Timeout {
+        action: String,
+    },
+}
+
+// Helper methods for error context
+impl NetsshError {
+    pub fn connection_failed(addr: impl Into<String>, err: io::Error) -> Self {
+        Self::ConnectionFailed {
+            addr: addr.into(),
+            source: err,
+        }
+    }
+
+    pub fn ssh_handshake_failed(err: ssh2::Error) -> Self {
+        Self::SshHandshakeFailed { source: err }
+    }
+
+    pub fn authentication_failed(username: impl Into<String>, err: ssh2::Error) -> Self {
+        Self::AuthenticationFailed {
+            username: username.into(),
+            source: err,
+        }
+    }
+
+    pub fn channel_failed(message: impl Into<String>, source: Option<ssh2::Error>) -> Self {
+        Self::ChannelFailed {
+            message: message.into(),
+            source,
+        }
+    }
+
+    pub fn timeout(action: impl Into<String>) -> Self {
+        Self::Timeout {
+            action: action.into(),
+        }
+    }
 }
