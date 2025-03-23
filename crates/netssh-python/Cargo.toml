@@ -1,0 +1,19 @@
+[package]
+name = "netssh-python"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Python bindings for netssh-rs - SSH connection handler for network devices"
+
+# PyO3 configuration for Python bindings
+[lib]
+name = "netssh_rs"
+# "cdylib" is necessary for Python modules
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+netssh-core = { path = "../netssh-core" }
+pyo3.workspace = true
+
+[features]
+default = ["pyo3/extension-module"] 

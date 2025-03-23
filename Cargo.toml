@@ -1,19 +1,21 @@
-[package]
-name = "netssh-rs"
+[workspace]
+members = [
+    "crates/netssh-core",
+    "crates/netssh-python",
+    "crates/netssh-api",
+]
+resolver = "2"
+
+# Configuration that applies to all workspace members
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
 description = "A Rust implementation of Netssh - SSH connection handler for network devices"
 
-# Add PyO3 configuration for Python bindings
-[lib]
-name = "netssh_rs"
-# "cdylib" is necessary for Python modules
-crate-type = ["cdylib", "rlib"]
-
-[dependencies]
-# PyO3 for Python bindings
-pyo3 = { version = "0.19", features = ["extension-module"] }
+# Common dependencies for all workspace members
+[workspace.dependencies]
+# Core dependencies
 ssh2 = "0.9.4"
 log = "0.4"
 env_logger = { version = "0.10", features = ["auto-color", "humantime"] }
@@ -27,6 +29,9 @@ serde_json = "1.0"
 lazy_static = "1.4"
 parking_lot = "0.12"
 rpassword = "7.0"
+
+# Python bindings
+pyo3 = { version = "0.19", features = ["extension-module"] }
 
 # Web framework
 actix-web = "4.3.1"
@@ -51,7 +56,6 @@ tracing-appender = "0.2.2"
 # Rate limiting
 governor = "0.5.1"
 
-[dev-dependencies]
+# Testing
 mockall = "0.12.1"
 tokio-test = "0.4.3"
-tokio = { version = "1.34.0", features = ["full"] }

@@ -40,4 +40,4 @@ setup(
     package_dir={"netssh_rs": "python"},
     include_package_data=True,
     zip_safe=False,
-)
+) 

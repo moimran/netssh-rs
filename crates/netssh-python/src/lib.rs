@@ -4,9 +4,9 @@ use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use std::time::Duration;
 use std::collections::HashMap;
 
-use crate::device_connection::{NetworkDeviceConnection, DeviceConfig, DeviceInfo};
-use crate::device_factory::DeviceFactory;
-use crate::error::NetsshError;
+use netssh_core::device_connection::{NetworkDeviceConnection, DeviceConfig, DeviceInfo};
+use netssh_core::device_factory::DeviceFactory;
+use netssh_core::error::NetsshError;
 
 /// Python module for netssh-rs
 #[pymodule]
@@ -27,7 +27,7 @@ fn netssh_error_to_pyerr(err: NetsshError) -> PyErr {
 /// Initialize logging
 #[pyfunction]
 fn initialize_logging(debug: bool, console: bool) -> PyResult<()> {
-    crate::logging::init_logging(debug, console)
+    netssh_core::logging::init_logging(debug, console)
         .map_err(netssh_error_to_pyerr)
 }
 
@@ -232,4 +232,4 @@ impl PyNetworkDevice {
         self.close()?;
         Ok(false)  // Don't suppress exceptions
     }
-}
+} 

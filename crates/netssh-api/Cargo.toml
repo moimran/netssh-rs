@@ -1,0 +1,41 @@
+[package]
+name = "netssh-api"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "REST API for netssh-rs - SSH connection handler for network devices"
+
+[dependencies]
+netssh-core = { path = "../netssh-core" }
+
+# Web framework
+actix-web.workspace = true
+actix-rt.workspace = true
+
+# Authentication
+jsonwebtoken.workspace = true
+argon2.workspace = true
+
+# API documentation
+utoipa.workspace = true
+utoipa-swagger-ui.workspace = true
+
+# Connection pooling
+bb8.workspace = true
+
+# Enhanced logging
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+
+# Rate limiting
+governor.workspace = true
+
+# Core dependencies used from the API layer
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+mockall.workspace = true
+tokio-test.workspace = true 
