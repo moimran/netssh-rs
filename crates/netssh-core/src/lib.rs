@@ -1,4 +1,5 @@
 pub mod base_connection;
+pub mod buffer_pool;
 pub mod channel;
 pub mod config;
 pub mod device_connection;
@@ -7,7 +8,9 @@ pub mod device_factory;
 pub mod device_service;
 pub mod error;
 pub mod logging;
+pub mod semaphore;
 pub mod session_log;
+pub mod settings;
 pub mod vendors;
 
 // Import lazy_static for common regex patterns
@@ -44,9 +47,12 @@ pub use vendors::juniper;
 
 // Re-export core types
 pub use base_connection::BaseConnection;
+pub use buffer_pool::{BufferPool, BorrowedBuffer};
 pub use config::{NetsshConfig, NetsshConfigBuilder};
 pub use error::NetsshError;
 pub use logging::init_logging as initialize_logging;
+pub use semaphore::{TimeoutSemaphore, SemaphorePermit, SemaphoreError};
+pub use settings::{Settings, get_network_timeout, get_ssh_timeout, get_concurrency_setting, get_buffer_setting};
 
 // Re-export vendor-specific types
 pub use vendors::cisco::{CiscoDeviceConnection, CiscoBaseConnection, CiscoXrDevice, CiscoNxosDevice, CiscoIosDevice, CiscoAsaDevice};
