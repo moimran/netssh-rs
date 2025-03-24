@@ -23,10 +23,14 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "License :: OSI Approved :: MIT License",
 ]
+dependencies = [
+    "textfsm>=1.1.0",
+]
 
 [project.urls]
 Repository = "https://github.com/yourusername/netssh-rs"
 
 [tool.maturin]
 python-source = "python"
+include = ["textfsm/**/*"]  # Include textfsm directory and all its contents
 features = ["pyo3/extension-module"] 

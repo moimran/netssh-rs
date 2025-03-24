@@ -4,14 +4,14 @@ Setup script for netssh_rs Python bindings.
 This is an alternative to using maturin directly.
 """
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools_rust import Binding, RustExtension
 
 setup(
     name="netssh_rs",
     version="0.1.0",
     description="Python bindings for netssh-rs - SSH connection handler for network devices",
-    long_description=open("python/README.md").read(),
+    long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     author="Your Name",
     author_email="your.email@example.com",
@@ -36,8 +36,17 @@ setup(
             features=["pyo3/extension-module"],
         )
     ],
-    packages=["netssh_rs"],
-    package_dir={"netssh_rs": "python"},
+    packages=["netssh_rs", "textfsm"],
+    package_dir={
+        "netssh_rs": "python",
+        "textfsm": "textfsm"
+    },
+    package_data={
+        "textfsm": ["templates/*"],
+    },
+    install_requires=[
+        "textfsm>=1.1.0",
+    ],
     include_package_data=True,
     zip_safe=False,
 ) 
