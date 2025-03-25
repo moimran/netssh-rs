@@ -40,18 +40,14 @@ setup(
     python_requires=">=3.6",
     rust_extensions=[
         RustExtension(
-            "netssh_rs",
+            "netssh_rs.netssh_rs",  # Note the change here to match import in __init__.py
             binding=Binding.PyO3,
             features=["pyo3/extension-module"],
         )
     ],
-    packages=find_packages(),
-    package_dir={
-        "netssh_rs": "python",
-        "textfsm": "textfsm"
-    },
+    packages=find_packages(include=["netssh_rs", "netssh_rs.*", "textfsm", "textfsm.*"]),
     package_data={
-        "netssh_rs": ["py.typed", "*.pyi"],
+        "netssh_rs": ["py.typed", "*.pyi", "__init__.py", "stubs/*.pyi", "stubs/__init__.py"],
         "textfsm": ["py.typed", "*.pyi", "templates/*"],
     },
     install_requires=[

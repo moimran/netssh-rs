@@ -1,20 +1,29 @@
-# Makefile for netssh-rs workspace
+# Detect Python executable
+PYTHON3 := $(shell which python3)
+ifeq ($(PYTHON3),)
+	PYTHON3 := python
+endif
+
+# Detect Python virtual environment
+ifdef VIRTUAL_ENV
+	# Virtual environment is active
+	PYTHON := $(VIRTUAL_ENV)/bin/python
+	PIP := $(VIRTUAL_ENV)/bin/pip
+	MATURIN := $(VIRTUAL_ENV)/bin/maturin
+	VENV_INFO := (using venv: $(VIRTUAL_ENV))
+else
+	# No virtual environment detected
+	PYTHON := $(PYTHON3)
+	PIP := pip3
+	MATURIN := maturin
+	VENV_INFO := (using system Python)
+endif
 
 .PHONY: all clean build-core build-api build-python develop-python test-core test-api test-python \
-        install-python setup-python run-example run-develop-example run-build-example run-api help
+	install-python setup-python run-example run-develop-example run-build-example run-api help
 
 # Default target
 all: build-core build-api build-python
-
-# Clean build artifacts
-clean:
-	@echo "Cleaning build artifacts..."
-	cargo clean
-	rm -rf crates/netssh-python/target/wheels
-	rm -rf *.egg-info
-	rm -rf dist
-	rm -rf build
-	find . -name "__pycache__" -type d -exec rm -rf {} +
 
 # Build core library
 build-core:
@@ -29,18 +38,20 @@ build-api:
 # Setup Python environment
 setup-python:
 	@echo "Setting up Python development environment..."
-	cd crates/netssh-python && pip install maturin
-	cd crates/netssh-python && pip install -r python/requirements.txt
+	test -d .venv || $(PYTHON3) -m venv .venv
+	. .venv/bin/activate && pip install --upgrade pip
+	. .venv/bin/activate && pip install --no-cache-dir maturin
+	. .venv/bin/activate && cd crates/netssh-python && pip install --no-cache-dir -r python/requirements.txt
 
 # Build Python wheel
 build-python: setup-python
-	@echo "Building Python wheel..."
-	cd crates/netssh-python && maturin build
+	@echo "Building Python wheel $(VENV_INFO)..."
+	. .venv/bin/activate && cd crates/netssh-python && maturin build
 
 # Build and install Python bindings in development mode
 develop-python: setup-python
-	@echo "Building and installing Python bindings in development mode..."
-	cd crates/netssh-python && maturin develop
+	@echo "Building and installing Python bindings in development mode $(VENV_INFO)..."
+	cd crates/netssh-python && $(MATURIN) develop
 
 # Run core tests
 test-core:
@@ -54,8 +65,8 @@ test-api:
 
 # Run Python tests
 test-python: develop-python
-	@echo "Running Python tests..."
-	cd crates/netssh-python/python && python -m unittest test_netssh_rs.py
+	@echo "Running Python tests $(VENV_INFO)..."
+	cd crates/netssh-python/python && $(PYTHON) -m unittest test_netssh_rs.py
 
 # Test all components
 test: test-core test-api test-python
@@ -63,22 +74,22 @@ test: test-core test-api test-python
 
 # Install Python package
 install-python: build-python
-	@echo "Installing Python package..."
-	uv pip install --force-reinstall crates/netssh-python/target/wheels/*.whl
+	@echo "Installing Python package $(VENV_INFO)..."
+	. .venv/bin/activate && pip install --force-reinstall target/wheels/*manylinux*.whl
 
 # Run Python example using development mode
 run-develop-example: develop-python
-	@echo "Running Python example using development mode..."
-	cd crates/netssh-python/python && python example.py
+	@echo "Running Python example using development mode $(VENV_INFO)..."
+	cd crates/netssh-python/python && $(PYTHON) example.py
 
 # Run Python example using installed package
 run-build-example: build-python
-	@echo "Uninstalling existing package..."
-	pip uninstall -y netssh_rs || true
-	@echo "Installing new package..."
-	pip install --force-reinstall crates/netssh-python/target/wheels/*.whl
-	@echo "Running Python example using installed package..."
-	cd crates/netssh-python/python && python example.py
+	@echo "Uninstalling existing package $(VENV_INFO)..."
+	$(PIP) uninstall -y netssh_rs || true
+	@echo "Installing new package $(VENV_INFO)..."
+	$(PIP) install --force-reinstall crates/netssh-python/target/wheels/*.whl
+	@echo "Running Python example using installed package $(VENV_INFO)..."
+	cd crates/netssh-python/python && $(PYTHON) example.py
 
 # Alias for run-build-example
 run-example: run-build-example
@@ -87,6 +98,12 @@ run-example: run-build-example
 run-api: build-api
 	@echo "Running API server..."
 	cargo run -p netssh-api
+
+# Clean build artifacts
+clean:
+	@echo "Cleaning build artifacts..."
+	cargo clean
+	rm -rf crates/netssh-python/target/
 
 # Help
 help:
@@ -108,3 +125,5 @@ help:
 	@echo "  run-example           - Alias for run-build-example"
 	@echo "  run-api               - Run API server"
 	@echo "  help                  - Show this help message"
+	@echo ""
+	@echo "Current Python: $(PYTHON) $(VENV_INFO)"

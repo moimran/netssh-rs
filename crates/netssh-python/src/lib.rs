@@ -42,6 +42,9 @@ fn initialize_logging(debug: bool, console: bool) -> PyResult<()> {
 }
 
 /// Python wrapper for DeviceConfig
+///
+/// This class represents the configuration for connecting to a network device.
+/// It contains all the necessary information to establish an SSH connection.
 #[pyclass]
 #[derive(Clone)]
 struct PyDeviceConfig {
@@ -68,6 +71,20 @@ impl PyDeviceConfig {
     #[new]
     #[pyo3(signature = (device_type, host, username, password=None, port=None, timeout_seconds=None, secret=None, session_log=None))]
     #[pyo3(text_signature = "(device_type, host, username, password=None, port=None, timeout_seconds=None, secret=None, session_log=None)")]
+    /// Create a new device configuration.
+    ///
+    /// Args:
+    ///     device_type: The type of device (e.g., 'cisco_ios', 'juniper')
+    ///     host: The hostname or IP address of the device
+    ///     username: The username for authentication
+    ///     password: The password for authentication (optional)
+    ///     port: The SSH port (default: 22)
+    ///     timeout_seconds: Connection timeout in seconds (default: 60)
+    ///     secret: The enable secret for privileged mode (if required)
+    ///     session_log: Path to log file for session logging (optional)
+    ///
+    /// Returns:
+    ///     A new PyDeviceConfig instance
     fn new(
         device_type: String,
         host: String,
@@ -133,6 +150,9 @@ impl From<DeviceInfo> for PyDeviceInfo {
 }
 
 /// Python wrapper for NetworkDeviceConnection
+///
+/// This class represents a connection to a network device and provides
+/// methods for sending commands, managing configuration mode, and more.
 #[pyclass]
 struct PyNetworkDevice {
     device: Box<dyn NetworkDeviceConnection + Send>,
@@ -141,6 +161,17 @@ struct PyNetworkDevice {
 #[pymethods]
 impl PyNetworkDevice {
     /// Create a new device from config
+    ///
+    /// Creates a new network device connection handler based on the provided configuration.
+    ///
+    /// Args:
+    ///     config: The device configuration
+    ///
+    /// Returns:
+    ///     A new PyNetworkDevice instance
+    ///
+    /// Raises:
+    ///     RuntimeError: If device creation fails
     #[staticmethod]
     #[pyo3(signature = (config))]
     #[pyo3(text_signature = "(config)")]
@@ -155,6 +186,13 @@ impl PyNetworkDevice {
     }
 
     /// Connect to the device
+    ///
+    /// Establishes an SSH connection to the network device and performs initial setup.
+    ///
+    /// Raises:
+    ///     ConnectionError: If connection fails
+    ///     AuthenticationError: If authentication fails
+    ///     TimeoutError: If connection times out
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn connect(&mut self) -> PyResult<()> {
@@ -243,6 +281,19 @@ impl PyNetworkDevice {
     }
 
     /// Send command to device
+    ///
+    /// Sends a command to the device and returns the output.
+    ///
+    /// Args:
+    ///     command: The command to execute
+    ///
+    /// Returns:
+    ///     The command output as a string
+    ///
+    /// Raises:
+    ///     ConnectionError: If the device is not connected
+    ///     RuntimeError: If the command execution fails
+    ///     TimeoutError: If the command times out
     #[pyo3(signature = (command))]
     #[pyo3(text_signature = "(command)")]
     fn send_command(&mut self, command: &str) -> PyResult<String> {

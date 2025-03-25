@@ -1,0 +1,3 @@
+include netssh_rs/py.typed
+include netssh_rs/*.pyi
+recursive-include textfsm *

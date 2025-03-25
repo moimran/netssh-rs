@@ -5,27 +5,18 @@ This file provides type hints for the netssh_rs module to enable proper
 IntelliSense support in Python editors.
 """
 
-from typing import Dict, List, Optional, Union, Any, Tuple, Iterator, overload
+from typing import Dict, List, Any, Optional, Union, Type, TypeVar
 from types import TracebackType
-from typing_extensions import Literal
 
-# Import TextFSM parsing functionality for IDE support
-from textfsm import parse_output, parse_output_to_json, NetworkOutputParser, TextFSM
+T = TypeVar('T', bound='PyNetworkDevice')
 
 def initialize_logging(debug: bool = False, console: bool = False) -> None:
-    """
-    Initialize logging for the netssh_rs module.
-    
-    Args:
-        debug: Enable debug logging
-        console: Enable console output
-    """
+    """Initialize logging for the netssh_rs module."""
     ...
 
 class PyDeviceConfig:
-    """
-    Configuration for a network device connection.
-    """
+    """Configuration for a network device connection."""
+    
     device_type: str
     host: str
     username: str
@@ -36,7 +27,7 @@ class PyDeviceConfig:
     session_log: Optional[str]
     
     def __init__(
-        self,
+        self, 
         device_type: str,
         host: str,
         username: str,
@@ -47,24 +38,44 @@ class PyDeviceConfig:
         session_log: Optional[str] = None
     ) -> None:
         """
-        Initialize a device configuration.
+        Initialize a new device configuration.
         
         Args:
-            device_type: Type of device (e.g., cisco_ios, cisco_nxos)
-            host: Hostname or IP address
-            username: Username for authentication
-            password: Password for authentication
-            port: SSH port (default: 22)
+            device_type: The type of device (e.g., 'cisco_ios', 'juniper')
+            host: The hostname or IP address of the device
+            username: The username for authentication
+            password: The password for authentication
+            port: The SSH port (default: 22)
             timeout_seconds: Connection timeout in seconds
-            secret: Enable secret for privilege elevation
-            session_log: Path to session log file
+            secret: The enable secret for privileged mode (if required)
+            session_log: Path to log file for session logging
         """
         ...
+    
+    @property
+    def device_type(self) -> str: ...
+    
+    @property
+    def host(self) -> str: ...
+    
+    @property
+    def username(self) -> str: ...
+    
+    @property
+    def password(self) -> str: ...
+    
+    @property
+    def port(self) -> int: ...
+    
+    @property
+    def secret(self) -> Optional[str]: ...
+    
+    @property
+    def session_log(self) -> Optional[str]: ...
 
 class PyDeviceInfo:
-    """
-    Information about a network device.
-    """
+    """Information about a network device."""
+    
     vendor: str
     model: str
     os_version: str
@@ -72,17 +83,15 @@ class PyDeviceInfo:
     uptime: str
 
 class PyNetworkDevice:
-    """
-    Network device connection handler.
-    """
+    """Network device connection handler."""
     
     @classmethod
-    def create(cls, config: PyDeviceConfig) -> "PyNetworkDevice":
+    def create(cls: Type[T], config: PyDeviceConfig) -> T:
         """
         Create a new network device connection.
         
         Args:
-            config: Device configuration
+            config: The device configuration
             
         Returns:
             A new PyNetworkDevice instance
@@ -94,14 +103,12 @@ class PyNetworkDevice:
         Connect to the device.
         
         Raises:
-            PyRuntimeError: If connection fails
+            ConnectionError: If connection fails
         """
         ...
     
     def close(self) -> None:
-        """
-        Close the connection to the device.
-        """
+        """Close the connection to the device."""
         ...
     
     def check_config_mode(self) -> bool:
@@ -109,7 +116,7 @@ class PyNetworkDevice:
         Check if the device is in configuration mode.
         
         Returns:
-            True if in configuration mode, False otherwise
+            True if in config mode, False otherwise
         """
         ...
     
@@ -118,7 +125,7 @@ class PyNetworkDevice:
         Enter configuration mode.
         
         Args:
-            config_command: Custom configuration command
+            config_command: Custom config command if needed
         """
         ...
     
@@ -127,20 +134,16 @@ class PyNetworkDevice:
         Exit configuration mode.
         
         Args:
-            exit_command: Custom exit command
+            exit_command: Custom exit command if needed
         """
         ...
     
     def session_preparation(self) -> None:
-        """
-        Prepare the session after connection.
-        """
+        """Prepare the session after connection."""
         ...
     
     def terminal_settings(self) -> None:
-        """
-        Configure terminal settings.
-        """
+        """Configure terminal settings."""
         ...
     
     def set_terminal_width(self, width: int) -> None:
@@ -148,14 +151,12 @@ class PyNetworkDevice:
         Set terminal width.
         
         Args:
-            width: Terminal width in characters
+            width: Width in characters
         """
         ...
     
     def disable_paging(self) -> None:
-        """
-        Disable paging on the device.
-        """
+        """Disable paging on the device."""
         ...
     
     def set_base_prompt(self) -> str:
@@ -168,9 +169,7 @@ class PyNetworkDevice:
         ...
     
     def save_configuration(self) -> None:
-        """
-        Save or commit the configuration.
-        """
+        """Save or commit the configuration."""
         ...
     
     def send_command(self, command: str) -> str:
@@ -178,10 +177,46 @@ class PyNetworkDevice:
         Send a command to the device and return the output.
         
         Args:
-            command: Command to send
+            command: The command to execute
             
         Returns:
-            Command output
+            The command output as a string
+            
+        Raises:
+            ConnectionError: If the device is not connected
+            CommandError: If the command execution fails
+        """
+        ...
+    
+    def send_commands(self, commands: List[str]) -> List[str]:
+        """
+        Send multiple commands to the device and return the outputs.
+        
+        Args:
+            commands: List of commands to execute
+            
+        Returns:
+            List of command outputs as strings
+            
+        Raises:
+            ConnectionError: If the device is not connected
+            CommandError: If any command execution fails
+        """
+        ...
+    
+    def send_config(self, config_commands: List[str]) -> str:
+        """
+        Send configuration commands to the device.
+        
+        Args:
+            config_commands: List of configuration commands to execute
+            
+        Returns:
+            The configuration output as a string
+            
+        Raises:
+            ConnectionError: If the device is not connected
+            CommandError: If configuration fails
         """
         ...
     
@@ -200,17 +235,16 @@ class PyNetworkDevice:
     
     def __exit__(
         self,
-        exc_type: Optional[type],
-        exc_val: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType]
     ) -> bool:
         """Context manager exit."""
         ...
 
 class PyCommandResult:
-    """
-    Result of a command execution.
-    """
+    """Result of a command execution."""
+    
     device_id: str
     device_type: str
     command: str
@@ -231,19 +265,17 @@ class PyCommandResult:
         ...
 
 class PyBatchCommandResults:
-    """
-    Results of batch command execution.
-    """
+    """Results of batch command execution."""
     
     def get_device_results(self, device_id: str) -> Optional[List[PyCommandResult]]:
         """
         Get all results for a specific device.
         
         Args:
-            device_id: Device identifier
+            device_id: The device identifier
             
         Returns:
-            List of command results for the device, or None if no results
+            List of command results or None if device not found
         """
         ...
     
@@ -279,10 +311,10 @@ class PyBatchCommandResults:
         Get results for a specific command.
         
         Args:
-            command: Command string
+            command: The command string
             
         Returns:
-            List of command results for the specified command
+            List of results for the specified command
         """
         ...
     
@@ -291,7 +323,7 @@ class PyBatchCommandResults:
         Format results as an ASCII table.
         
         Returns:
-            ASCII table string
+            ASCII table as string
         """
         ...
     
@@ -300,7 +332,7 @@ class PyBatchCommandResults:
         Convert results to JSON format.
         
         Returns:
-            JSON string representation of results
+            JSON string
         """
         ...
     
@@ -309,7 +341,7 @@ class PyBatchCommandResults:
         Convert results to CSV format.
         
         Returns:
-            CSV string representation of results
+            CSV string
         """
         ...
     
@@ -318,24 +350,22 @@ class PyBatchCommandResults:
         Compare outputs for the same command across devices.
         
         Args:
-            command: Command string
+            command: The command to compare
             
         Returns:
-            Dictionary with device IDs as keys and dictionaries with 'unique' and 'common' lists as values
+            Dictionary with comparison results
         """
         ...
 
 class PyParallelExecutionManager:
-    """
-    Manager for parallel execution of commands on multiple devices.
-    """
+    """Manager for parallel execution of commands on multiple devices."""
     
     def __init__(
         self,
         max_concurrency: Optional[int] = None,
         command_timeout_seconds: Optional[int] = None,
         connection_timeout_seconds: Optional[int] = None,
-        failure_strategy: Optional[Literal["continue", "abort", "skip_device", "skip_command"]] = None,
+        failure_strategy: Optional[str] = None,
         reuse_connections: Optional[bool] = None
     ) -> None:
         """
@@ -343,10 +373,10 @@ class PyParallelExecutionManager:
         
         Args:
             max_concurrency: Maximum number of concurrent connections
-            command_timeout_seconds: Command timeout in seconds
-            connection_timeout_seconds: Connection timeout in seconds
-            failure_strategy: Strategy for handling failures
-            reuse_connections: Whether to reuse connections for multiple commands
+            command_timeout_seconds: Timeout for command execution
+            connection_timeout_seconds: Timeout for connection establishment
+            failure_strategy: How to handle failures ('continue' or 'abort')
+            reuse_connections: Whether to reuse connections between commands
         """
         ...
     
@@ -364,7 +394,7 @@ class PyParallelExecutionManager:
         Set command timeout.
         
         Args:
-            timeout_seconds: Command timeout in seconds
+            timeout_seconds: Timeout in seconds
         """
         ...
     
@@ -373,16 +403,16 @@ class PyParallelExecutionManager:
         Set connection timeout.
         
         Args:
-            timeout_seconds: Connection timeout in seconds
+            timeout_seconds: Timeout in seconds
         """
         ...
     
-    def set_failure_strategy(self, strategy: Literal["continue", "abort", "skip_device", "skip_command"]) -> None:
+    def set_failure_strategy(self, strategy: str) -> None:
         """
         Set failure strategy.
         
         Args:
-            strategy: Strategy for handling failures
+            strategy: Strategy ('continue' or 'abort')
         """
         ...
     
@@ -391,7 +421,7 @@ class PyParallelExecutionManager:
         Set whether to reuse connections.
         
         Args:
-            reuse: Whether to reuse connections for multiple commands
+            reuse: True to reuse connections, False otherwise
         """
         ...
     
@@ -421,14 +451,12 @@ class PyParallelExecutionManager:
         """
         ...
     
-    def execute_commands(
-        self, device_commands: Dict[PyDeviceConfig, Union[str, List[str]]]
-    ) -> PyBatchCommandResults:
+    def execute_commands(self, device_commands: Dict[PyDeviceConfig, Union[str, List[str]]]) -> PyBatchCommandResults:
         """
         Execute specific commands on specific devices.
         
         Args:
-            device_commands: Dictionary mapping device configurations to commands or lists of commands
+            device_commands: Dictionary mapping devices to commands
             
         Returns:
             Batch command results
@@ -436,9 +464,7 @@ class PyParallelExecutionManager:
         ...
     
     def cleanup(self) -> None:
-        """
-        Close all open connections.
-        """
+        """Close all open connections."""
         ...
     
     def __enter__(self) -> "PyParallelExecutionManager":
@@ -447,9 +473,9 @@ class PyParallelExecutionManager:
     
     def __exit__(
         self,
-        exc_type: Optional[type],
-        exc_val: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType]
     ) -> bool:
         """Context manager exit."""
-        ... 
+        ...

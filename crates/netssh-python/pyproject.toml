@@ -22,6 +22,7 @@ classifiers = [
     "Topic :: System :: Networking",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "License :: OSI Approved :: MIT License",
+    "Typing :: Typed",
 ]
 dependencies = [
     "textfsm>=1.1.0",
@@ -32,5 +33,18 @@ Repository = "https://github.com/yourusername/netssh-rs"
 
 [tool.maturin]
 python-source = "python"
-include = ["textfsm/**/*"]  # Include textfsm directory and all its contents
-features = ["pyo3/extension-module"] 
+module-name = "netssh_rs.netssh_rs"  # This should match the import in __init__.py
+include = [
+    "textfsm/**/*", 
+    "python/netssh_rs/py.typed", 
+    "python/netssh_rs/stubs/**/*.pyi",
+    "python/netssh_rs/__init__.py"
+]
+features = ["pyo3/extension-module"]
+
+[tool.mypy]
+python_version = "3.7"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true

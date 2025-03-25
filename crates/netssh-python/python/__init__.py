@@ -16,6 +16,7 @@ Main features:
 import importlib
 import sys
 import os
+from typing import Dict, List, Optional, Union, Any
 
 # Add the current directory to path to ensure netssh_rs can be imported
 sys.path.insert(0, os.path.dirname(__file__))
@@ -28,15 +29,26 @@ from netssh_rs_parse import (
     get_supported_commands
 )
 
-# Try to import the Rust bindings
-try:
-    from netssh_rs import *
-except ImportError:
-    # Handle the case where the Rust library isn't built yet
-    print("Error: netssh_rs Rust bindings not found. Please build the package first.")
+# Import and re-export the Rust bindings
+from netssh_rs import (
+    PyDeviceConfig, 
+    PyNetworkDevice,
+    PyDeviceInfo,
+    PyCommandResult,
+    PyBatchCommandResults,
+    PyParallelExecutionManager,
+    initialize_logging
+)
 
-# Export the parse helper functions
+# Export the parse helper functions and Rust bindings
 __all__ = [
+    'PyDeviceConfig',
+    'PyNetworkDevice',
+    'PyDeviceInfo',
+    'PyCommandResult',
+    'PyBatchCommandResults',
+    'PyParallelExecutionManager',
+    'initialize_logging',
     'parse_command_output',
     'get_available_templates',
     'get_platforms',
