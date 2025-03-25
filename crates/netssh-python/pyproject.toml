@@ -33,7 +33,7 @@ Repository = "https://github.com/yourusername/netssh-rs"
 
 [tool.maturin]
 python-source = "python"
-module-name = "netssh_rs.netssh_rs"  # This should match the import in __init__.py
+module-name = "netssh_rs.netssh_rs"
 include = [
     "textfsm/**/*", 
     "python/netssh_rs/py.typed", 
