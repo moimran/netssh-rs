@@ -79,5 +79,6 @@ htmlcov/
 
 # Python distribution / packaging
 .Python
+logs
 
 
