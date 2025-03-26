@@ -113,7 +113,9 @@ impl CiscoBaseConnection {
             debug!(target: "CiscoBaseConnection::enable", "Waiting for password prompt");
 
             // Use a more flexible pattern to match "Password:" with case insensitivity
-            let output = self.connection.read_until_pattern("(?i)password")?;
+            let output = self
+                .connection
+                .read_until_pattern("(?i)password", None, None)?;
 
             if PASSWORD_PATTERN.is_match(&output) {
                 debug!(target: "CiscoBaseConnection::enable", "Sending enable password");
@@ -127,7 +129,7 @@ impl CiscoBaseConnection {
         }
 
         // Wait for enable prompt (the # character)
-        let output = self.connection.read_until_pattern("#")?;
+        let output = self.connection.read_until_pattern("#", None, None)?;
 
         if !output.trim().ends_with("#") {
             warn!(target: "CiscoBaseConnection::enable", "Enable prompt not found");
@@ -155,7 +157,7 @@ impl CiscoBaseConnection {
         self.connection.write_channel("disable\n")?;
 
         // Wait for user prompt (the > character)
-        let output = self.connection.read_until_pattern(">")?;
+        let output = self.connection.read_until_pattern(">", None, None)?;
 
         if !output.trim().ends_with(">") {
             warn!(target: "CiscoBaseConnection::exit_enable_mode", "User prompt not found after disable command");
@@ -213,6 +215,9 @@ impl CiscoBaseConnection {
         }
 
         debug!(target: "CiscoBaseConnection::session_preparation", "Setting base prompt");
+
+        let output = self.connection.clear_buffer(Some("[>#]"), Some(20), None)?;
+        debug!(target: "CiscoBaseConnection::session_preparation", "Cleared buffer: {}", output);
         // Set base prompt
         self.set_base_prompt()?;
 
@@ -234,13 +239,13 @@ impl CiscoBaseConnection {
     /// Configure terminal settings - can be overridden by device-specific implementations
     pub fn terminal_settings(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoBaseConnection::terminal_settings", "Configuring base terminal settings");
-        
+
         // Set terminal width
         self.set_terminal_width(511)?;
 
         // Disable paging
         self.disable_paging()?;
-        
+
         debug!(target: "CiscoBaseConnection::terminal_settings", "Base terminal settings configured successfully");
         Ok(())
     }
@@ -317,7 +322,7 @@ impl CiscoBaseConnection {
 
         // Read whatever is available
         let pattern = r"[>#]";
-        let output = match self.connection.read_until_pattern(pattern) {
+        let output = match self.connection.read_until_pattern(pattern, None, None) {
             Ok(out) => out,
             Err(e) => {
                 warn!(target: "CiscoBaseConnection::set_base_prompt", "Error reading response: {}", e);
@@ -418,7 +423,9 @@ impl CiscoBaseConnection {
         self.connection.write_channel(&format!("{}\n", cmd))?;
 
         // Wait for config prompt
-        let output = self.connection.read_until_pattern("\\(config\\)#")?;
+        let output = self
+            .connection
+            .read_until_pattern("\\(config\\)#", None, None)?;
 
         if !output.contains("(config)#") {
             warn!(target: "CiscoBaseConnection::config_mode", "Config prompt not found after config command: {}", output);
@@ -447,7 +454,7 @@ impl CiscoBaseConnection {
         self.connection.write_channel(&format!("{}\n", cmd))?;
 
         // Wait for enable prompt
-        let output = self.connection.read_until_pattern("#")?;
+        let output = self.connection.read_until_pattern("#", None, None)?;
 
         if !output.trim().ends_with("#") || output.contains("(config)") {
             warn!(target: "CiscoBaseConnection::exit_config_mode", "Enable prompt not found after exit command: {}", output);
@@ -478,11 +485,12 @@ impl CiscoBaseConnection {
         }
 
         // Send save command - default for IOS/NXOS
-        self.connection
-            .write_channel("write mem\n")?;
+        self.connection.write_channel("write mem\n")?;
 
         // Wait for completion
-        let output = self.connection.read_until_pattern(&self.prompt)?;
+        let output = self
+            .connection
+            .read_until_pattern(&self.prompt, None, None)?;
 
         debug!(target: "CiscoBaseConnection::save_config", "Save command output: {}", output);
 
@@ -513,7 +521,7 @@ impl CiscoBaseConnection {
             ">"
         };
 
-        let output = self.connection.read_until_pattern(pattern)?;
+        let output = self.connection.read_until_pattern(pattern, None, None)?;
 
         self.connection.session_log.write(&output)?;
 
@@ -521,7 +529,7 @@ impl CiscoBaseConnection {
         let lines: Vec<&str> = output.lines().collect();
         let result = if lines.len() > 2 {
             // Skip the first line (command echo) and last line (prompt), join the rest
-            lines[1..lines.len()-1].join("\n")
+            lines[1..lines.len() - 1].join("\n")
         } else {
             output.to_string()
         };

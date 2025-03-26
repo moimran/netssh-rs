@@ -99,20 +99,20 @@ impl SSHChannel {
 
         // Reuse the existing buffer instead of allocating a new one
         let mut buffer = self.read_buffer.borrow_mut();
-        
+
         // Ensure buffer has enough capacity, but don't reallocate if already adequate
         let current_capacity = buffer.capacity();
         if current_capacity < DEFAULT_BUFFER_SIZE {
             buffer.reserve(DEFAULT_BUFFER_SIZE - current_capacity);
         }
-        
+
         // Clear but preserve capacity
         buffer.clear();
-        
+
         // Resize to capacity for reading
         let capacity = buffer.capacity();
         buffer.resize(capacity, 0);
-        
+
         let mut output = String::with_capacity(DEFAULT_BUFFER_SIZE);
 
         // Check if data is available
@@ -130,7 +130,7 @@ impl SSHChannel {
                         String::from_utf8_lossy(&buffer[..n]).to_string()
                     }
                 };
-                
+
                 output.push_str(&chunk);
 
                 // Check if we found the prompt
@@ -182,25 +182,12 @@ impl SSHChannel {
         let mut remote_conn = self.remote_conn.borrow_mut();
         let channel = remote_conn.as_mut().unwrap(); // Safe because we checked is_none()
 
-        // Reuse the existing buffer
-        let mut buffer = self.read_buffer.borrow_mut();
-        
-        // Ensure buffer has appropriate capacity 
-        let current_capacity = buffer.capacity();
-        if current_capacity < DEFAULT_BUFFER_SIZE {
-            buffer.reserve(DEFAULT_BUFFER_SIZE - current_capacity);
-        }
-        buffer.clear();
-        let capacity = buffer.capacity();
-        buffer.resize(capacity, 0);
-        
-        // Use a string with pre-allocated capacity to reduce reallocations
-        let mut output = String::with_capacity(DEFAULT_BUFFER_SIZE);
-        
-        // Keep reading until no more data
         let mut read_something = false;
-        
+        let mut buffer = vec![0; 8192];
+        let mut output = String::new();
+
         loop {
+            debug!(target: "SSHChannel::read_channel", "Reading from channel");
             match channel.read(&mut buffer) {
                 Ok(n) if n > 0 => {
                     read_something = true;
@@ -209,29 +196,47 @@ impl SSHChannel {
                         Ok(s) => output.push_str(s),
                         Err(_) => output.push_str(&String::from_utf8_lossy(&buffer[..n])),
                     }
+
+                    debug!(target: "SSHChannel::read_channel", "Read data: {}", output);
+
+                    // If we have a prompt or terminating character, break
+                    if output.contains(">") || output.contains("#") {
+                        debug!(target: "SSHChannel::read_channel", "Found prompt/terminator, exiting read loop");
+                        break;
+                    }
                 }
                 Ok(0) if read_something => {
                     // We've read everything and connection is still open
+                    debug!(target: "SSHChannel::read_channel", "Read complete, connection open");
                     break;
                 }
                 Ok(0) => {
                     // Connection closed without sending data
                     debug!(target: "SSHChannel::read_channel", "Channel closed by remote host");
-                    return Err(NetsshError::ReadError("Channel closed by remote host".to_string()));
+                    return Err(NetsshError::ReadError(
+                        "Channel closed by remote host".to_string(),
+                    ));
                 }
                 Ok(_) => {
+                    debug!(target: "SSHChannel::read_channel", "No more data to read");
                     break; // No more data to read
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    break; // No more data available right now
+                    debug!(target: "SSHChannel::read_channel", "No more data available right now");
+                    if read_something {
+                        break; // If we've read any data, return it
+                    }
+                    // Otherwise wait a bit and try again
+                    std::thread::sleep(std::time::Duration::from_millis(100));
                 }
                 Err(e) => {
+                    debug!(target: "SSHChannel::read_channel", "Error reading from channel: {}", e);
                     return Err(NetsshError::IoError(e));
                 }
             }
         }
 
-        debug!(target: "SSHChannel::read_channel", "Read channel complete, read {} bytes", output.len());
+        debug!(target: "SSHChannel::read_channel", "Final read output: {}", output);
         Ok(output)
     }
 
@@ -399,6 +404,42 @@ impl SSHChannel {
 
     pub fn get_encoding(&self) -> &str {
         &self.encoding
+    }
+
+    /// Close the SSH channel
+    pub fn close(&self) -> Result<(), NetsshError> {
+        debug!(target: "SSHChannel::close", "Closing channel");
+
+        if let Some(mut channel) = self.remote_conn.borrow_mut().take() {
+            // Send EOF to indicate we're done sending data
+            if let Err(e) = channel.send_eof() {
+                debug!(target: "SSHChannel::close", "Error sending EOF: {}", e);
+            }
+
+            // Close the channel
+            if let Err(e) = channel.close() {
+                debug!(target: "SSHChannel::close", "Error closing channel: {}", e);
+                return Err(NetsshError::ChannelError(format!(
+                    "Failed to close channel: {}",
+                    e
+                )));
+            }
+
+            // Wait for channel to close
+            if let Err(e) = channel.wait_close() {
+                debug!(target: "SSHChannel::close", "Error waiting for channel to close: {}", e);
+                return Err(NetsshError::ChannelError(format!(
+                    "Failed to wait for channel close: {}",
+                    e
+                )));
+            }
+
+            debug!(target: "SSHChannel::close", "Channel closed successfully");
+        } else {
+            debug!(target: "SSHChannel::close", "No active channel to close");
+        }
+
+        Ok(())
     }
 }
 

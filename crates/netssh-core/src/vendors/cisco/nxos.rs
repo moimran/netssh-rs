@@ -1,6 +1,6 @@
 use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
-use crate::vendors::cisco::{CiscoDeviceConnection, CiscoDeviceConfig, CiscoBaseConnection};
+use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
 use async_trait::async_trait;
 use log::{debug, warn};
 
@@ -23,7 +23,7 @@ impl CiscoNxosDevice {
 
     pub fn connect(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoNxosSsh::connect", "Connecting to NX-OS device");
-        
+
         // Connect to the device using the base connection
         self.base.connection.connect(
             &self.base.config.host,
@@ -39,7 +39,7 @@ impl CiscoNxosDevice {
 
         // Call our own session_preparation instead of the base class's
         self.session_preparation()?;
-        
+
         Ok(())
     }
 
@@ -82,7 +82,9 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
         }
 
         // add delay to wait for the device to be ready
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        // std::thread::sleep(std::time::Duration::from_millis(500));
+        let output = self.base.connection.clear_buffer(Some("[>#]"), Some(20), None)?;
+        debug!(target: "CiscoBaseConnection::session_preparation", "Cleared buffer: {}", output);
 
         debug!(target: "CiscoNxosSsh::session_preparation", "Setting base prompt");
         // Set base prompt
@@ -105,11 +107,11 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
 
     fn terminal_settings(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoNxosSsh::terminal_settings", "Configuring NX-OS terminal settings");
-        
+
         // NX-OS specific terminal settings
         self.set_terminal_width(511)?;
         self.disable_paging()?;
-        
+
         debug!(target: "CiscoNxosSsh::terminal_settings", "NX-OS terminal settings configured successfully");
         Ok(())
     }
@@ -121,25 +123,28 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
 
     fn disable_paging(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoNxosSsh::disable_paging", "Disabling paging for NX-OS");
-        
+
         // NX-OS uses "terminal length 0" just like IOS
         self.base.disable_paging()
     }
 
     fn set_base_prompt(&mut self) -> Result<String, NetsshError> {
         debug!(target: "CiscoNxosSsh::set_base_prompt", "Setting base prompt for NX-OS");
-        
+
         // Use the base implementation but set NX-OS-specific default prompt if needed
         let result = self.base.set_base_prompt();
-        
+
         // If there was an error, set NX-OS-specific default prompt
         if result.is_err() {
             self.base.prompt = "NX-OS".to_string();
             self.base.connection.base_prompt = Some(self.base.prompt.clone());
-            self.base.connection.channel.set_base_prompt(&self.base.prompt);
+            self.base
+                .connection
+                .channel
+                .set_base_prompt(&self.base.prompt);
             return Ok(self.base.prompt.clone());
         }
-        
+
         Ok(result?)
     }
 
@@ -174,11 +179,15 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
         }
 
         // Send save command - default for IOS/NXOS
-        self.base.connection
+        self.base
+            .connection
             .write_channel("copy running-config startup-config\n")?;
 
         // Wait for completion
-        let output = self.base.connection.read_until_pattern(&self.base.prompt)?;
+        let output = self
+            .base
+            .connection
+            .read_until_pattern(&self.base.prompt, None, None)?;
 
         debug!(target: "CiscoNxosSsh::save_config", "Save command output: {}", output);
 

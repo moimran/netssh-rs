@@ -133,6 +133,122 @@ The library supports three failure strategies:
 
 The parallel execution functionality is also exposed through Python bindings. See the Python documentation for details.
 
+## Device Type Autodetection
+
+The `netssh-core` library now includes a powerful autodetection mechanism that can automatically determine the device type based on command outputs and pattern matching. This is particularly useful when connecting to various network devices without knowing their specific types.
+
+### How to Use Autodetection
+
+To use autodetection, simply set the `device_type` to "autodetect" in your `DeviceConfig`:
+
+```rust
+use netssh_core::{DeviceConfig, DeviceFactory};
+
+// Create a device configuration with autodetect
+let config = DeviceConfig {
+    device_type: "autodetect".to_string(),
+    host: "192.168.1.1".to_string(),
+    username: "admin".to_string(),
+    password: Some("password".to_string()),
+    port: None,
+    timeout: None,
+    secret: None,
+    session_log: None,
+};
+
+// Create a device connection - autodetection happens automatically
+let device = DeviceFactory::create_device(&config)?;
+
+// Now you can interact with the device normally
+device.connect()?;
+let output = device.send_command("show version")?;
+```
+
+### How Autodetection Works
+
+When `device_type` is set to "autodetect", the library:
+
+1. Establishes an SSH connection to the device
+2. Sends various identification commands (like "show version")
+3. Analyzes the output with regular expressions to identify the device
+4. Returns the appropriate device type (e.g., "cisco_ios", "juniper_junos", etc.)
+5. Creates a new connection with the detected device type
+
+### Supported Device Types for Autodetection
+
+The following device types can be automatically detected:
+
+- Alcatel AOS (`alcatel_aos`)
+- Alcatel SROS (`alcatel_sros`)
+- Allied Telesis AW+ (`allied_telesis_awplus`)
+- Apresia AEOS (`apresia_aeos`)
+- Arista EOS (`arista_eos`)
+- Aruba AOSCX (`aruba_aoscx`)
+- Ciena SAOS (`ciena_saos`)
+- Cisco ASA (`cisco_asa`)
+- Cisco FTD (`cisco_ftd`)
+- Cisco IOS (`cisco_ios`)
+- Cisco IOS XE (`cisco_xe`)
+- Cisco IOS XR (`cisco_xr`)
+- Cisco NX-OS (`cisco_nxos`)
+- Cisco Viptela (`cisco_viptela`)
+- Cisco WLC (`cisco_wlc`)
+- Dell Force10 (`dell_force10`)
+- Dell OS9 (`dell_os9`)
+- Dell OS10 (`dell_os10`)
+- Dell PowerConnect (`dell_powerconnect`)
+- Ericsson IPOS (`ericsson_ipos`)
+- Extreme EXOS (`extreme_exos`)
+- Extreme NetIron (`extreme_netiron`)
+- Extreme SLX (`extreme_slx`)
+- Extreme Tierra (`extreme_tierra`)
+- F5 Linux (`f5_linux`)
+- F5 TMSH (`f5_tmsh`)
+- FlexVNF (`flexvnf`)
+- Fortinet (`fortinet`)
+- HP Comware (`hp_comware`)
+- HP ProCurve (`hp_procurve`)
+- Huawei (`huawei`)
+- Huawei SmartAX (`huawei_smartax`)
+- Juniper JunOS (`juniper_junos`)
+- Linux (`linux`)
+- Mellanox MLNXOS (`mellanox_mlnxos`)
+- Netgear ProSAFE (`netgear_prosafe`)
+- OneAccess OneOS (`oneaccess_oneos`)
+- Palo Alto PanOS (`paloalto_panos`)
+- Supermicro SMIS (`supermicro_smis`)
+- Ubiquiti EdgeSwitch (`ubiquiti_edgeswitch`)
+- Yamaha (`yamaha`)
+
+### Advanced Usage: Direct Access to SSHDetect
+
+For more fine-grained control, you can use the `SSHDetect` class directly:
+
+```rust
+use netssh_core::{DeviceConfig, SSHDetect};
+
+// Create a device configuration for autodetection
+let config = DeviceConfig {
+    device_type: "autodetect".to_string(),
+    host: "192.168.1.1".to_string(),
+    username: "admin".to_string(),
+    password: Some("password".to_string()),
+    // ... other fields
+};
+
+// Create an SSHDetect instance
+let mut detector = SSHDetect::new(&config)?;
+
+// Run the autodetection
+match detector.autodetect()? {
+    Some(device_type) => println!("Detected device type: {}", device_type),
+    None => println!("Could not detect device type"),
+}
+
+// Close the connection
+detector.disconnect()?;
+```
+
 ## Using the Settings System
 
 The settings system allows you to customize all aspects of netssh-rs behavior through a JSON configuration file. Here's how to use it:

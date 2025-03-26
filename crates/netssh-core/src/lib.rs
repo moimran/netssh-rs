@@ -13,6 +13,7 @@ pub mod semaphore;
 pub mod session_log;
 pub mod settings;
 pub mod vendors;
+pub mod autodetect;
 
 // Import lazy_static for common regex patterns
 #[macro_use]
@@ -55,6 +56,7 @@ pub use logging::init_logging as initialize_logging;
 pub use parallel_execution::{CommandResult, CommandStatus, ParallelExecutionManager, BatchCommandResults, ParallelExecutionConfig, FailureStrategy};
 pub use semaphore::{TimeoutSemaphore, SemaphorePermit, SemaphoreError};
 pub use settings::{Settings, get_network_timeout, get_ssh_timeout, get_concurrency_setting, get_buffer_setting};
+pub use autodetect::SSHDetect;
 
 // Re-export vendor-specific types
 pub use vendors::cisco::{CiscoDeviceConnection, CiscoBaseConnection, CiscoXrDevice, CiscoNxosDevice, CiscoIosDevice, CiscoAsaDevice};

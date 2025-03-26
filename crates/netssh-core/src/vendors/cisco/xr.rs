@@ -1,6 +1,6 @@
 use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
-use crate::vendors::cisco::{CiscoDeviceConnection, CiscoDeviceConfig, CiscoBaseConnection};
+use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
 use async_trait::async_trait;
 use log::debug;
 use std::time::Duration;
@@ -24,7 +24,7 @@ impl CiscoXrDevice {
 
     pub fn connect(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoXrSsh::connect", "Connecting to XR device");
-        
+
         // Connect to the device using the base connection
         self.base.connection.connect(
             &self.base.config.host,
@@ -40,7 +40,7 @@ impl CiscoXrDevice {
 
         // Call our own session_preparation instead of the base class's
         self.session_preparation()?;
-        
+
         Ok(())
     }
 
@@ -78,14 +78,14 @@ impl CiscoXrDevice {
         timeout: Option<Duration>,
     ) -> Result<(), NetsshError> {
         debug!(target: "CiscoXrSsh::establish_connection", "Establishing connection to Cisco XR device");
-        
+
         // Set up the config
         self.base.config.host = host.to_string();
         self.base.config.username = username.to_string();
         self.base.config.password = password.map(|p| p.to_string());
         self.base.config.port = port;
         self.base.config.timeout = timeout;
-        
+
         // Connect using the standard connect method
         self.connect()
     }
@@ -133,11 +133,11 @@ impl CiscoDeviceConnection for CiscoXrDevice {
 
     fn terminal_settings(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoXrSsh::terminal_settings", "Configuring XR terminal settings");
-        
+
         // XR specific terminal settings
         self.set_terminal_width(511)?;
         self.disable_paging()?;
-        
+
         debug!(target: "CiscoXrSsh::terminal_settings", "XR terminal settings configured successfully");
         Ok(())
     }
@@ -149,25 +149,28 @@ impl CiscoDeviceConnection for CiscoXrDevice {
 
     fn disable_paging(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoXrSsh::disable_paging", "Disabling paging for XR");
-        
+
         // XR uses "terminal length 0" just like IOS
         self.base.disable_paging()
     }
 
     fn set_base_prompt(&mut self) -> Result<String, NetsshError> {
         debug!(target: "CiscoXrSsh::set_base_prompt", "Setting base prompt for XR");
-        
+
         // Use the base implementation but set XR-specific default prompt if needed
         let result = self.base.set_base_prompt();
-        
+
         // If there was an error, set XR-specific default prompt
         if result.is_err() {
             self.base.prompt = "RP/0/RP0/CPU0".to_string();
             self.base.connection.base_prompt = Some(self.base.prompt.clone());
-            self.base.connection.channel.set_base_prompt(&self.base.prompt);
+            self.base
+                .connection
+                .channel
+                .set_base_prompt(&self.base.prompt);
             return Ok(self.base.prompt.clone());
         }
-        
+
         Ok(result?)
     }
 
@@ -204,7 +207,10 @@ impl CiscoDeviceConnection for CiscoXrDevice {
         self.base.connection.write_channel("commit\n")?;
 
         // Wait for completion
-        let output = self.base.connection.read_until_pattern(&self.base.prompt)?;
+        let output = self
+            .base
+            .connection
+            .read_until_pattern(&self.base.prompt, None, None)?;
 
         if output.contains("Error") {
             debug!(target: "CiscoXrSsh::save_config", "Error saving configuration: {}", output);

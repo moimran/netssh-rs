@@ -1,6 +1,6 @@
 use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
-use crate::vendors::cisco::{CiscoDeviceConnection, CiscoDeviceConfig, CiscoBaseConnection};
+use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
 use async_trait::async_trait;
 use log::debug;
 
@@ -26,7 +26,7 @@ impl CiscoAsaDevice {
 
     pub fn connect(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoAsaDevice::connect", "Connecting to ASA device");
-        
+
         // Connect to the device using the base connection
         self.base.connection.connect(
             &self.base.config.host,
@@ -42,7 +42,7 @@ impl CiscoAsaDevice {
 
         // Call our own session_preparation instead of the base class's
         self.session_preparation()?;
-        
+
         Ok(())
     }
 
@@ -54,12 +54,12 @@ impl CiscoAsaDevice {
     pub fn enable(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoAsaDevice::enable", "Delegating to CiscoBaseConnection::enable");
         let result = self.base.enable();
-        
+
         // ASA-specific: Call session_preparation after enable
         if result.is_ok() {
             self.terminal_settings()?;
         }
-        
+
         result
     }
 
@@ -80,13 +80,18 @@ impl CiscoAsaDevice {
     // ASA-specific methods
     pub fn change_context(&mut self, context_name: &str) -> Result<(), NetsshError> {
         debug!(target: "CiscoAsaDevice::change_context", "Changing to context: {}", context_name);
-        
+
         // Send the changeto context command
-        self.base.connection.write_channel(&format!("changeto context {}\n", context_name))?;
-        
+        self.base
+            .connection
+            .write_channel(&format!("changeto context {}\n", context_name))?;
+
         // Wait for prompt
-        let output = self.base.connection.read_until_pattern(r"[>#]")?;
-        
+        let output = self
+            .base
+            .connection
+            .read_until_pattern(r"[>#]", None, None)?;
+
         // Check if the command was successful
         if output.contains("ERROR") || output.contains("Invalid") {
             debug!(target: "CiscoAsaDevice::change_context", "Error changing context: {}", output);
@@ -95,13 +100,13 @@ impl CiscoAsaDevice {
                 context_name, output
             )));
         }
-        
+
         // Update the context
         self.context = Some(context_name.to_string());
-        
+
         // Update the prompt after context change
         self.set_base_prompt()?;
-        
+
         debug!(target: "CiscoAsaDevice::change_context", "Successfully changed to context: {}", context_name);
         Ok(())
     }
@@ -109,15 +114,14 @@ impl CiscoAsaDevice {
     /// Configure terminal settings - can be overridden by device-specific implementations
     pub fn terminal_settings(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoAsaDevice::terminal_settings", "Configuring base terminal settings");
-    
 
         // Disable paging
         self.disable_paging()?;
-        
+
         debug!(target: "CiscoBaseConnection::terminal_settings", "Base terminal settings configured successfully");
         Ok(())
     }
-    
+
     pub fn get_current_context(&self) -> Option<&str> {
         self.context.as_deref()
     }
@@ -157,10 +161,10 @@ impl CiscoDeviceConnection for CiscoAsaDevice {
 
     fn terminal_settings(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoAsaDevice::terminal_settings", "Configuring ASA terminal settings");
-        
+
         // ASA-specific terminal settings - no terminal width, just disable paging
         self.disable_paging()?;
-        
+
         debug!(target: "CiscoAsaDevice::terminal_settings", "ASA terminal settings configured successfully");
         Ok(())
     }
@@ -202,18 +206,21 @@ impl CiscoDeviceConnection for CiscoAsaDevice {
 
     fn set_base_prompt(&mut self) -> Result<String, NetsshError> {
         debug!(target: "CiscoAsaDevice::set_base_prompt", "Setting base prompt for ASA");
-        
+
         // Use the base implementation but set ASA-specific default prompt if needed
         let result = self.base.set_base_prompt();
-        
+
         // If there was an error, set ASA-specific default prompt
         if result.is_err() {
             self.base.prompt = "ASA".to_string();
             self.base.connection.base_prompt = Some(self.base.prompt.clone());
-            self.base.connection.channel.set_base_prompt(&self.base.prompt);
+            self.base
+                .connection
+                .channel
+                .set_base_prompt(&self.base.prompt);
             return Ok(self.base.prompt.clone());
         }
-        
+
         Ok(result?)
     }
 
@@ -251,7 +258,7 @@ impl CiscoDeviceConnection for CiscoAsaDevice {
         self.base.connection.write_channel("write memory\n")?;
 
         // Wait for completion
-        let output = self.base.connection.read_until_pattern("#")?;
+        let output = self.base.connection.read_until_pattern("#", None, None)?;
 
         if output.contains("Error") {
             debug!(target: "CiscoAsaDevice::save_config", "Error saving configuration: {}", output);

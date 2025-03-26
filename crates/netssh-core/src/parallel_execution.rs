@@ -11,7 +11,6 @@ use log::{debug, error, warn};
 use crate::device_connection::{DeviceConfig, NetworkDeviceConnection};
 use crate::device_factory::DeviceFactory;
 use crate::error::NetsshError;
-use crate::settings;
 
 /// Represents the execution status of a command
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

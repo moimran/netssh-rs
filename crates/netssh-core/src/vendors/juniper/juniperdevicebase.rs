@@ -122,13 +122,13 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
 
     fn terminal_settings(&mut self) -> Result<(), NetsshError> {
         debug!(target: "JuniperBaseConnection::terminal_settings", "Configuring base terminal settings");
-        
+
         // Set terminal width
         self.set_terminal_width(511)?;
-        
+
         // Disable paging
         self.disable_paging()?;
-        
+
         debug!(target: "JuniperBaseConnection::terminal_settings", "Base terminal settings configured successfully");
         Ok(())
     }
@@ -205,7 +205,7 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
 
         // Read whatever is available
         let pattern = r"[>#%]";
-        let output = match self.connection.read_until_pattern(pattern) {
+        let output = match self.connection.read_until_pattern(pattern, None, None) {
             Ok(out) => out,
             Err(e) => {
                 warn!(target: "JuniperBaseConnection::set_base_prompt", "Error reading response: {}", e);
@@ -278,9 +278,7 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         };
 
         // Check if any line contains the config pattern (# at the end)
-        let is_config = output
-            .lines()
-            .any(|line| line.trim().ends_with("#"));
+        let is_config = output.lines().any(|line| line.trim().ends_with("#"));
         self.in_config_mode = is_config;
 
         debug!(target: "JuniperBaseConnection::check_config_mode", "Device is in config mode: {}", is_config);
@@ -301,7 +299,7 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         self.connection.write_channel(&format!("{}\n", cmd))?;
 
         // Wait for config prompt
-        let output = self.connection.read_until_pattern("#")?;
+        let output = self.connection.read_until_pattern("#", None, None)?;
 
         if !output.contains("#") {
             warn!(target: "JuniperBaseConnection::config_mode", "Config prompt not found after config command: {}", output);
@@ -330,7 +328,7 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         self.connection.write_channel(&format!("{}\n", cmd))?;
 
         // Wait for operational prompt
-        let output = self.connection.read_until_pattern(">")?;
+        let output = self.connection.read_until_pattern(">", None, None)?;
 
         if !output.trim().ends_with(">") {
             warn!(target: "JuniperBaseConnection::exit_config_mode", "Operational prompt not found after exit command: {}", output);
@@ -358,7 +356,7 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         self.connection.write_channel("commit\n")?;
 
         // Wait for completion
-        let output = self.connection.read_until_pattern("#")?;
+        let output = self.connection.read_until_pattern("#", None, None)?;
 
         if output.contains("error") || output.contains("failed") {
             warn!(target: "JuniperBaseConnection::commit_config", "Error committing configuration: {}", output);
@@ -379,13 +377,9 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         self.connection.write_channel(&format!("{}\n", command))?;
 
         // Wait for command echo and prompt
-        let pattern = if self.in_config_mode {
-            "#"
-        } else {
-            "[>#%]"
-        };
+        let pattern = if self.in_config_mode { "#" } else { "[>#%]" };
 
-        let output = self.connection.read_until_pattern(pattern)?;
+        let output = self.connection.read_until_pattern(pattern, None, None)?;
 
         self.connection.session_log.write(&output)?;
 
