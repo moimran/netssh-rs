@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
-use log::{debug, trace};
+use tracing::{debug, trace};
 use crate::settings::{get_buffer_setting, BufferSettingType};
 use lazy_static::lazy_static;
 

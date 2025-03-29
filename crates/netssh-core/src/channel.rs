@@ -1,5 +1,5 @@
 use crate::error::NetsshError;
-use log::debug;
+use tracing::{debug};
 use regex::Regex;
 use ssh2::Channel as SSH2Channel;
 use std::cell::RefCell;

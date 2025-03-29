@@ -8,8 +8,10 @@ description = "Core SSH functionality for netssh-rs - SSH connection handler for
 [dependencies]
 # Core dependencies from workspace
 ssh2.workspace = true
-log.workspace = true
-env_logger.workspace = true
+# Replace log and env_logger with tracing
+tracing.workspace = true
+tracing-subscriber.workspace = true
+# Removing env_logger
 async-trait.workspace = true
 regex.workspace = true
 chrono = { workspace = true, features = ["serde"] }

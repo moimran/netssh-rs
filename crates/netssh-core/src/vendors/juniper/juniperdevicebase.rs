@@ -4,7 +4,7 @@ use crate::error::NetsshError;
 use crate::vendors::juniper::{JuniperDeviceConfig, JuniperDeviceConnection};
 use async_trait::async_trait;
 use lazy_static::lazy_static;
-use log::{debug, warn};
+use tracing::{debug, warn};
 use regex::Regex;
 
 lazy_static! {

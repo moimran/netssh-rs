@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex, Condvar};
 use std::time::{Duration, Instant};
-use log::{debug, trace, warn};
+use tracing::{debug, trace, warn};
 use thiserror::Error;
 
 /// Error types for semaphore operations

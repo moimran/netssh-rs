@@ -1,88 +1,114 @@
 use crate::error::NetsshError;
 use chrono::Local;
-use log::LevelFilter;
-use std::fs::{File, OpenOptions};
-use std::io::Write;
+use std::fs::create_dir_all;
+use std::io;
+use tracing::metadata::LevelFilter;
+use tracing_subscriber::{
+    fmt::{self, format::FmtSpan, time::FormatTime},
+    prelude::*,
+    EnvFilter, Layer,
+};
 
-struct MultiWriter {
-    debug_file: File,
-}
+struct CustomTime;
 
-impl MultiWriter {
-    fn new(debug_path: &str) -> std::io::Result<Self> {
-        let debug_file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .append(true)
-            .open(debug_path)?;
-
-        Ok(MultiWriter { debug_file })
+impl FormatTime for CustomTime {
+    fn format_time(&self, w: &mut fmt::format::Writer<'_>) -> std::fmt::Result {
+        write!(w, "{}", Local::now().format("%Y-%m-%d %H:%M:%S"))
     }
 }
 
-impl Write for MultiWriter {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        // Write to stdout
-        std::io::stdout().write_all(buf)?;
-        // Write to debug file
-        self.debug_file.write_all(buf)?;
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        std::io::stdout().flush()?;
-        self.debug_file.flush()?;
-        Ok(())
-    }
-}
-
+/// Initialize the tracing system for logging
+///
+/// # Arguments
+///
+/// * `debug_enabled` - Whether debug level logging should be enabled
+/// * `_session_logging_enabled` - Session logging is now handled by BaseConnection
+///
+/// # Returns
+///
+/// Result indicating success or failure
 pub fn init_logging(
     debug_enabled: bool,
     _session_logging_enabled: bool, // This is now handled by BaseConnection
 ) -> Result<(), NetsshError> {
     // Create logs directory if it doesn't exist
-    std::fs::create_dir_all("logs").map_err(|e| NetsshError::IoError(e))?;
+    create_dir_all("logs").map_err(|e| NetsshError::IoError(e))?;
 
-    // Set up environment for env_logger
-    if debug_enabled {
-        std::env::set_var("RUST_LOG", "debug");
+    // Determine log level based on debug flag
+    let filter_level = if debug_enabled {
+        LevelFilter::DEBUG
     } else {
-        std::env::set_var("RUST_LOG", "info");
-    }
+        LevelFilter::INFO
+    };
 
-    // Create a custom logger builder
-    let mut builder = env_logger::Builder::from_default_env();
+    // Create a filter based on RUST_LOG env var, or use our default
+    let env_filter = match std::env::var("RUST_LOG") {
+        Ok(env_val) => EnvFilter::new(env_val),
+        Err(_) => {
+            if debug_enabled {
+                EnvFilter::new("debug")
+            } else {
+                EnvFilter::new("info")
+            }
+        }
+    };
 
-    // Set the log level
-    builder.filter_level(if debug_enabled {
-        LevelFilter::Debug
-    } else {
-        LevelFilter::Info
-    });
+    // Create a file for logging
+    let log_file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(true)
+        .open("logs/debug.log")
+        .map_err(|e| NetsshError::IoError(e))?;
 
-    // Create the debug writer
-    let writer = MultiWriter::new("logs/debug.log").map_err(|e| NetsshError::IoError(e))?;
+    // Create a custom file writer for the debug logs
+    let file_appender = tracing_subscriber::fmt::layer()
+        .with_writer(log_file)
+        .with_ansi(false) // Disable ANSI colors in file output
+        .with_timer(CustomTime)
+        .with_thread_ids(true)
+        .with_thread_names(true)
+        .with_file(true)
+        .with_line_number(true)
+        .with_span_events(FmtSpan::CLOSE)
+        .with_filter(filter_level);
 
-    // Set the writer
-    builder.target(env_logger::Target::Pipe(Box::new(writer)));
+    // Create a standard stdout writer
+    let stdout_layer = tracing_subscriber::fmt::layer()
+        .with_writer(io::stdout)
+        .with_ansi(true) // Enable ANSI colors for console output
+        .with_timer(CustomTime)
+        .with_thread_ids(true)
+        .with_thread_names(true)
+        .with_file(true)
+        .with_line_number(true)
+        .with_filter(filter_level);
 
-    // Set format with timestamp, file, module path, and target
-    builder.format(|buf, record| {
-        writeln!(
-            buf,
-            "{} [{}] [{}:{}] [{}::{}] {}",
-            Local::now().format("%Y-%m-%d %H:%M:%S"),
-            record.level(),
-            record.file().unwrap_or("unknown"),
-            record.line().unwrap_or(0),
-            record.module_path().unwrap_or("unknown"),
-            record.target(),
-            record.args()
-        )
-    });
+    // Register both writers with the subscriber
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(file_appender)
+        .with(stdout_layer)
+        .init();
 
-    // Initialize the logger
-    builder.init();
+    tracing::info!(
+        "Logging initialized at {} level",
+        if debug_enabled { "DEBUG" } else { "INFO" }
+    );
+    tracing::debug!("Debug logging is enabled");
 
     Ok(())
+}
+
+/// Creates a debug file writer
+fn create_debug_writer() -> Result<impl io::Write, NetsshError> {
+    let debug_path = "logs/debug.log";
+    let debug_file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(true)
+        .open(debug_path)
+        .map_err(|e| NetsshError::IoError(e))?;
+
+    Ok(debug_file)
 }

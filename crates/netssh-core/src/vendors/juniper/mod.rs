@@ -15,6 +15,7 @@ pub struct JuniperDeviceConfig {
     pub password: Option<String>,
     pub port: Option<u16>,
     pub timeout: Option<std::time::Duration>,
+    pub secret: Option<String>,
     pub session_log: Option<String>,
 }
 
@@ -26,6 +27,7 @@ impl Default for JuniperDeviceConfig {
             password: None,
             port: None,
             timeout: None,
+            secret: None,
             session_log: None,
         }
     }

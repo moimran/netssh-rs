@@ -2,7 +2,7 @@ use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
 use crate::vendors::juniper::{JuniperDeviceConfig, JuniperDeviceConnection, JuniperBaseConnection};
 use async_trait::async_trait;
-use log::debug;
+use tracing::{debug};
 
 pub struct JuniperJunosDevice {
     pub base: JuniperBaseConnection,

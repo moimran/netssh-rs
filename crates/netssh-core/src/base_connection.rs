@@ -3,13 +3,13 @@ use crate::config::NetsshConfig;
 use crate::error::NetsshError;
 use crate::patterns::{ANSI_ESCAPE_PATTERN, CRLF_PATTERN};
 use crate::session_log::SessionLog;
-use log::{debug, info, warn};
 use rand;
 use regex::Regex;
 use ssh2::Session;
 use std::net::TcpStream;
 use std::thread;
 use std::time::{Duration, SystemTime};
+use tracing::{debug, info, instrument, warn};
 
 pub struct BaseConnection {
     pub session: Option<Session>,
@@ -34,8 +34,10 @@ impl BaseConnection {
         debug!(target: "BaseConnection::sleep_for_command", "Sleeping for {:?}", duration);
         thread::sleep(duration);
     }
+
+    #[instrument(level = "debug")]
     pub fn new() -> Result<Self, NetsshError> {
-        debug!(target: "BaseConnection::new", "Creating new base connection");
+        debug!("Creating new base connection");
         let config = NetsshConfig::default();
         let mut session_log = SessionLog::new();
 
@@ -56,8 +58,9 @@ impl BaseConnection {
         })
     }
 
+    #[instrument(fields(config = ?std::any::type_name::<NetsshConfig>()), level = "debug")]
     pub fn with_config(config: NetsshConfig) -> Result<Self, NetsshError> {
-        debug!(target: "BaseConnection::with_config", "Creating base connection with custom config");
+        debug!("Creating base connection with custom config");
         let mut session_log = SessionLog::new();
 
         if config.enable_session_log {
@@ -77,18 +80,23 @@ impl BaseConnection {
         })
     }
 
+    #[instrument(skip(self), level = "debug", name = "BaseConnection::connect")]
     pub fn connect(
         &mut self,
         host: &str,
         username: &str,
         password: Option<&str>,
         port: Option<u16>,
-        timeout: Option<Duration>,
+        connect_timeout: Option<Duration>,
     ) -> Result<(), NetsshError> {
-        debug!(target: "BaseConnection::connect", "Connecting to {}@{}", username, host);
+        debug!(
+            "Connecting to {}:{}",
+            host,
+            port.unwrap_or(self.config.default_port)
+        );
 
         let port = port.unwrap_or(self.config.default_port);
-        let timeout = timeout.unwrap_or(self.config.connection_timeout);
+        let timeout = connect_timeout.unwrap_or(self.config.connection_timeout);
 
         info!("Connecting to {}:{} with username {}", host, port, username);
         let addr = format!("{}:{}", host, port);
@@ -194,8 +202,9 @@ impl BaseConnection {
         Ok(())
     }
 
+    #[instrument(skip(self), level = "debug", name = "BaseConnection::open_channel")]
     pub fn open_channel(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "BaseConnection::open_channel", "Opening SSH channel");
+        debug!("Opening SSH channel");
         let session = self.session.as_mut().ok_or_else(|| {
             info!("Failed to open channel: no active session");
             NetsshError::ConnectionError("No active session".to_string())
@@ -223,8 +232,13 @@ impl BaseConnection {
         Ok(())
     }
 
+    #[instrument(
+        skip(self, data),
+        level = "debug",
+        name = "BaseConnection::write_channel"
+    )]
     pub fn write_channel(&mut self, data: &str) -> Result<(), NetsshError> {
-        debug!(target: "BaseConnection::write_channel", "Writing to channel: {:?}", data);
+        debug!("Writing to channel: {:?}", data);
 
         // Use the SSHChannel to write data
         self.channel.write_channel(data)?;
@@ -264,8 +278,9 @@ impl BaseConnection {
         ANSI_ESCAPE_PATTERN.replace_all(data, "").to_string()
     }
 
+    #[instrument(skip_all, level = "debug", name = "BaseConnection::read_channel")]
     pub fn read_channel(&mut self) -> Result<String, NetsshError> {
-        debug!(target: "BaseConnection::read_channel", "Reading from channel");
+        debug!("Reading from channel");
 
         // Create a regex for the prompt if base_prompt is set
         let prompt_regex = if let Some(ref prompt) = self.base_prompt {
@@ -687,8 +702,9 @@ impl BaseConnection {
         ))
     }
 
+    #[instrument(skip_all, level = "debug", name = "BaseConnection::send_command")]
     pub fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        debug!(target: "BaseConnection::send_command", "Sending command: {}", command);
+        debug!("Sending command: {}", command);
 
         // Write the command to the channel
         self.write_channel(&format!("{}\n", command))?;
@@ -734,9 +750,13 @@ impl BaseConnection {
         Ok(responses)
     }
 
-    /// Send commands in configuration mode
+    #[instrument(
+        skip_all,
+        level = "debug",
+        name = "BaseConnection::send_config_commands"
+    )]
     pub fn send_config_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError> {
-        debug!(target: "BaseConnection::send_config_commands", "Sending {} config commands", commands.len());
+        debug!("Sending {} config commands", commands.len());
 
         // This implementation assumes a device that enters config mode with "configure terminal"
         // and exits with "end" - device-specific implementations should override this method

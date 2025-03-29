@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use std::sync::RwLock;
 use std::fs;
 use std::path::Path;
-use log::{debug, error};
+use tracing::{debug, error};
 
 /// Global Settings for netssh-rs
 /// This file provides a central place to configure all timeout values and other settings

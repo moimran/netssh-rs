@@ -1,16 +1,16 @@
-use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use pyo3::exceptions::PyRuntimeError;
+use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
-use std::collections::{HashMap, HashSet};
+use pyo3::wrap_pyfunction;
+use std::collections::HashMap;
 use std::time::Duration;
 
-use netssh_core::device_connection::{NetworkDeviceConnection, DeviceConfig, DeviceInfo};
+use netssh_core::device_connection::{DeviceConfig, DeviceInfo, NetworkDeviceConnection};
 use netssh_core::device_factory::DeviceFactory;
 use netssh_core::error::NetsshError;
 use netssh_core::parallel_execution::{
-    CommandResult, ParallelExecutionManager, 
-    BatchCommandResults, ParallelExecutionConfig, FailureStrategy
+    BatchCommandResults, CommandResult, FailureStrategy, ParallelExecutionConfig,
+    ParallelExecutionManager,
 };
 
 /// Python module for netssh-rs
@@ -23,7 +23,7 @@ fn netssh_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBatchCommandResults>()?;
     m.add_class::<PyParallelExecutionManager>()?;
     m.add_function(wrap_pyfunction!(initialize_logging, m)?)?;
-    
+
     Ok(())
 }
 
@@ -37,8 +37,7 @@ fn netssh_error_to_pyerr(err: NetsshError) -> PyErr {
 #[pyo3(signature = (debug=false, console=false))]
 #[pyo3(text_signature = "(debug=False, console=False)")]
 fn initialize_logging(debug: bool, console: bool) -> PyResult<()> {
-    netssh_core::logging::init_logging(debug, console)
-        .map_err(netssh_error_to_pyerr)
+    netssh_core::logging::init_logging(debug, console).map_err(netssh_error_to_pyerr)
 }
 
 /// Python wrapper for DeviceConfig
@@ -70,7 +69,9 @@ struct PyDeviceConfig {
 impl PyDeviceConfig {
     #[new]
     #[pyo3(signature = (device_type, host, username, password=None, port=None, timeout_seconds=None, secret=None, session_log=None))]
-    #[pyo3(text_signature = "(device_type, host, username, password=None, port=None, timeout_seconds=None, secret=None, session_log=None)")]
+    #[pyo3(
+        text_signature = "(device_type, host, username, password=None, port=None, timeout_seconds=None, secret=None, session_log=None)"
+    )]
     /// Create a new device configuration.
     ///
     /// Args:
@@ -126,13 +127,15 @@ fn py_config_to_rust_config(config: &PyDeviceConfig) -> DeviceConfig {
 #[pyclass]
 struct PyDeviceInfo {
     #[pyo3(get)]
-    vendor: String,
+    device_type: String,
     #[pyo3(get)]
     model: String,
     #[pyo3(get)]
-    os_version: String,
+    version: String,
     #[pyo3(get)]
     hostname: String,
+    #[pyo3(get)]
+    serial: String,
     #[pyo3(get)]
     uptime: String,
 }
@@ -140,10 +143,11 @@ struct PyDeviceInfo {
 impl From<DeviceInfo> for PyDeviceInfo {
     fn from(info: DeviceInfo) -> Self {
         Self {
-            vendor: info.vendor,
+            device_type: info.device_type,
             model: info.model,
-            os_version: info.os_version,
+            version: info.version,
             hostname: info.hostname,
+            serial: info.serial,
             uptime: info.uptime,
         }
     }
@@ -177,12 +181,9 @@ impl PyNetworkDevice {
     #[pyo3(text_signature = "(config)")]
     fn create(config: &PyDeviceConfig) -> PyResult<Self> {
         let rust_config = py_config_to_rust_config(config);
-        let device = DeviceFactory::create_device(&rust_config)
-            .map_err(netssh_error_to_pyerr)?;
-        
-        Ok(Self {
-            device,
-        })
+        let device = DeviceFactory::create_device(&rust_config).map_err(netssh_error_to_pyerr)?;
+
+        Ok(Self { device })
     }
 
     /// Connect to the device
@@ -196,23 +197,22 @@ impl PyNetworkDevice {
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn connect(&mut self) -> PyResult<()> {
-        self.device.connect()
-            .map_err(netssh_error_to_pyerr)
+        self.device.connect().map_err(netssh_error_to_pyerr)
     }
 
     /// Close the connection to the device
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn close(&mut self) -> PyResult<()> {
-        self.device.close()
-            .map_err(netssh_error_to_pyerr)
+        self.device.close().map_err(netssh_error_to_pyerr)
     }
 
     /// Check if the device is in configuration mode
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn check_config_mode(&mut self) -> PyResult<bool> {
-        self.device.check_config_mode()
+        self.device
+            .check_config_mode()
             .map_err(netssh_error_to_pyerr)
     }
 
@@ -220,7 +220,8 @@ impl PyNetworkDevice {
     #[pyo3(signature = (config_command=None))]
     #[pyo3(text_signature = "(config_command=None)")]
     fn enter_config_mode(&mut self, config_command: Option<&str>) -> PyResult<()> {
-        self.device.enter_config_mode(config_command)
+        self.device
+            .enter_config_mode(config_command)
             .map_err(netssh_error_to_pyerr)
     }
 
@@ -228,7 +229,8 @@ impl PyNetworkDevice {
     #[pyo3(signature = (exit_command=None))]
     #[pyo3(text_signature = "(exit_command=None)")]
     fn exit_config_mode(&mut self, exit_command: Option<&str>) -> PyResult<()> {
-        self.device.exit_config_mode(exit_command)
+        self.device
+            .exit_config_mode(exit_command)
             .map_err(netssh_error_to_pyerr)
     }
 
@@ -236,7 +238,8 @@ impl PyNetworkDevice {
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn session_preparation(&mut self) -> PyResult<()> {
-        self.device.session_preparation()
+        self.device
+            .session_preparation()
             .map_err(netssh_error_to_pyerr)
     }
 
@@ -244,7 +247,8 @@ impl PyNetworkDevice {
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn terminal_settings(&mut self) -> PyResult<()> {
-        self.device.terminal_settings()
+        self.device
+            .terminal_settings()
             .map_err(netssh_error_to_pyerr)
     }
 
@@ -252,7 +256,8 @@ impl PyNetworkDevice {
     #[pyo3(signature = (width))]
     #[pyo3(text_signature = "(width)")]
     fn set_terminal_width(&mut self, width: u32) -> PyResult<()> {
-        self.device.set_terminal_width(width)
+        self.device
+            .set_terminal_width(width)
             .map_err(netssh_error_to_pyerr)
     }
 
@@ -260,23 +265,22 @@ impl PyNetworkDevice {
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn disable_paging(&mut self) -> PyResult<()> {
-        self.device.disable_paging()
-            .map_err(netssh_error_to_pyerr)
+        self.device.disable_paging().map_err(netssh_error_to_pyerr)
     }
 
     /// Set base prompt
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn set_base_prompt(&mut self) -> PyResult<String> {
-        self.device.set_base_prompt()
-            .map_err(netssh_error_to_pyerr)
+        self.device.set_base_prompt().map_err(netssh_error_to_pyerr)
     }
 
     /// Save or commit configuration
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn save_configuration(&mut self) -> PyResult<()> {
-        self.device.save_configuration()
+        self.device
+            .save_configuration()
             .map_err(netssh_error_to_pyerr)
     }
 
@@ -297,7 +301,8 @@ impl PyNetworkDevice {
     #[pyo3(signature = (command))]
     #[pyo3(text_signature = "(command)")]
     fn send_command(&mut self, command: &str) -> PyResult<String> {
-        self.device.send_command(command)
+        self.device
+            .send_command(command)
             .map_err(netssh_error_to_pyerr)
     }
 
@@ -324,7 +329,7 @@ impl PyNetworkDevice {
         _traceback: Option<&PyAny>,
     ) -> PyResult<bool> {
         self.close()?;
-        Ok(false)  // Don't suppress exceptions
+        Ok(false) // Don't suppress exceptions
     }
 }
 
@@ -339,7 +344,7 @@ struct PyCommandResult {
     #[pyo3(get)]
     command: String,
     #[pyo3(get)]
-    output: String,
+    output: Option<String>,
     #[pyo3(get)]
     start_time: String,
     #[pyo3(get)]
@@ -359,8 +364,8 @@ impl From<CommandResult> for PyCommandResult {
             device_type: result.device_type,
             command: result.command,
             output: result.output,
-            start_time: result.start_time.to_rfc3339(),
-            end_time: result.end_time.to_rfc3339(),
+            start_time: result.start_time.to_string(),
+            end_time: result.end_time.to_string(),
             duration_ms: result.duration_ms,
             status: format!("{:?}", result.status),
             error: result.error,
@@ -396,9 +401,7 @@ struct PyBatchCommandResults {
 
 impl From<BatchCommandResults> for PyBatchCommandResults {
     fn from(results: BatchCommandResults) -> Self {
-        Self {
-            results,
-        }
+        Self { results }
     }
 }
 
@@ -407,10 +410,14 @@ impl PyBatchCommandResults {
     /// Get all results for a specific device
     #[pyo3(signature = (device_id))]
     #[pyo3(text_signature = "(device_id)")]
-    fn get_device_results<'py>(&self, py: Python<'py>, device_id: &str) -> PyResult<Option<&'py PyList>> {
+    fn get_device_results<'py>(
+        &self,
+        py: Python<'py>,
+        device_id: &str,
+    ) -> PyResult<Option<&'py PyList>> {
         // Get the results for a specific device
         let results = self.results.get_device_results(device_id);
-        
+
         // If no results for this device, return None
         if let Some(results) = results {
             if results.is_empty() {
@@ -419,17 +426,17 @@ impl PyBatchCommandResults {
         } else {
             return Ok(None);
         }
-        
+
         // Convert results to PyList of PyCommandResult objects
         let py_list = PyList::empty(py);
-        
+
         if let Some(results) = results {
             for result in results {
                 let py_result = PyCommandResult::from(result.clone());
                 py_list.append(py_result.to_dict(py)?)?;
             }
         }
-        
+
         Ok(Some(py_list))
     }
 
@@ -438,7 +445,7 @@ impl PyBatchCommandResults {
     #[pyo3(text_signature = "()")]
     fn get_all_results<'py>(&self, py: Python<'py>) -> PyResult<&'py PyList> {
         let py_list = PyList::empty(py);
-        
+
         // Collect all results from all devices
         for (_, device_results) in self.results.results.iter() {
             for result in device_results {
@@ -446,7 +453,7 @@ impl PyBatchCommandResults {
                 py_list.append(py_result.to_dict(py)?)?;
             }
         }
-        
+
         Ok(py_list)
     }
 
@@ -455,7 +462,7 @@ impl PyBatchCommandResults {
     #[pyo3(text_signature = "()")]
     fn get_successful_results<'py>(&self, py: Python<'py>) -> PyResult<&'py PyList> {
         let py_list = PyList::empty(py);
-        
+
         // Collect all successful results from all devices
         for (_, device_results) in self.results.results.iter() {
             for result in device_results {
@@ -465,7 +472,7 @@ impl PyBatchCommandResults {
                 }
             }
         }
-        
+
         Ok(py_list)
     }
 
@@ -474,7 +481,7 @@ impl PyBatchCommandResults {
     #[pyo3(text_signature = "()")]
     fn get_failed_results<'py>(&self, py: Python<'py>) -> PyResult<&'py PyList> {
         let py_list = PyList::empty(py);
-        
+
         // Collect all failed results from all devices
         for (_, device_results) in self.results.results.iter() {
             for result in device_results {
@@ -484,7 +491,7 @@ impl PyBatchCommandResults {
                 }
             }
         }
-        
+
         Ok(py_list)
     }
 
@@ -493,15 +500,15 @@ impl PyBatchCommandResults {
     #[pyo3(text_signature = "(command)")]
     fn get_command_results<'py>(&self, py: Python<'py>, command: &str) -> PyResult<&'py PyList> {
         let py_list = PyList::empty(py);
-        
+
         // Use the get_command_results method from BatchCommandResults
         let results = self.results.get_command_results(command);
-        
+
         for result in results {
             let py_result = PyCommandResult::from(result.clone());
             py_list.append(py_result.to_dict(py)?)?;
         }
-        
+
         Ok(py_list)
     }
 
@@ -532,27 +539,28 @@ impl PyBatchCommandResults {
     #[pyo3(text_signature = "(command)")]
     fn compare_outputs<'py>(&self, py: Python<'py>, command: &str) -> PyResult<&'py PyDict> {
         // Use the compare_outputs function from the utilities module
-        let comparisons = netssh_core::parallel_execution::utils::compare_outputs(&self.results, command);
-        
+        let comparisons =
+            netssh_core::parallel_execution::utils::compare_outputs(&self.results, command);
+
         // Convert to Python dict of {device_id: {'unique': [...], 'common': [...]}}
         let py_dict = PyDict::new(py);
-        
+
         for (device_id, comparison) in comparisons {
             let device_dict = PyDict::new(py);
-            
+
             let unique_list = PyList::empty(py);
             for unique_line in comparison {
                 unique_list.append(unique_line)?;
             }
             device_dict.set_item("unique", unique_list)?;
-            
+
             // Common lines are not provided in this implementation
             let common_list = PyList::empty(py);
             device_dict.set_item("common", common_list)?;
-            
+
             py_dict.set_item(device_id, device_dict)?;
         }
-        
+
         Ok(py_dict)
     }
 }
@@ -567,77 +575,77 @@ struct PyParallelExecutionManager {
 impl PyParallelExecutionManager {
     /// Create a new parallel execution manager
     #[new]
-    #[pyo3(signature = (max_concurrency=None, command_timeout_seconds=None, connection_timeout_seconds=None, failure_strategy=None, reuse_connections=None))]
-    #[pyo3(text_signature = "(max_concurrency=None, command_timeout_seconds=None, connection_timeout_seconds=None, failure_strategy=None, reuse_connections=None)")]
+    #[pyo3(signature = (max_concurrency=None, command_timeout_seconds=None, _connection_timeout_seconds=None, failure_strategy=None, reuse_connections=None))]
+    #[pyo3(
+        text_signature = "(max_concurrency=None, command_timeout_seconds=None, connection_timeout_seconds=None, failure_strategy=None, reuse_connections=None)"
+    )]
     fn new(
         max_concurrency: Option<usize>,
         command_timeout_seconds: Option<u64>,
-        connection_timeout_seconds: Option<u64>,
+        _connection_timeout_seconds: Option<u64>,
         failure_strategy: Option<&str>,
         reuse_connections: Option<bool>,
     ) -> PyResult<Self> {
-        // Create default config
+        // Start with default config
         let mut config = ParallelExecutionConfig::default();
-        
+
         // Apply custom configuration if provided
         if let Some(max_concurrency) = max_concurrency {
-            config.max_concurrency = max_concurrency;
+            config.max_concurrent_devices = max_concurrency;
         }
-        
-        // Set command timeout if provided
+
         if let Some(timeout) = command_timeout_seconds {
-            config.command_timeout = Some(Duration::from_secs(timeout));
+            config.command_timeout = Duration::from_secs(timeout);
         }
-        
-        // Set connection timeout if provided
-        if let Some(timeout) = connection_timeout_seconds {
-            config.connection_timeout = Some(Duration::from_secs(timeout));
-        }
-        
+
+        // Deprecated: connection_timeout is not used anymore
+        // We just ignore it for backwards compatibility
+
+        // Set failure strategy if provided
         if let Some(strategy) = failure_strategy {
             // Convert failure strategy string to enum
             let failure_strategy = match strategy.to_lowercase().as_str() {
-                "continue" => FailureStrategy::ContinueDevice,
-                "abort" => FailureStrategy::StopAll,
-                "skip_device" => FailureStrategy::StopDevice,
-                "skip_command" => FailureStrategy::ContinueDevice, // Not directly supported, so use continue
-                _ => FailureStrategy::ContinueDevice, // Default
+                "continue_on_device" => FailureStrategy::ContinueOnDevice,
+                "skip_device" => FailureStrategy::SkipDevice,
+                "abort_batch" => FailureStrategy::AbortBatch,
+                _ => FailureStrategy::ContinueOnDevice, // Default
             };
-            
+
             config.failure_strategy = failure_strategy;
         }
-        
+
+        // Set reuse connections if provided
         if let Some(reuse) = reuse_connections {
-            config.reuse_connections = reuse;
+            config.stop_on_first_failure = !reuse;
         }
-        
-        // Create the manager with our configuration
+
+        // Create manager with the configured settings
         let manager = ParallelExecutionManager::with_config(config);
-        
-        Ok(Self {
-            manager,
-        })
+
+        Ok(Self { manager })
     }
 
-    /// Set maximum number of concurrent connections
+    /// Set the maximum concurrency
     #[pyo3(signature = (max_concurrency))]
     #[pyo3(text_signature = "(max_concurrency)")]
     fn set_max_concurrency(&mut self, max_concurrency: usize) {
         self.manager.set_max_concurrency(max_concurrency);
     }
 
-    /// Set command timeout
+    /// Set the command timeout
     #[pyo3(signature = (timeout_seconds))]
     #[pyo3(text_signature = "(timeout_seconds)")]
     fn set_command_timeout(&mut self, timeout_seconds: u64) {
-        self.manager.set_command_timeout(Duration::from_secs(timeout_seconds));
+        self.manager
+            .set_command_timeout(Duration::from_secs(timeout_seconds));
     }
 
-    /// Set connection timeout
-    #[pyo3(signature = (timeout_seconds))]
+    /// Set the connection timeout (deprecated)
+    #[pyo3(signature = (_timeout_seconds))]
     #[pyo3(text_signature = "(timeout_seconds)")]
-    fn set_connection_timeout(&mut self, timeout_seconds: u64) {
-        self.manager.set_connection_timeout(Duration::from_secs(timeout_seconds));
+    fn set_connection_timeout(&mut self, _timeout_seconds: u64) {
+        // This is now a no-op as connection_timeout is no longer used
+        // We keep the method for backwards compatibility
     }
 
     /// Set failure strategy
@@ -645,13 +653,11 @@ impl PyParallelExecutionManager {
     #[pyo3(text_signature = "(strategy)")]
     fn set_failure_strategy(&mut self, strategy: &str) {
         let failure_strategy = match strategy.to_lowercase().as_str() {
-            "continue" => FailureStrategy::ContinueDevice,
-            "abort" => FailureStrategy::StopAll,
-            "skip_device" => FailureStrategy::StopDevice,
-            "skip_command" => FailureStrategy::ContinueDevice, // Not directly supported, so use continue
-            _ => FailureStrategy::ContinueDevice, // Default
+            "continue_on_device" => FailureStrategy::ContinueOnDevice,
+            "skip_device" => FailureStrategy::SkipDevice,
+            "abort_batch" => FailureStrategy::AbortBatch,
+            _ => FailureStrategy::ContinueOnDevice, // Default
         };
-        
         self.manager.set_failure_strategy(failure_strategy);
     }
 
@@ -659,27 +665,31 @@ impl PyParallelExecutionManager {
     #[pyo3(signature = (reuse))]
     #[pyo3(text_signature = "(reuse)")]
     fn set_reuse_connections(&mut self, reuse: bool) {
+        // Note: stop_on_first_failure is the opposite of reuse_connections
         self.manager.set_reuse_connections(reuse);
     }
 
     /// Execute a command on all devices
     #[pyo3(signature = (configs, command))]
     #[pyo3(text_signature = "(configs, command)")]
-    fn execute_command_on_all<'py>(&mut self, py: Python<'py>, configs: &PyList, command: &str) -> PyResult<PyBatchCommandResults> {
+    fn execute_command_on_all<'py>(
+        &mut self,
+        py: Python<'py>,
+        configs: &PyList,
+        command: &str,
+    ) -> PyResult<PyBatchCommandResults> {
         // Extract Rust configs from Python configs outside the allow_threads block
         let rust_configs = extract_device_configs(configs)?;
         let command = command.to_string();
-        
+
         py.allow_threads(|| {
             // Create a future to execute command on all devices
             let future = self.manager.execute_command_on_all(rust_configs, command);
-            
+
             // Execute the future in a tokio runtime
             let rt = tokio::runtime::Runtime::new().unwrap();
-            let results = rt.block_on(async {
-                future.await.map_err(netssh_error_to_pyerr)
-            })?;
-            
+            let results = rt.block_on(async { future.await.map_err(netssh_error_to_pyerr) })?;
+
             // Return the results wrapped in a PyBatchCommandResults
             Ok(PyBatchCommandResults { results })
         })
@@ -688,21 +698,26 @@ impl PyParallelExecutionManager {
     /// Execute multiple commands on all devices
     #[pyo3(signature = (configs, commands))]
     #[pyo3(text_signature = "(configs, commands)")]
-    fn execute_commands_on_all<'py>(&mut self, py: Python<'py>, configs: &PyList, commands: Vec<String>) -> PyResult<PyBatchCommandResults> {
+    fn execute_commands_on_all<'py>(
+        &mut self,
+        py: Python<'py>,
+        configs: &PyList,
+        commands: Vec<String>,
+    ) -> PyResult<PyBatchCommandResults> {
         // Extract Rust configs from Python configs outside the allow_threads block
         let rust_configs = extract_device_configs(configs)?;
         let commands_clone = commands.clone();
-        
+
         py.allow_threads(|| {
             // Create a future to execute commands on all devices
-            let future = self.manager.execute_commands_on_all(rust_configs, commands_clone);
-            
+            let future = self
+                .manager
+                .execute_commands_on_all(rust_configs, commands_clone);
+
             // Execute the future in a tokio runtime
             let rt = tokio::runtime::Runtime::new().unwrap();
-            let results = rt.block_on(async {
-                future.await.map_err(netssh_error_to_pyerr)
-            })?;
-            
+            let results = rt.block_on(async { future.await.map_err(netssh_error_to_pyerr) })?;
+
             // Return the results wrapped in a PyBatchCommandResults
             Ok(PyBatchCommandResults { results })
         })
@@ -711,28 +726,34 @@ impl PyParallelExecutionManager {
     /// Execute commands on specific devices
     #[pyo3(signature = (device_commands))]
     #[pyo3(text_signature = "(device_commands)")]
-    fn execute_commands(&mut self, py: Python<'_>, device_commands: &PyDict) -> PyResult<PyBatchCommandResults> {
+    fn execute_commands(
+        &mut self,
+        py: Python<'_>,
+        device_commands: &PyDict,
+    ) -> PyResult<PyBatchCommandResults> {
         // Extract device commands map outside the allow_threads block
         let mut device_map = HashMap::new();
-        
+
         for (k, v) in device_commands.iter() {
             // Get the PyDeviceConfig
             let config = match k.extract::<&PyCell<PyDeviceConfig>>() {
                 Ok(cell) => {
                     // Extract the PyDeviceConfig from the cell
                     let config_ref = cell.try_borrow().map_err(|_| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Failed to borrow PyDeviceConfig")
+                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                            "Failed to borrow PyDeviceConfig",
+                        )
                     })?;
-                    
+
                     py_config_to_rust_config(&config_ref)
-                },
+                }
                 Err(_) => {
                     return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                        "Keys must be PyDeviceConfig objects"
+                        "Keys must be PyDeviceConfig objects",
                     ));
                 }
             };
-            
+
             // Get the commands - could be a string or list of strings
             let commands = if let Ok(cmd) = v.extract::<String>() {
                 vec![cmd]
@@ -740,23 +761,21 @@ impl PyParallelExecutionManager {
                 cmds
             } else {
                 return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                    "Values must be strings or lists of strings"
+                    "Values must be strings or lists of strings",
                 ));
             };
-            
+
             device_map.insert(config, commands);
         }
-        
+
         py.allow_threads(move || {
             // Create a future to execute commands
             let future = self.manager.execute_commands(device_map);
-            
+
             // Execute the future in a tokio runtime
             let rt = tokio::runtime::Runtime::new().unwrap();
-            let results = rt.block_on(async {
-                future.await.map_err(netssh_error_to_pyerr)
-            })?;
-            
+            let results = rt.block_on(async { future.await.map_err(netssh_error_to_pyerr) })?;
+
             // Return the results wrapped in a PyBatchCommandResults
             Ok(PyBatchCommandResults { results })
         })
@@ -785,21 +804,23 @@ impl PyParallelExecutionManager {
         _traceback: Option<&PyAny>,
     ) -> PyResult<bool> {
         self.cleanup();
-        Ok(false)  // Don't suppress exceptions
+        Ok(false) // Don't suppress exceptions
     }
 }
 
 // Helper function to extract DeviceConfig objects from a PyList
 fn extract_device_configs(configs: &PyList) -> PyResult<Vec<DeviceConfig>> {
     let mut rust_configs = Vec::new();
-    
+
     for item in configs.iter() {
         if let Ok(py_config) = item.extract::<PyDeviceConfig>() {
             rust_configs.push(py_config_to_rust_config(&py_config));
         } else {
-            return Err(PyRuntimeError::new_err("List must contain only DeviceConfig objects"));
+            return Err(PyRuntimeError::new_err(
+                "List must contain only DeviceConfig objects",
+            ));
         }
     }
-    
+
     Ok(rust_configs)
-} 
+}

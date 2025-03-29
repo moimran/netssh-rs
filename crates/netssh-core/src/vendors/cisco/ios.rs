@@ -2,7 +2,7 @@ use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoDeviceConnection, CiscoDeviceConfig, CiscoBaseConnection};
 use async_trait::async_trait;
-use log::debug;
+use tracing::{debug};
 
 pub struct CiscoIosDevice {
     pub base: CiscoBaseConnection,
