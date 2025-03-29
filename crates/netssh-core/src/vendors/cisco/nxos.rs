@@ -36,8 +36,6 @@ impl CiscoNxosDevice {
         if let Some(log_file) = &self.base.config.session_log {
             self.base.connection.set_session_log(log_file)?;
         }
-
-        // Call our own session_preparation instead of the base class's
         self.session_preparation()?;
 
         Ok(())
@@ -71,38 +69,7 @@ impl CiscoNxosDevice {
 #[async_trait]
 impl CiscoDeviceConnection for CiscoNxosDevice {
     fn session_preparation(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::session_preparation", "Preparing NX-OS session");
-
-        // Only open a channel if one doesn't already exist
-        if self.base.connection.channel.is_none() {
-            debug!(target: "CiscoNxosSsh::session_preparation", "Opening a new channel");
-            self.base.connection.open_channel()?;
-        } else {
-            debug!(target: "CiscoNxosSsh::session_preparation", "Channel already exists, skipping open_channel");
-        }
-
-        // add delay to wait for the device to be ready
-        // std::thread::sleep(std::time::Duration::from_millis(500));
-        let output = self.base.connection.clear_buffer(Some("[>#]"), Some(20), None)?;
-        debug!(target: "CiscoBaseConnection::session_preparation", "Cleared buffer: {}", output);
-
-        debug!(target: "CiscoNxosSsh::session_preparation", "Setting base prompt");
-        // Set base prompt
-        self.set_base_prompt()?;
-
-        // Configure terminal settings (calls our overridden terminal_settings method)
-        self.terminal_settings()?;
-
-        // Enter enable mode if not already in it
-        if !self.check_enable_mode()? {
-            debug!(target: "CiscoNxosSsh::session_preparation", "Not in privileged mode #, entering enable mode");
-            self.base.enable()?;
-        } else {
-            debug!(target: "CiscoNxosSsh::session_preparation", "Already in privileged mode");
-        }
-
-        debug!(target: "CiscoNxosSsh::session_preparation", "Session preparation completed successfully");
-        Ok(())
+        self.base.session_preparation()
     }
 
     fn terminal_settings(&mut self) -> Result<(), NetsshError> {
@@ -138,7 +105,7 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
         if result.is_err() {
             self.base.prompt = "NX-OS".to_string();
             self.base.connection.base_prompt = Some(self.base.prompt.clone());
-            self.base
+            self.  base
                 .connection
                 .channel
                 .set_base_prompt(&self.base.prompt);
@@ -190,6 +157,8 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
             .read_until_pattern(&self.base.prompt, None, None)?;
 
         debug!(target: "CiscoNxosSsh::save_config", "Save command output: {}", output);
+
+        self.base.connection.clear_buffer(Some(&self.base.prompt.clone()), Some(20), None)?;
 
         if output.contains("Error") {
             warn!(target: "CiscoNxosSsh::save_config", "Error saving configuration: {}", output);

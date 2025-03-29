@@ -1,4 +1,4 @@
-use crate::device_connection::{NetworkDeviceConnection};
+use crate::device_connection::NetworkDeviceConnection;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoDeviceConnection, CiscoNxosDevice};
 use async_trait::async_trait;
@@ -25,10 +25,6 @@ impl NetworkDeviceConnection for CiscoNxosDevice {
         <Self as CiscoDeviceConnection>::exit_config_mode(self, exit_command)
     }
     
-    fn session_preparation(&mut self) -> Result<(), NetsshError> {
-        <Self as CiscoDeviceConnection>::session_preparation(self)
-    }
-    
     fn terminal_settings(&mut self) -> Result<(), NetsshError> {
         <Self as CiscoDeviceConnection>::terminal_settings(self)
     }
@@ -51,6 +47,10 @@ impl NetworkDeviceConnection for CiscoNxosDevice {
     
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
         <Self as CiscoDeviceConnection>::send_command(self, command)
+    }
+
+    fn session_preparation(&mut self) -> Result<(), NetsshError> {
+        <Self as CiscoDeviceConnection>::session_preparation(self)
     }
     
     fn get_device_type(&self) -> &str {
