@@ -329,11 +329,17 @@ impl BaseConnection {
 
         if !self.disable_lf_normalization && !new_data.is_empty() {
             // Handle data blocks ending in '\r' when '\n' exists
-            let start = SystemTime::now();
+            let mut start = SystemTime::now();
             while new_data.contains('\n') {
-                if let Ok(elapsed) = start.elapsed() {
-                    if elapsed > Duration::from_secs(1) {
+                match start.elapsed() {
+                    Ok(elapsed) if elapsed > Duration::from_secs(1) => {
                         break;
+                    }
+                    Ok(_) => {} // Still within timeout
+                    Err(e) => {
+                        debug!(target: "BaseConnection::read_channel", "System time error: {:?}", e);
+                        // Rather than failing, we'll continue but reset the timer
+                        start = SystemTime::now();
                     }
                 }
 
@@ -364,7 +370,7 @@ impl BaseConnection {
             new_data
         };
 
-        debug!(target: "BaseConnection::read_channel", "Read data: {:?}", processed_data);
+        // debug!(target: "BaseConnection::read_channel", "Read data: {:?}", processed_data);
 
         // Log the data if session logging is enabled
         if self.session_log.is_active() && !processed_data.is_empty() {
@@ -424,11 +430,11 @@ impl BaseConnection {
             "Router".to_string()
         };
 
-        debug!(target: "CiscoBaseConnection::set_base_prompt", "Base prompt set to: {}", prompt);
+        debug!(target: "CiscoBaseConnection::set_base_prompt", "Base prompt set to: {:?}", prompt);
 
         // Also set the base_prompt in the BaseConnection
         self.base_prompt = Some(prompt.clone());
-        debug!(target: "CiscoBaseConnection::set_base_prompt", "Set base_prompt in BaseConnection to: {}", prompt);
+        debug!(target: "CiscoBaseConnection::set_base_prompt", "Set base_prompt in BaseConnection to: {:?}", prompt);
 
         // Set the prompt in the SSHChannel
         self.channel.set_base_prompt(&prompt);
@@ -461,7 +467,7 @@ impl BaseConnection {
         debug!(target: "BaseConnection::read_until_pattern", "Reading until pattern: {}", pattern);
 
         // Get current time for timeout tracking
-        let start = SystemTime::now();
+        let mut start = SystemTime::now();
 
         // Use provided timeout or default to 10 seconds
         let timeout = if let Some(t) = read_timeout {
@@ -485,6 +491,8 @@ impl BaseConnection {
                 )));
             }
         };
+
+        debug!(target: "BaseConnection::read_until_pattern", "Pattern regex: {} pattern: {}", pattern_regex, pattern);
 
         // Check for potential issues with pattern
         if pattern.contains('(') && !pattern.contains("(?:") {
@@ -516,7 +524,14 @@ impl BaseConnection {
                         return Err(NetsshError::timeout(msg));
                     }
                     Ok(_) => {} // Still within timeout
-                    Err(e) => return Err(NetsshError::SystemTimeError(e)),
+                    Err(e) => {
+                        debug!(target: "BaseConnection::read_until_pattern", "System time error: {:?}", e);
+                        // Rather than failing, we'll continue reading
+                        // This can happen when system clock is adjusted during operation
+                        debug!(target: "BaseConnection::read_until_pattern", "Resetting timeout start time and continuing");
+                        // Reset the start time to now to avoid repeated errors
+                        start = SystemTime::now();
+                    }
                 }
             }
 
@@ -531,7 +546,9 @@ impl BaseConnection {
 
                         // Check if the pattern exists in the accumulated output
                         if pattern_regex.is_match(&output) {
-                            debug!(target: "BaseConnection::read_until_pattern", "Found pattern match");
+                            debug!(target: "BaseConnection::read_until_pattern", "Found pattern match pattern: {}", pattern_regex);
+
+                            debug!(target: "BaseConnection::read_until_pattern", "Output: {}", output);
 
                             // Split the output at the pattern
                             let parts: Vec<&str> =
@@ -552,7 +569,7 @@ impl BaseConnection {
 
                                 // Return everything up to and including the pattern
                                 let result = format!("{}{}", before, pattern_match);
-                                debug!(target: "BaseConnection::read_until_pattern", "Returning matched output: {:?}", result);
+                                // debug!(target: "BaseConnection::read_until_pattern", "Returning matched output: {:?}", result);
                                 return Ok(result);
                             }
                         }

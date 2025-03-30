@@ -2,6 +2,7 @@ use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
 use async_trait::async_trait;
+use regex;
 use tracing::{debug, warn};
 
 pub struct CiscoNxosDevice {
@@ -105,7 +106,7 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
         if result.is_err() {
             self.base.prompt = "NX-OS".to_string();
             self.base.connection.base_prompt = Some(self.base.prompt.clone());
-            self.  base
+            self.base
                 .connection
                 .channel
                 .set_base_prompt(&self.base.prompt);
@@ -150,15 +151,38 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
             .connection
             .write_channel("copy running-config startup-config\n")?;
 
-        // Wait for completion
+        // Get the hostname without special characters
+        let hostname = self.base.prompt.trim_end_matches(|c| c == '#' || c == '>');
+
+        // Use a broader pattern to handle different prompt formats
+        // Instead of trying to use complex regex, we'll just look for "Copy complete" as our success signal
+        let success_pattern = "Copy complete";
+
+        debug!(target: "CiscoNxosSsh::save_config", "Looking for success pattern: {}", success_pattern);
+
+        // Wait for completion looking for the success message
         let output = self
             .base
             .connection
-            .read_until_pattern(&self.base.prompt, None, None)?;
+            .read_until_pattern(success_pattern, Some(120.0), None)?;
 
-        debug!(target: "CiscoNxosSsh::save_config", "Save command output: {}", output);
+        debug!(target: "CiscoNxosSsh::save_config", "Save command output found success message");
 
-        self.base.connection.clear_buffer(Some(&self.base.prompt.clone()), Some(20), None)?;
+        // Now try to clear the buffer using the base prompt
+        // match self
+        //     .base
+        //     .connection
+        //     .clear_buffer(Some(&self.base.prompt), Some(20), None)
+        // {
+        //     Ok(_) => debug!(target: "CiscoNxosSsh::save_config", "Buffer cleared with base prompt"),
+        //     Err(_) => {
+        //         // If that fails, try with just the hostname
+        //         debug!(target: "CiscoNxosSsh::save_config", "Trying to clear with hostname only: {}", hostname);
+        //         self.base
+        //             .connection
+        //             .clear_buffer(Some(hostname), Some(20), None)?;
+        //     }
+        // };
 
         if output.contains("Error") {
             warn!(target: "CiscoNxosSsh::save_config", "Error saving configuration: {}", output);
