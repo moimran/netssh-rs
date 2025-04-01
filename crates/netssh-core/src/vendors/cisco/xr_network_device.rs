@@ -48,7 +48,7 @@ impl NetworkDeviceConnection for CiscoXrDevice {
     }
 
     fn save_configuration(&mut self) -> Result<(), NetsshError> {
-        <Self as CiscoDeviceConnection>::save_config(self)
+        <Self as CiscoDeviceConnection>::save_config(self).map(|_| ())
     }
 
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {

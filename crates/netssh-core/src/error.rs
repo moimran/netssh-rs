@@ -65,7 +65,7 @@ pub enum NetsshError {
 
     #[error("Session log error: {0}")]
     SessionLogError(String),
-    
+
     #[error("Invalid operation: {0}")]
     InvalidOperation(String),
 
@@ -103,9 +103,10 @@ pub enum NetsshError {
     RegexError(#[from] regex::Error),
 
     #[error("Timeout occurred while {action}")]
-    Timeout {
-        action: String,
-    },
+    Timeout { action: String },
+
+    #[error("Operation error: {0}")]
+    OperationError(String),
 }
 
 // Helper methods for error context

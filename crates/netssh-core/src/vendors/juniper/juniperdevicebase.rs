@@ -4,8 +4,8 @@ use crate::error::NetsshError;
 use crate::vendors::juniper::{JuniperDeviceConfig, JuniperDeviceConnection};
 use async_trait::async_trait;
 use lazy_static::lazy_static;
-use tracing::{debug, warn};
 use regex::Regex;
+use tracing::{debug, warn};
 
 lazy_static! {
     static ref PROMPT_PATTERN: Regex = Regex::new(r"[>#%]").unwrap();
@@ -44,8 +44,8 @@ impl JuniperBaseConnection {
         debug!(target: "JuniperBaseConnection::connect", "Connecting to {}@{}", self.config.username, self.config.host);
 
         self.connection.connect(
-            &self.config.host,
-            &self.config.username,
+            Some(&self.config.host),
+            Some(&self.config.username),
             self.config.password.as_deref(),
             self.config.port,
             self.config.timeout,

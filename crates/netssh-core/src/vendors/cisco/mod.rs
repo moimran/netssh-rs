@@ -1,18 +1,18 @@
-pub mod ios;
-pub mod xr;
 pub mod asa;
-pub mod nxos;
-pub mod ciscodevicebase;
-pub mod xr_network_device;
-pub mod nxos_network_device;
-pub mod ios_network_device;
 pub mod asa_network_device;
+pub mod ciscodevicebase;
+pub mod ios;
+pub mod ios_network_device;
+pub mod nxos;
+pub mod nxos_network_device;
+pub mod xr;
+pub mod xr_network_device;
 
-pub use ios::CiscoIosDevice;
-pub use xr::CiscoXrDevice;
 pub use asa::CiscoAsaDevice;
-pub use nxos::CiscoNxosDevice;
 pub use ciscodevicebase::CiscoBaseConnection;
+pub use ios::CiscoIosDevice;
+pub use nxos::CiscoNxosDevice;
+pub use xr::CiscoXrDevice;
 
 use crate::error::NetsshError;
 use async_trait::async_trait;
@@ -28,7 +28,7 @@ pub trait CiscoDeviceConnection {
     fn check_config_mode(&mut self) -> Result<bool, NetsshError>;
     fn config_mode(&mut self, config_command: Option<&str>) -> Result<(), NetsshError>;
     fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetsshError>;
-    fn save_config(&mut self) -> Result<(), NetsshError>;
+    fn save_config(&mut self) -> Result<String, NetsshError>;
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError>;
     fn change_context(&mut self, _context_name: &str) -> Result<(), NetsshError> {
         Ok(())

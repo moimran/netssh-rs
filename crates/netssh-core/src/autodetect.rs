@@ -567,8 +567,8 @@ impl SSHDetect {
 
         let mut base_connection = BaseConnection::new()?;
         base_connection.connect(
-            &config.host,
-            &config.username,
+            Some(&config.host),
+            Some(&config.username),
             config.password.as_deref(),
             config.port,
             config.timeout,
@@ -577,8 +577,8 @@ impl SSHDetect {
         // Add additional sleep to let the login complete
         thread::sleep(Duration::from_secs(3));
 
-        // Clear initial data from the buffer
-        let _ = base_connection.clear_buffer(None, None, None)?;
+        // Update clear_buffer call with all required parameters
+        let _ = base_connection.clear_buffer(None, None, None, None, None, None)?;
 
         Ok(SSHDetect {
             connection: base_connection,
@@ -591,7 +591,7 @@ impl SSHDetect {
     pub fn autodetect(&mut self) -> Result<Option<String>, NetsshError> {
         let device_mapper = create_device_mapper();
 
-        self.connection.set_base_prompt()?;
+        self.connection.set_base_prompt(None, None, None, None)?;
 
         for (device_type, mapping) in device_mapper.iter() {
             debug!("Attempting to detect device type: {}", device_type);
@@ -742,7 +742,7 @@ impl SSHDetect {
 
         // Send the command and get the response
         debug!("Sending command: {}", cmd);
-        let response = match self.connection.send_command(cmd) {
+        let response = match self.connection.send_command_simple(cmd) {
             Ok(resp) => resp,
             Err(e) => {
                 debug!("Error sending command: {}", e);

@@ -1,8 +1,8 @@
 use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
-use crate::vendors::cisco::{CiscoDeviceConnection, CiscoDeviceConfig, CiscoBaseConnection};
+use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
 use async_trait::async_trait;
-use tracing::{debug};
+use tracing::debug;
 
 pub struct CiscoIosDevice {
     pub base: CiscoBaseConnection,
@@ -86,7 +86,7 @@ impl CiscoIosDevice {
         self.base.exit_config_mode(exit_command)
     }
 
-    pub fn save_config(&mut self) -> Result<(), NetsshError> {
+    pub fn save_config(&mut self) -> Result<String, NetsshError> {
         debug!(target: "CiscoIosDevice::save_config", "Delegating to CiscoBaseConnection::save_config");
         self.base.save_config()
     }
@@ -104,13 +104,13 @@ impl CiscoIosDevice {
     // /// Configure terminal settings specific to Cisco IOS devices
     // pub fn terminal_settings(&mut self) -> Result<(), NetsshError> {
     //     debug!(target: "CiscoIosDevice::terminal_settings", "Configuring IOS terminal settings");
-        
+
     //     // Set terminal width to 511 characters
     //     self.set_terminal_width(511)?;
-        
+
     //     // Disable paging
     //     self.disable_paging()?;
-        
+
     //     debug!(target: "CiscoIosDevice::terminal_settings", "IOS terminal settings configured successfully");
     //     Ok(())
     // }
@@ -150,7 +150,7 @@ impl CiscoDeviceConnection for CiscoIosDevice {
         self.exit_config_mode(exit_command)
     }
 
-    fn save_config(&mut self) -> Result<(), NetsshError> {
+    fn save_config(&mut self) -> Result<String, NetsshError> {
         self.save_config()
     }
 

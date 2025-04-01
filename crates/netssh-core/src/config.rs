@@ -1,8 +1,21 @@
+use crate::settings::{get_ssh_timeout, SshTimeoutType, SETTINGS};
 use std::time::Duration;
 
 /// Configuration settings for Netssh-RS connections
 #[derive(Debug, Clone)]
 pub struct NetsshConfig {
+    /// Hostname or IP address of target device
+    pub host: String,
+
+    /// Username to authenticate with
+    pub username: String,
+
+    /// Password for authentication (optional)
+    pub password: Option<String>,
+
+    /// Enable secret for privilege escalation (optional)
+    pub secret: Option<String>,
+
     /// Default SSH port if not specified (default: 22)
     pub default_port: u16,
 
@@ -40,11 +53,20 @@ pub struct NetsshConfig {
 
     /// Path to the session log file (default: "logs/session.log")
     pub session_log_path: String,
+
+    /// Timeout for blocking SSH operations in seconds (default: 30)
+    /// Used for all blocking libssh2 function calls (read/write/auth/etc)
+    /// Set to 0 for no timeout
+    pub blocking_timeout: Duration,
 }
 
 impl Default for NetsshConfig {
     fn default() -> Self {
         Self {
+            host: String::new(),
+            username: String::new(),
+            password: None,
+            secret: None,
             default_port: 22,
             connection_timeout: Duration::from_secs(60),
             read_timeout: Duration::from_secs(10),
@@ -56,6 +78,7 @@ impl Default for NetsshConfig {
             retry_delay: Duration::from_millis(1000),
             enable_session_log: true,
             session_log_path: String::from("logs/session.log"),
+            blocking_timeout: get_ssh_timeout(SshTimeoutType::Blocking),
         }
     }
 }
@@ -135,6 +158,26 @@ impl NetsshConfigBuilder {
 
     pub fn session_log_path(mut self, path: String) -> Self {
         self.config.session_log_path = path;
+        self
+    }
+
+    pub fn host(mut self, host: String) -> Self {
+        self.config.host = host;
+        self
+    }
+
+    pub fn username(mut self, username: String) -> Self {
+        self.config.username = username;
+        self
+    }
+
+    pub fn password(mut self, password: String) -> Self {
+        self.config.password = Some(password);
+        self
+    }
+
+    pub fn secret(mut self, secret: String) -> Self {
+        self.config.secret = Some(secret);
         self
     }
 

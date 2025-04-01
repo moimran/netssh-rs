@@ -24,8 +24,8 @@
     },
     "ssh": {
         "// Documentation 2": "SSH-specific settings control the SSH protocol operations",
-        "handshake_timeout_secs": 30,
-        "// Handshake timeout": "Timeout for SSH handshake operations (used in BaseConnection::connect)",
+        "blocking_timeout_secs": 1,
+        "// Blocking timeout": "Timeout for all blocking libssh2 function calls (read/write/auth/etc). Set to 0 for no timeout.",
         "auth_timeout_secs": 30,
         "// Auth timeout": "Timeout for SSH authentication operations (used in BaseConnection::connect)",
         "keepalive_interval_secs": 60,

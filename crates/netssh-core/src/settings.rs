@@ -1,31 +1,31 @@
-use std::time::Duration;
-use serde::{Serialize, Deserialize};
 use lazy_static::lazy_static;
-use std::sync::RwLock;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use std::sync::RwLock;
+use std::time::Duration;
 use tracing::{debug, error};
 
 /// Global Settings for netssh-rs
 /// This file provides a central place to configure all timeout values and other settings
 /// that might need to be adjusted for different environments.
-/// 
+///
 /// Settings can be loaded from a TOML file, JSON file, or environment variables.
 /// Default values are provided for all settings.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     /// Network-related timeouts
     pub network: NetworkSettings,
-    
+
     /// SSH-related settings
     pub ssh: SshSettings,
-    
+
     /// Buffer settings
     pub buffer: BufferSettings,
-    
+
     /// Concurrency settings
     pub concurrency: ConcurrencySettings,
-    
+
     /// Logging settings
     pub logging: LoggingSettings,
 }
@@ -35,34 +35,34 @@ pub struct Settings {
 pub struct NetworkSettings {
     /// TCP connection timeout in seconds (default: 60)
     pub tcp_connect_timeout_secs: u64,
-    
+
     /// TCP read timeout in seconds (default: 30)
     pub tcp_read_timeout_secs: u64,
-    
+
     /// TCP write timeout in seconds (default: 30)
     pub tcp_write_timeout_secs: u64,
-    
+
     /// Default port for SSH connections (default: 22)
     pub default_ssh_port: u16,
-    
+
     /// Command response timeout in seconds (default: 30)
     /// How long to wait for a response after sending a command
     pub command_response_timeout_secs: u64,
-    
+
     /// Pattern matching timeout in seconds (default: 20)
     /// How long to wait for a pattern match when reading output
     pub pattern_match_timeout_secs: u64,
-    
+
     /// Command execution delay in milliseconds (default: 100)
     /// Short delay between sending a command and starting to read the response
     pub command_exec_delay_ms: u64,
-    
+
     /// Delay between retry attempts in milliseconds (default: 1000)
     pub retry_delay_ms: u64,
-    
+
     /// Maximum number of retry attempts (default: 3)
     pub max_retry_attempts: u32,
-    
+
     /// Timeout for device-specific operations (default: 120)
     /// Used for operations that might take longer on certain device types
     pub device_operation_timeout_secs: u64,
@@ -71,16 +71,17 @@ pub struct NetworkSettings {
 /// SSH-related settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SshSettings {
-    /// SSH handshake timeout in seconds (default: 30)
-    pub handshake_timeout_secs: u64,
-    
+    /// Timeout for blocking libssh2 function calls in seconds (default: 30)
+    /// Set to 0 for no timeout
+    pub blocking_timeout_secs: u64,
+
     /// SSH authentication timeout in seconds (default: 30)
     pub auth_timeout_secs: u64,
-    
+
     /// SSH keepalive interval in seconds (default: 60)
     /// How often to send keepalive packets
     pub keepalive_interval_secs: u64,
-    
+
     /// SSH channel open timeout in seconds (default: 20)
     pub channel_open_timeout_secs: u64,
 }
@@ -90,15 +91,15 @@ pub struct SshSettings {
 pub struct BufferSettings {
     /// Default read buffer size in bytes (default: 65536)
     pub read_buffer_size: usize,
-    
+
     /// Maximum buffer pool size (default: 32)
     /// Number of buffers to keep in the pool
     pub buffer_pool_size: usize,
-    
+
     /// Buffer reuse threshold in bytes (default: 16384)
     /// Buffers smaller than this will be reused, larger ones will be allocated
     pub buffer_reuse_threshold: usize,
-    
+
     /// Whether to automatically clear the buffer before sending commands (default: true)
     pub auto_clear_buffer: bool,
 }
@@ -108,10 +109,10 @@ pub struct BufferSettings {
 pub struct ConcurrencySettings {
     /// Maximum number of concurrent connections (default: 100)
     pub max_connections: usize,
-    
+
     /// Timeout for acquiring a connection permit in milliseconds (default: 5000)
     pub permit_acquire_timeout_ms: u64,
-    
+
     /// Connection pool idle timeout in seconds (default: 300)
     /// How long a connection can remain idle before being closed
     pub connection_idle_timeout_secs: u64,
@@ -122,10 +123,10 @@ pub struct ConcurrencySettings {
 pub struct LoggingSettings {
     /// Whether to enable session logging (default: false)
     pub enable_session_log: bool,
-    
+
     /// Path to the session log directory (default: "logs")
     pub session_log_path: String,
-    
+
     /// Whether to log binary data (default: false)
     pub log_binary_data: bool,
 }
@@ -162,7 +163,7 @@ impl Default for NetworkSettings {
 impl Default for SshSettings {
     fn default() -> Self {
         Self {
-            handshake_timeout_secs: 30,
+            blocking_timeout_secs: 30,
             auth_timeout_secs: 30,
             keepalive_interval_secs: 60,
             channel_open_timeout_secs: 20,
@@ -253,7 +254,7 @@ impl Settings {
         // Update the global settings
         let mut global_settings = SETTINGS.write().map_err(|e| e.to_string())?;
         *global_settings = settings;
-        
+
         debug!("Settings initialized successfully");
         Ok(())
     }
@@ -294,12 +295,22 @@ pub fn get_network_timeout(timeout_type: NetworkTimeoutType) -> Duration {
     };
 
     match timeout_type {
-        NetworkTimeoutType::TcpConnect => Duration::from_secs(settings.network.tcp_connect_timeout_secs),
+        NetworkTimeoutType::TcpConnect => {
+            Duration::from_secs(settings.network.tcp_connect_timeout_secs)
+        }
         NetworkTimeoutType::TcpRead => Duration::from_secs(settings.network.tcp_read_timeout_secs),
-        NetworkTimeoutType::TcpWrite => Duration::from_secs(settings.network.tcp_write_timeout_secs),
-        NetworkTimeoutType::CommandResponse => Duration::from_secs(settings.network.command_response_timeout_secs),
-        NetworkTimeoutType::PatternMatch => Duration::from_secs(settings.network.pattern_match_timeout_secs),
-        NetworkTimeoutType::DeviceOperation => Duration::from_secs(settings.network.device_operation_timeout_secs),
+        NetworkTimeoutType::TcpWrite => {
+            Duration::from_secs(settings.network.tcp_write_timeout_secs)
+        }
+        NetworkTimeoutType::CommandResponse => {
+            Duration::from_secs(settings.network.command_response_timeout_secs)
+        }
+        NetworkTimeoutType::PatternMatch => {
+            Duration::from_secs(settings.network.pattern_match_timeout_secs)
+        }
+        NetworkTimeoutType::DeviceOperation => {
+            Duration::from_secs(settings.network.device_operation_timeout_secs)
+        }
     }
 }
 
@@ -313,6 +324,14 @@ pub enum NetworkTimeoutType {
     DeviceOperation,
 }
 
+/// Types of SSH timeouts
+pub enum SshTimeoutType {
+    Blocking,
+    Auth,
+    ChannelOpen,
+    KeepaliveInterval,
+}
+
 /// Helper function to get SSH timeouts
 pub fn get_ssh_timeout(timeout_type: SshTimeoutType) -> Duration {
     let settings = match SETTINGS.read() {
@@ -320,7 +339,7 @@ pub fn get_ssh_timeout(timeout_type: SshTimeoutType) -> Duration {
         Err(_) => {
             error!("Failed to access global settings, using defaults");
             return match timeout_type {
-                SshTimeoutType::Handshake => Duration::from_secs(30),
+                SshTimeoutType::Blocking => Duration::from_secs(1),
                 SshTimeoutType::Auth => Duration::from_secs(30),
                 SshTimeoutType::ChannelOpen => Duration::from_secs(20),
                 SshTimeoutType::KeepaliveInterval => Duration::from_secs(60),
@@ -329,19 +348,13 @@ pub fn get_ssh_timeout(timeout_type: SshTimeoutType) -> Duration {
     };
 
     match timeout_type {
-        SshTimeoutType::Handshake => Duration::from_secs(settings.ssh.handshake_timeout_secs),
+        SshTimeoutType::Blocking => Duration::from_secs(settings.ssh.blocking_timeout_secs),
         SshTimeoutType::Auth => Duration::from_secs(settings.ssh.auth_timeout_secs),
         SshTimeoutType::ChannelOpen => Duration::from_secs(settings.ssh.channel_open_timeout_secs),
-        SshTimeoutType::KeepaliveInterval => Duration::from_secs(settings.ssh.keepalive_interval_secs),
+        SshTimeoutType::KeepaliveInterval => {
+            Duration::from_secs(settings.ssh.keepalive_interval_secs)
+        }
     }
-}
-
-/// Types of SSH timeouts
-pub enum SshTimeoutType {
-    Handshake,
-    Auth,
-    ChannelOpen,
-    KeepaliveInterval,
 }
 
 /// Helper function to get concurrency settings
@@ -360,8 +373,12 @@ pub fn get_concurrency_setting(setting_type: ConcurrencySettingType) -> u64 {
 
     match setting_type {
         ConcurrencySettingType::MaxConnections => settings.concurrency.max_connections as u64,
-        ConcurrencySettingType::PermitAcquireTimeoutMs => settings.concurrency.permit_acquire_timeout_ms,
-        ConcurrencySettingType::ConnectionIdleTimeoutSecs => settings.concurrency.connection_idle_timeout_secs,
+        ConcurrencySettingType::PermitAcquireTimeoutMs => {
+            settings.concurrency.permit_acquire_timeout_ms
+        }
+        ConcurrencySettingType::ConnectionIdleTimeoutSecs => {
+            settings.concurrency.connection_idle_timeout_secs
+        }
     }
 }
 
@@ -398,4 +415,4 @@ pub enum BufferSettingType {
     ReadBufferSize,
     BufferPoolSize,
     BufferReuseThreshold,
-} 
+}

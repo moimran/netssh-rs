@@ -2,7 +2,7 @@ use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
 use async_trait::async_trait;
-use tracing::{debug};
+use tracing::debug;
 
 pub struct CiscoAsaDevice {
     pub base: CiscoBaseConnection,
@@ -29,8 +29,8 @@ impl CiscoAsaDevice {
 
         // Connect to the device using the base connection
         self.base.connection.connect(
-            &self.base.config.host,
-            &self.base.config.username,
+            Some(&self.base.config.host),
+            Some(&self.base.config.username),
             self.base.config.password.as_deref(),
             self.base.config.port,
             self.base.config.timeout,
@@ -239,7 +239,7 @@ impl CiscoDeviceConnection for CiscoAsaDevice {
         self.base.exit_config_mode(exit_command)
     }
 
-    fn save_config(&mut self) -> Result<(), NetsshError> {
+    fn save_config(&mut self) -> Result<String, NetsshError> {
         debug!(target: "CiscoAsaDevice::save_config", "Saving ASA configuration");
 
         // Ensure we're in enable mode
@@ -269,7 +269,7 @@ impl CiscoDeviceConnection for CiscoAsaDevice {
         }
 
         debug!(target: "CiscoAsaDevice::save_config", "Configuration saved successfully");
-        Ok(())
+        Ok(output)
     }
 
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {

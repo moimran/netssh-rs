@@ -1,10 +1,10 @@
 use crate::error::NetsshError;
-use tracing::{debug};
 use regex::Regex;
 use ssh2::Channel as SSH2Channel;
 use std::cell::RefCell;
 use std::io::{Read, Write};
 use std::time::Duration;
+use tracing::debug;
 
 // Optimal buffer size based on typical network device response sizes
 const DEFAULT_BUFFER_SIZE: usize = 16384; // 16KB
@@ -166,6 +166,7 @@ impl SSHChannel {
         }
 
         debug!(target: "SSHChannel::read_buffer", "Read buffer result length: {}", output.len());
+        debug!(target: "SSHChannel::read_buffer", "Read buffer result: {}", output);
         Ok(output)
     }
 
@@ -182,61 +183,53 @@ impl SSHChannel {
         let mut remote_conn = self.remote_conn.borrow_mut();
         let channel = remote_conn.as_mut().unwrap(); // Safe because we checked is_none()
 
+        let mut output = String::new();
         let mut read_something = false;
         let mut buffer = vec![0; 8192];
-        let mut output = String::new();
 
-        loop {
+        // Read while there's data and we haven't found a prompt
+        while !channel.eof() {
             debug!(target: "SSHChannel::read_channel", "Reading from channel");
             match channel.read(&mut buffer) {
-                Ok(n) if n > 0 => {
-                    read_something = true;
-                    // Optimize UTF-8 validation by only processing bytes we've read
-                    match std::str::from_utf8(&buffer[..n]) {
-                        Ok(s) => output.push_str(s),
-                        Err(_) => output.push_str(&String::from_utf8_lossy(&buffer[..n])),
-                    }
+                Ok(n) => {
+                    if n > 0 {
+                        read_something = true;
+                        // Optimize UTF-8 validation by only processing bytes we've read
+                        match std::str::from_utf8(&buffer[..n]) {
+                            Ok(s) => output.push_str(s),
+                            Err(_) => output.push_str(&String::from_utf8_lossy(&buffer[..n])),
+                        }
 
-                    debug!(target: "SSHChannel::read_channel", "Read data: {}", output);
-
-                    // If we have a prompt or terminating character, break
-                    if output.contains(">") || output.contains("#") {
-                        debug!(target: "SSHChannel::read_channel", "Found prompt/terminator, exiting read loop");
+                        // If we have a prompt or terminating character, break early
+                        if output.contains(">") || output.contains("#") {
+                            debug!(target: "SSHChannel::read_channel", "Found prompt/terminator, exiting read loop");
+                            break;
+                        }
+                    } else {
+                        // No data available or connection closed
+                        debug!(target: "SSHChannel::read_channel", "No data available or channel closed");
+                        if !read_something {
+                            return Ok(String::new());
+                        }
                         break;
                     }
                 }
-                Ok(0) if read_something => {
-                    // We've read everything and connection is still open
-                    debug!(target: "SSHChannel::read_channel", "Read complete, connection open");
-                    break;
-                }
-                Ok(0) => {
-                    // Connection closed without sending data
-                    debug!(target: "SSHChannel::read_channel", "Channel closed by remote host");
-                    return Err(NetsshError::ReadError(
-                        "Channel closed by remote host".to_string(),
-                    ));
-                }
-                Ok(_) => {
-                    debug!(target: "SSHChannel::read_channel", "No more data to read");
-                    break; // No more data to read
-                }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    debug!(target: "SSHChannel::read_channel", "No more data available right now");
-                    if read_something {
-                        break; // If we've read any data, return it
+                    debug!(target: "SSHChannel::read_channel", "No more data available right now, read_something: {}", read_something);
+                    if !read_something {
+                        return Ok(String::new());
                     }
-                    // Otherwise wait a bit and try again
+                    // Short sleep before checking eof() again
                     std::thread::sleep(std::time::Duration::from_millis(100));
                 }
                 Err(e) => {
                     debug!(target: "SSHChannel::read_channel", "Error reading from channel: {}", e);
-                    return Err(NetsshError::IoError(e));
+                    break;
                 }
             }
         }
 
-        debug!(target: "SSHChannel::read_channel", "Final read output: {}", output);
+        debug!(target: "SSHChannel::read_channel", "Read complete, output length: {}", output.len());
         Ok(output)
     }
 
