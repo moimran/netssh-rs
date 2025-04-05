@@ -320,22 +320,16 @@ impl BaseConnection {
         // Use the SSHChannel to read data with the prompt regex
         let mut new_data = self.channel.read_channel()?;
 
+        debug!(target: "BaseConnection::read_channel", "disable_lf_normalization: {}, Read data: {:?},", self.disable_lf_normalization, new_data);
+
         if !self.disable_lf_normalization && !new_data.is_empty() {
             // Handle data blocks ending in '\r' when '\n' exists
-            let mut start = SystemTime::now();
-            while new_data.contains('\n') {
-                match start.elapsed() {
-                    Ok(elapsed) if elapsed > Duration::from_secs(1) => {
-                        break;
-                    }
-                    Ok(_) => {} // Still within timeout
-                    Err(e) => {
-                        debug!(target: "BaseConnection::read_channel", "System time error: {:?}", e);
-                        // Rather than failing, we'll continue but reset the timer
-                        start = SystemTime::now();
-                    }
-                }
-
+            // Data blocks shouldn't end in '\r' (can cause problems with normalize_linefeeds)
+            // Only do the extra read if '\n' exists in the output
+            // This avoids devices that only use \r
+            let start = SystemTime::now();
+            while new_data.contains('\n') && start.elapsed().unwrap_or_default().as_secs_f32() < 1.0
+            {
                 if new_data.ends_with('\r') {
                     thread::sleep(Duration::from_millis(10));
                     match self.channel.read_channel() {
@@ -369,6 +363,8 @@ impl BaseConnection {
         if self.session_log.is_active() && !processed_data.is_empty() {
             self.session_log.write(&processed_data)?;
         }
+
+        debug!(target: "BaseConnection::read_channel", "Processed data: {:?}", processed_data);
 
         // If data had been previously saved to the buffer, prepend it to output
         let output = if !self._read_buffer.is_empty() {
@@ -438,30 +434,33 @@ impl BaseConnection {
         } else {
             self.find_prompt(delay_factor, None)?
         };
+        // trim the prompt
+        let prompt = prompt.trim();
 
         debug!(target: "BaseConnection::set_base_prompt", "Prompt found by find_prompt: {}", prompt);
 
         // Verify the prompt ends with a terminator
-        // if !prompt.chars().last().map_or(false, |c| {
-        //     c.to_string() == pri_prompt_terminator || c.to_string() == alt_prompt_terminator
-        // }) {
-        //     return Err(NetsshError::PromptError(format!(
-        //         "Router prompt not found: {}",
-        //         prompt
-        //     )));
-        // }
+        if !prompt.chars().last().map_or(false, |c| {
+            c.to_string() == pri_prompt_terminator || c.to_string() == alt_prompt_terminator
+        }) {
+            return Err(NetsshError::PromptError(format!(
+                "Router prompt not found: {}",
+                prompt
+            )));
+        }
 
         // If all we have is the terminator just use that
         if prompt.len() == 1 {
-            self.base_prompt = Some(prompt.clone());
-            return Ok(prompt);
+            self.base_prompt = Some(prompt.to_string());
+            return Ok(prompt.to_string());
         }
 
-        // Strip off trailing terminator
-        let base_prompt = prompt[..prompt.len() - 1].to_string();
-        self.base_prompt = Some(base_prompt.clone());
+        // Strip off trailing terminator from prompt
+        self.base_prompt = Some(prompt[..prompt.len() - 1].to_string());
 
-        Ok(base_prompt)
+        debug!(target: "BaseConnection::set_base_prompt", "Base prompt set to: {}", self.base_prompt.clone().unwrap());
+
+        Ok(self.base_prompt.clone().unwrap())
     }
 
     /// Read channel until pattern is detected.
@@ -638,9 +637,9 @@ impl BaseConnection {
 
         // Escape the prompt for regex and construct pattern
         let pattern = if read_entire_line.unwrap_or(false) {
-            format!("{}.*", regex::escape(base_prompt))
+            format!("{}.*", base_prompt.trim())
         } else {
-            regex::escape(base_prompt)
+            regex::escape(base_prompt.trim())
         };
 
         debug!(target: "BaseConnection::read_until_prompt",
@@ -1549,6 +1548,8 @@ impl BaseConnection {
         let mut channel_data = String::new();
         let start_time = SystemTime::now();
 
+        debug!(target: "BaseConnection::read_channel_timing", "Reading channel with read_timeout: {:?}, loop_delay: {:?}", read_timeout, loop_delay);
+
         loop {
             // Check if we've exceeded read_timeout (if one is set)
             if let Some(timeout) = read_timeout {
@@ -1579,18 +1580,19 @@ impl BaseConnection {
             // If we have new data, add it
             if !new_data.is_empty() {
                 channel_data.push_str(&new_data);
+                break;
             }
             // If we have some output, but nothing new, then do the last read
-            else if !channel_data.is_empty() {
-                // Make sure really done (i.e. no new data)
-                thread::sleep(last_read);
-                let final_data = self.read_channel()?;
-                if !final_data.is_empty() {
-                    channel_data.push_str(&final_data);
-                } else {
-                    break;
-                }
-            }
+            // else if !channel_data.is_empty() {
+            //     // Make sure really done (i.e. no new data)
+            //     thread::sleep(last_read);
+            //     let final_data = self.read_channel()?;
+            //     if !final_data.is_empty() {
+            //         channel_data.push_str(&final_data);
+            //     } else {
+            //         break;
+            //     }
+            // }
         }
 
         Ok(channel_data)
@@ -1979,7 +1981,7 @@ impl BaseConnection {
         pattern: Option<&str>,
         force_regex: Option<bool>,
     ) -> Result<bool, NetsshError> {
-        let check_string = check_string.unwrap_or("config");
+        let check_string = check_string.unwrap_or("");
         let force_regex = force_regex.unwrap_or(false);
 
         debug!(target: "BaseConnection::check_config_mode",
@@ -2039,27 +2041,23 @@ impl BaseConnection {
 
         debug!(target: "BaseConnection::config_mode", "Entering config mode with command: {}", config_command);
 
-        // Check if already in config mode
-        if self.check_config_mode(None, None, None)? {
-            debug!(target: "BaseConnection::config_mode", "Already in config mode");
-            return Ok(String::new());
-        }
-
         // Normalize command and write to channel
         let cmd = format!("{}\n", config_command.trim());
         self.write_channel(&cmd)?;
 
         // Make sure to read until command echo
         let mut output = String::new();
-        match self.read_until_pattern(&regex::escape(config_command.trim()), None, None) {
-            Ok(data) => {
-                output.push_str(&data);
-            }
-            Err(e) => {
-                warn!(target: "BaseConnection::config_mode", "Command echo verification failed: {}", e);
-                // Continue despite failure
-            }
-        }
+        // match self.read_until_pattern(&regex::escape(config_command.trim()), None, None) {
+        //     Ok(data) => {
+        //         output.push_str(&data);
+        //     }
+        //     Err(e) => {
+        //         warn!(target: "BaseConnection::config_mode", "Command echo verification failed: {}", e);
+        //         // Continue despite failure
+        //     }
+        // }
+
+        debug!(target: "BaseConnection::config_mode", "Output after command echo verification: bytes {}", output.len());
 
         // Read until pattern or prompt
         if let Some(pat) = pattern {
@@ -2072,7 +2070,7 @@ impl BaseConnection {
                 }
             }
         } else {
-            match self.read_until_prompt(None, Some(true), None) {
+            match self.read_until_prompt(Some(10.0), Some(true), None) {
                 Ok(data) => {
                     output.push_str(&data);
                 }
@@ -2082,6 +2080,7 @@ impl BaseConnection {
             }
         }
 
+        debug!(target: "BaseConnection::config_mode", "Output after reading until pattern or prompt: bytes {}", output.len());
         // Verify we're now in config mode
         if !self.check_config_mode(None, None, None)? {
             return Err(NetsshError::ConfigError(
@@ -2110,7 +2109,7 @@ impl BaseConnection {
     ) -> Result<String, NetsshError> {
         let exit_config = exit_config.unwrap_or("end");
 
-        debug!(target: "BaseConnection::exit_config_mode", "Exiting config mode with command: {}", exit_config);
+        debug!(target: "BaseConnection::exit_config_mode", "Exiting config mode with command: {}, pattern: {}", exit_config, pattern.unwrap_or(""));
 
         // Check if in config mode
         if !self.check_config_mode(None, None, None)? {
@@ -2124,15 +2123,15 @@ impl BaseConnection {
 
         // Make sure to read until command echo
         let mut output = String::new();
-        match self.read_until_pattern(&regex::escape(exit_config.trim()), None, None) {
-            Ok(data) => {
-                output.push_str(&data);
-            }
-            Err(e) => {
-                warn!(target: "BaseConnection::exit_config_mode", "Command echo verification failed: {}", e);
-                // Continue despite failure
-            }
-        }
+        // match self.read_until_pattern(&regex::escape(exit_config.trim()), None, None) {
+        //     Ok(data) => {
+        //         output.push_str(&data);
+        //     }
+        //     Err(e) => {
+        //         warn!(target: "BaseConnection::exit_config_mode", "Command echo verification failed: {}", e);
+        //         // Continue despite failure
+        //     }
+        // }
 
         // Read until pattern or prompt
         if let Some(pat) = pattern {
@@ -2155,8 +2154,9 @@ impl BaseConnection {
             }
         }
 
+        debug!(target: "BaseConnection::exit_config_mode", "verifying if exited config mode, output: {}", output.len());
         // Verify we're now out of config mode
-        if self.check_config_mode(None, None, None)? {
+        if self.check_config_mode(Some(")#"), Some("[>#]"), None)? {
             return Err(NetsshError::ConfigError(
                 "Failed to exit configuration mode".to_string(),
             ));

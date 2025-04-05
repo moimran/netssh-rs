@@ -275,7 +275,7 @@ impl CiscoBaseConnection {
     pub fn check_config_mode(&mut self) -> Result<bool, NetsshError> {
         debug!(target: "CiscoBaseConnection::check_config_mode", "Checking if device is in config mode");
 
-        let result = self.connection.check_config_mode(Some(")#"), None, None)?;
+        let result = self.connection.check_config_mode(Some(")#"), Some("[>#]"), None)?;
 
         self.in_config_mode = result;
 
@@ -286,14 +286,14 @@ impl CiscoBaseConnection {
     pub fn config_mode(&mut self, config_command: Option<&str>) -> Result<(), NetsshError> {
         debug!(target: "CiscoBaseConnection::config_mode", "Entering config mode");
 
-        if self.check_config_mode()? {
-            debug!(target: "CiscoBaseConnection::config_mode", "Already in config mode");
-            return Ok(());
-        }
-
         if !self.check_enable_mode()? {
             debug!(target: "CiscoBaseConnection::config_mode", "Not in enable mode, entering enable mode first");
             self.enable()?;
+        }
+
+        if self.check_config_mode()? {
+            debug!(target: "CiscoBaseConnection::config_mode", "Already in config mode");
+            return Ok(());
         }
 
         let cmd = config_command.unwrap_or("configure terminal");
