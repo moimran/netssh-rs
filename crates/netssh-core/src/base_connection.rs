@@ -2847,15 +2847,15 @@ impl BaseConnection {
                     terminator
                 );
 
-                match self.read_until_pattern(&pattern, Some(read_timeout), Some(8)) {
-                    // re.M = 8 in Python
-                    Ok(data) => {
-                        output.push_str(&data);
-                    }
-                    Err(e) => {
-                        return Err(e);
-                    }
-                }
+                // match self.read_until_pattern(&pattern, Some(read_timeout), Some(8)) {
+                //     // re.M = 8 in Python
+                //     Ok(data) => {
+                //         output.push_str(&data);
+                //     }
+                //     Err(e) => {
+                //         return Err(e);
+                //     }
+                // }
 
                 // Check for errors if error_pattern specified
                 if let Some(re) = &error_regex {
