@@ -2,6 +2,7 @@ use crate::base_connection::BaseConnection;
 use crate::channel::SSHChannel;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoDeviceConfig, CiscoDeviceConnection};
+use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -275,7 +276,9 @@ impl CiscoBaseConnection {
     pub fn check_config_mode(&mut self) -> Result<bool, NetsshError> {
         debug!(target: "CiscoBaseConnection::check_config_mode", "Checking if device is in config mode");
 
-        let result = self.connection.check_config_mode(Some(")#"), Some("[>#]"), None)?;
+        let result = self
+            .connection
+            .check_config_mode(Some(")#"), Some("[>#]"), None)?;
 
         self.in_config_mode = result;
 
@@ -362,7 +365,12 @@ impl CiscoBaseConnection {
     }
 }
 
-#[async_trait]
+impl DefaultConfigSetMethods for CiscoBaseConnection {
+    fn get_base_connection(&mut self) -> &mut BaseConnection {
+        &mut self.connection
+    }
+}
+
 impl CiscoDeviceConnection for CiscoBaseConnection {
     fn session_preparation(&mut self) -> Result<(), NetsshError> {
         self.session_preparation()

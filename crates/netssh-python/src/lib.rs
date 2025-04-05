@@ -331,6 +331,88 @@ impl PyNetworkDevice {
         self.close()?;
         Ok(false) // Don't suppress exceptions
     }
+
+    /// Send configuration commands to the device
+    ///
+    /// This method sends multiple configuration commands to the device. It
+    /// handles entering and exiting config mode as well as various options
+    /// for command verification and error detection.
+    ///
+    /// Args:
+    ///     config_commands: A list of configuration commands to send
+    ///     exit_config_mode: Whether to exit config mode after sending commands (default: True)
+    ///     read_timeout: Timeout for reading output after sending commands (in seconds, default: 15.0)
+    ///     strip_prompt: Whether to strip the prompt from output (default: False)
+    ///     strip_command: Whether to strip command echo from output (default: False)
+    ///     config_mode_command: Custom command to enter config mode (optional)
+    ///     cmd_verify: Whether to verify command echoes (default: True)
+    ///     enter_config_mode: Whether to enter config mode before sending commands (default: True)
+    ///     error_pattern: Regex pattern to detect command errors (optional)
+    ///     terminator: Alternate terminator pattern to detect end of output (optional)
+    ///     bypass_commands: Regex pattern for commands that should bypass verification (optional)
+    ///     fast_cli: Whether to use fast mode with minimal verification (default: False)
+    ///
+    /// Returns:
+    ///     The output from the configuration commands
+    ///
+    /// Raises:
+    ///     RuntimeError: If an error occurs during configuration
+    #[pyo3(signature = (
+        config_commands,
+        exit_config_mode=None,
+        read_timeout=None,
+        strip_prompt=None,
+        strip_command=None,
+        config_mode_command=None,
+        cmd_verify=None,
+        enter_config_mode=None,
+        error_pattern=None,
+        terminator=None,
+        bypass_commands=None,
+        fast_cli=None
+    ))]
+    #[pyo3(
+        text_signature = "(config_commands, exit_config_mode=True, read_timeout=15.0, strip_prompt=False, strip_command=False, config_mode_command=None, cmd_verify=True, enter_config_mode=True, error_pattern=None, terminator=None, bypass_commands=None, fast_cli=False)"
+    )]
+    fn send_config_set(
+        &mut self,
+        config_commands: &PyList,
+        exit_config_mode: Option<bool>,
+        read_timeout: Option<f64>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        config_mode_command: Option<&str>,
+        cmd_verify: Option<bool>,
+        enter_config_mode: Option<bool>,
+        error_pattern: Option<&str>,
+        terminator: Option<&str>,
+        bypass_commands: Option<&str>,
+        fast_cli: Option<bool>,
+    ) -> PyResult<String> {
+        // Convert the Python list of commands to a Vec of Strings
+        let commands: Vec<String> = config_commands
+            .iter()
+            .map(|x| x.extract::<String>())
+            .collect::<Result<Vec<String>, _>>()?;
+
+        // Call the Rust implementation
+        self.device
+            .send_config_set(
+                commands,
+                exit_config_mode,
+                read_timeout,
+                strip_prompt,
+                strip_command,
+                config_mode_command,
+                cmd_verify,
+                enter_config_mode,
+                error_pattern,
+                terminator,
+                bypass_commands,
+                fast_cli,
+            )
+            .map_err(netssh_error_to_pyerr)
+    }
 }
 
 /// Python wrapper for CommandResult

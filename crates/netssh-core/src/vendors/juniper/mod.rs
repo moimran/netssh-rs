@@ -1,4 +1,5 @@
 use crate::error::NetsshError;
+use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
 
 pub mod juniperdevicebase;
@@ -33,8 +34,8 @@ impl Default for JuniperDeviceConfig {
     }
 }
 
-#[async_trait]
-pub trait JuniperDeviceConnection {
+/// Defines the interface for Juniper device interactions
+pub trait JuniperDeviceConnection: DefaultConfigSetMethods {
     /// Prepare the session after connection
     fn session_preparation(&mut self) -> Result<(), NetsshError>;
 

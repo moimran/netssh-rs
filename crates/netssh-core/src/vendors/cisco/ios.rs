@@ -1,6 +1,7 @@
 use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
+use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
 use tracing::debug;
 
@@ -114,6 +115,12 @@ impl CiscoIosDevice {
     //     debug!(target: "CiscoIosDevice::terminal_settings", "IOS terminal settings configured successfully");
     //     Ok(())
     // }
+}
+
+impl DefaultConfigSetMethods for CiscoIosDevice {
+    fn get_base_connection(&mut self) -> &mut BaseConnection {
+        &mut self.base.connection
+    }
 }
 
 #[async_trait]

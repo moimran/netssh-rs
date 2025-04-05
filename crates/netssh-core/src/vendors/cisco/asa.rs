@@ -1,6 +1,7 @@
 use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
+use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
 use tracing::debug;
 
@@ -124,6 +125,12 @@ impl CiscoAsaDevice {
 
     pub fn get_current_context(&self) -> Option<&str> {
         self.context.as_deref()
+    }
+}
+
+impl DefaultConfigSetMethods for CiscoAsaDevice {
+    fn get_base_connection(&mut self) -> &mut BaseConnection {
+        &mut self.base.connection
     }
 }
 

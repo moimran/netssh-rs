@@ -1,6 +1,7 @@
 use crate::device_connection::{DeviceInfo, NetworkDeviceConnection};
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoAsaDevice, CiscoDeviceConnection};
+use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
 
 #[async_trait]
@@ -79,13 +80,13 @@ impl NetworkDeviceConnection for CiscoAsaDevice {
             device_type: "cisco_asa".to_string(),
             hostname: "unknown".to_string(),
             version: "unknown".to_string(),
-            model: "ASA".to_string(),
+            model: "unknown".to_string(),
             serial: "unknown".to_string(),
             uptime: "unknown".to_string(),
         };
 
         for line in output.lines() {
-            if line.contains("Cisco Adaptive Security Appliance Software Version") {
+            if line.contains("Cisco Adaptive Security Appliance Software") {
                 info.version = line.trim().to_string();
             } else if line.contains("up") && line.contains("days") {
                 info.uptime = line.trim().to_string();
@@ -95,5 +96,36 @@ impl NetworkDeviceConnection for CiscoAsaDevice {
         }
 
         Ok(info)
+    }
+
+    fn send_config_set(
+        &mut self,
+        config_commands: Vec<String>,
+        exit_config_mode: Option<bool>,
+        read_timeout: Option<f64>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        config_mode_command: Option<&str>,
+        cmd_verify: Option<bool>,
+        enter_config_mode: Option<bool>,
+        error_pattern: Option<&str>,
+        terminator: Option<&str>,
+        bypass_commands: Option<&str>,
+        fast_cli: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        self.default_send_config_set(
+            config_commands,
+            exit_config_mode,
+            read_timeout,
+            strip_prompt,
+            strip_command,
+            config_mode_command,
+            cmd_verify,
+            enter_config_mode,
+            error_pattern,
+            terminator,
+            bypass_commands,
+            fast_cli,
+        )
     }
 }

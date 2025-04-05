@@ -1,8 +1,12 @@
 use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
-use crate::vendors::juniper::{JuniperDeviceConfig, JuniperDeviceConnection, JuniperBaseConnection};
+use crate::vendors::common::DefaultConfigSetMethods;
+use crate::vendors::juniper::{
+    JuniperBaseConnection, JuniperDeviceConfig, JuniperDeviceConnection,
+};
 use async_trait::async_trait;
-use tracing::{debug};
+use std::time::Duration;
+use tracing::debug;
 
 pub struct JuniperJunosDevice {
     pub base: JuniperBaseConnection,
@@ -95,6 +99,12 @@ impl JuniperJunosDevice {
     pub fn show_interfaces(&mut self) -> Result<String, NetsshError> {
         debug!(target: "JuniperJunosDevice::show_interfaces", "Getting JunOS interfaces");
         self.send_command("show interfaces terse")
+    }
+}
+
+impl DefaultConfigSetMethods for JuniperJunosDevice {
+    fn get_base_connection(&mut self) -> &mut BaseConnection {
+        &mut self.base.connection
     }
 }
 

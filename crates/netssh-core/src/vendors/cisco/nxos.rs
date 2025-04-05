@@ -1,6 +1,7 @@
 use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
+use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
 use tracing::{debug, instrument, warn};
 
@@ -189,6 +190,12 @@ impl CiscoNxosDevice {
 
         debug!(target: "CiscoNxosDevice::normalize_linefeeds", "Normalized line feeds");
         result
+    }
+}
+
+impl DefaultConfigSetMethods for CiscoNxosDevice {
+    fn get_base_connection(&mut self) -> &mut BaseConnection {
+        &mut self.base.connection
     }
 }
 

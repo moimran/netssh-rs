@@ -102,6 +102,26 @@ pub trait NetworkDeviceConnection: Send {
     /// Send multiple configuration commands to the device
     fn send_config_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError>;
 
+    /// Send a set of configuration commands with extended options
+    ///
+    /// This method provides a flexible way to send configuration commands
+    /// with various options for verification, error handling, and output processing.
+    fn send_config_set(
+        &mut self,
+        config_commands: Vec<String>,
+        exit_config_mode: Option<bool>,
+        read_timeout: Option<f64>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        config_mode_command: Option<&str>,
+        cmd_verify: Option<bool>,
+        enter_config_mode: Option<bool>,
+        error_pattern: Option<&str>,
+        terminator: Option<&str>,
+        bypass_commands: Option<&str>,
+        fast_cli: Option<bool>,
+    ) -> Result<String, NetsshError>;
+
     /// Get device-specific information
     fn get_device_info(&mut self) -> Result<DeviceInfo, NetsshError>;
 

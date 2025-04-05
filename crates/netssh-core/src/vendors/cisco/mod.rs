@@ -15,11 +15,12 @@ pub use nxos::CiscoNxosDevice;
 pub use xr::CiscoXrDevice;
 
 use crate::error::NetsshError;
+use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
 use std::time::Duration;
 
 #[async_trait]
-pub trait CiscoDeviceConnection {
+pub trait CiscoDeviceConnection: DefaultConfigSetMethods {
     fn session_preparation(&mut self) -> Result<(), NetsshError>;
     fn terminal_settings(&mut self) -> Result<(), NetsshError>;
     fn set_terminal_width(&mut self, width: u32) -> Result<(), NetsshError>;

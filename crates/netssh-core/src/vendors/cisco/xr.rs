@@ -1,6 +1,7 @@
 use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
+use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
 use std::time::Duration;
 use tracing::{debug, instrument};
@@ -93,6 +94,12 @@ impl CiscoXrDevice {
     pub fn disconnect(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoXrDevice::disconnect", "Disconnecting from device");
         self.close()
+    }
+}
+
+impl DefaultConfigSetMethods for CiscoXrDevice {
+    fn get_base_connection(&mut self) -> &mut BaseConnection {
+        &mut self.base.connection
     }
 }
 

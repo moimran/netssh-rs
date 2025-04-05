@@ -1116,266 +1116,6 @@ impl BaseConnection {
         Ok(responses)
     }
 
-    /// Send configuration commands down the SSH channel.
-    ///
-    /// Config commands are an array of all configuration commands to be sent.
-    /// The commands will be executed one after the other.
-    ///
-    /// Automatically enters and exits configuration mode if requested.
-    ///
-    /// # Arguments
-    ///
-    /// * `config_commands` - Multiple configuration commands to be sent to the device
-    /// * `exit_config_mode` - Whether to exit config mode after completion
-    /// * `read_timeout` - Timeout for reading responses from the device
-    /// * `strip_prompt` - Whether to strip trailing prompt from output
-    /// * `strip_command` - Whether to strip command echo from output
-    /// * `config_mode_command` - Command to enter config mode
-    /// * `cmd_verify` - Whether to verify command echoes
-    /// * `enter_config_mode` - Whether to enter config mode before sending commands
-    /// * `error_pattern` - Regex pattern to detect configuration errors
-    /// * `terminator` - Alternate terminator pattern
-    /// * `bypass_commands` - Regex pattern for commands that should bypass verification
-    ///
-    /// # Returns
-    ///
-    /// The combined output from all commands
-    #[instrument(skip_all, level = "debug", name = "BaseConnection::send_config_set")]
-    pub fn send_config_set(
-        &mut self,
-        config_commands: &[&str],
-        exit_config_mode: Option<bool>,
-        read_timeout: Option<f64>,
-        strip_prompt: Option<bool>,
-        strip_command: Option<bool>,
-        config_mode_command: Option<&str>,
-        cmd_verify: Option<bool>,
-        enter_config_mode: Option<bool>,
-        error_pattern: Option<&str>,
-        terminator: Option<&str>,
-        bypass_commands: Option<&str>,
-    ) -> Result<String, NetsshError> {
-        debug!("Sending {} config commands", config_commands.len());
-
-        // Default values
-        let exit_config_mode = exit_config_mode.unwrap_or(true);
-        let read_timeout = read_timeout.unwrap_or(15.0);
-        let strip_prompt = strip_prompt.unwrap_or(false);
-        let strip_command = strip_command.unwrap_or(false);
-        let cmd_verify = cmd_verify.unwrap_or(true);
-        let enter_config_mode = enter_config_mode.unwrap_or(true);
-        let terminator = terminator.unwrap_or(r"#");
-
-        // Bypass pattern for commands where verification should be disabled
-        let bypass_commands_pattern = if let Some(pattern) = bypass_commands {
-            match Regex::new(pattern) {
-                Ok(re) => Some(re),
-                Err(e) => {
-                    warn!(target: "BaseConnection::send_config_set", "Invalid bypass_commands regex: {}", e);
-                    None
-                }
-            }
-        } else {
-            // Default bypass for banner commands
-            match Regex::new(r"^banner .*$") {
-                Ok(re) => Some(re),
-                Err(_) => None,
-            }
-        };
-
-        // Error pattern for detecting configuration errors
-        let error_regex = if let Some(pattern) = error_pattern {
-            match Regex::new(pattern) {
-                Ok(re) => Some(re),
-                Err(e) => {
-                    warn!(target: "BaseConnection::send_config_set", "Invalid error_pattern regex: {}", e);
-                    None
-                }
-            }
-        } else {
-            None
-        };
-
-        // Check for bypass_detected
-        let bypass_detected = bypass_commands_pattern.as_ref().map_or(false, |re| {
-            config_commands.iter().any(|cmd| re.is_match(cmd))
-        });
-
-        // If bypass detected, disable cmd_verify
-        let cmd_verify = if bypass_detected {
-            debug!(target: "BaseConnection::send_config_set", "Bypass command detected, disabling cmd_verify");
-            false
-        } else {
-            cmd_verify
-        };
-
-        // Send config commands
-        let mut output = String::new();
-
-        // Enter config mode if requested
-        if enter_config_mode {
-            if let Some(config_cmd) = config_mode_command {
-                let config_output = self.config_mode(Some(config_cmd), None, None)?;
-                output.push_str(&config_output);
-            } else {
-                let config_output = self.config_mode(None, None, None)?;
-                output.push_str(&config_output);
-            }
-        }
-
-        // Process commands based on verification settings
-        if !cmd_verify {
-            // No command verification - send all at once
-            for cmd in config_commands {
-                debug!(target: "BaseConnection::send_config_set", "Sending command without verification: {}", cmd);
-                let cmd_str = format!("{}\n", cmd.trim());
-                self.write_channel(&cmd_str)?;
-
-                // Short sleep between commands
-                thread::sleep(Duration::from_millis(50));
-
-                // If error pattern is specified, check output after each command
-                if error_regex.is_some() {
-                    let cmd_output = self.read_channel_timing(None, Some(read_timeout))?;
-                    output.push_str(&cmd_output);
-
-                    // Check for errors
-                    if let Some(re) = &error_regex {
-                        if re.is_match(&output) {
-                            let msg = format!("Invalid input detected at command: {}", cmd);
-                            return Err(NetsshError::ConfigError(msg));
-                        }
-                    }
-                }
-            }
-
-            // If no error checking, gather output at the end
-            if error_regex.is_none() {
-                let final_output = self.read_channel_timing(None, Some(read_timeout))?;
-                output.push_str(&final_output);
-            }
-        } else {
-            // With command verification
-            for cmd in config_commands {
-                debug!(target: "BaseConnection::send_config_set", "Sending command with verification: {}", cmd);
-                let cmd_str = format!("{}\n", cmd.trim());
-                self.write_channel(&cmd_str)?;
-
-                // Read until command echo
-                match self.read_until_pattern(&regex::escape(cmd.trim()), Some(read_timeout), None)
-                {
-                    Ok(echo_data) => {
-                        output.push_str(&echo_data);
-                    }
-                    Err(e) => {
-                        warn!(target: "BaseConnection::send_config_set", "Command echo verification failed: {}", e);
-                        // Continue despite failure
-                    }
-                }
-
-                // Read until prompt or terminator
-                let pattern = format!(
-                    r"(?:{}.*$|{}.*$)",
-                    regex::escape(self.base_prompt.as_ref().unwrap_or(&"".to_string())),
-                    terminator
-                );
-
-                match self.read_until_pattern(&pattern, Some(read_timeout), None) {
-                    Ok(data) => {
-                        output.push_str(&data);
-                    }
-                    Err(e) => {
-                        return Err(e);
-                    }
-                }
-
-                // Check for errors
-                if let Some(re) = &error_regex {
-                    if re.is_match(&output) {
-                        let msg = format!("Invalid input detected at command: {}", cmd);
-                        return Err(NetsshError::ConfigError(msg));
-                    }
-                }
-            }
-        }
-
-        // Exit config mode if requested
-        if exit_config_mode {
-            let exit_output = self.exit_config_mode(None, None)?;
-            output.push_str(&exit_output);
-        }
-
-        // Sanitize output if requested
-        let sanitized_output = self._sanitize_output(&output, strip_command, None, strip_prompt);
-
-        debug!(target: "BaseConnection::send_config_set", "Config commands execution complete");
-        Ok(sanitized_output)
-    }
-
-    // Update the existing simplified method to call the new one
-    #[instrument(
-        skip_all,
-        level = "debug",
-        name = "BaseConnection::send_config_commands"
-    )]
-    pub fn send_config_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError> {
-        debug!("Sending {} config commands", commands.len());
-
-        // Use the enhanced send_config_set method with default parameters
-        let output = self.send_config_set(
-            commands,
-            Some(true), // exit_config_mode
-            None,       // read_timeout
-            None,       // strip_prompt
-            None,       // strip_command
-            None,       // config_mode_command
-            Some(true), // cmd_verify
-            Some(true), // enter_config_mode
-            None,       // error_pattern
-            None,       // terminator
-            None,       // bypass_commands
-        )?;
-
-        // For compatibility, convert single string output to a vector of strings
-        let responses = vec![output];
-
-        debug!(target: "BaseConnection::send_config_commands", "Config commands execution complete");
-        Ok(responses)
-    }
-
-    #[instrument(
-        skip_all,
-        level = "debug",
-        name = "BaseConnection::send_config_commands_simple"
-    )]
-    pub fn send_config_commands_simple(
-        &mut self,
-        commands: &[&str],
-    ) -> Result<Vec<String>, NetsshError> {
-        debug!("Sending {} config commands", commands.len());
-
-        // Use the enhanced send_config_set method with default parameters
-        let output = self.send_config_set(
-            commands,
-            Some(true), // exit_config_mode
-            None,       // read_timeout
-            None,       // strip_prompt
-            None,       // strip_command
-            None,       // config_mode_command
-            Some(true), // cmd_verify
-            Some(true), // enter_config_mode
-            None,       // error_pattern
-            None,       // terminator
-            None,       // bypass_commands
-        )?;
-
-        // For compatibility, convert single string output to a vector of strings
-        let responses = vec![output];
-
-        debug!(target: "BaseConnection::send_config_commands_simple", "Config commands execution complete");
-        Ok(responses)
-    }
-
     pub fn set_session_log(&mut self, filename: &str) -> Result<(), NetsshError> {
         self.session_log.enable(filename)
     }
@@ -2620,103 +2360,6 @@ impl BaseConnection {
         output.replace(backspace_char, "")
     }
 
-    /// Send configuration commands from a file.
-    ///
-    /// The file is processed line-by-line and each line is sent as a configuration command.
-    ///
-    /// # Arguments
-    ///
-    /// * `config_file` - Path to the configuration file
-    /// * `exit_config_mode` - Whether to exit config mode after completion
-    /// * `read_timeout` - Timeout for reading responses from the device
-    /// * `strip_prompt` - Whether to strip trailing prompt from output
-    /// * `strip_command` - Whether to strip command echo from output
-    /// * `config_mode_command` - Command to enter config mode
-    /// * `cmd_verify` - Whether to verify command echoes
-    /// * `enter_config_mode` - Whether to enter config mode before sending commands
-    /// * `error_pattern` - Regex pattern to detect configuration errors
-    /// * `terminator` - Alternate terminator pattern
-    /// * `bypass_commands` - Regex pattern for commands that should bypass verification
-    ///
-    /// # Returns
-    ///
-    /// The combined output from all commands
-    pub fn send_config_from_file(
-        &mut self,
-        config_file: &str,
-        exit_config_mode: Option<bool>,
-        read_timeout: Option<f64>,
-        strip_prompt: Option<bool>,
-        strip_command: Option<bool>,
-        config_mode_command: Option<&str>,
-        cmd_verify: Option<bool>,
-        enter_config_mode: Option<bool>,
-        error_pattern: Option<&str>,
-        terminator: Option<&str>,
-        bypass_commands: Option<&str>,
-    ) -> Result<String, NetsshError> {
-        debug!(target: "BaseConnection::send_config_from_file", "Reading config commands from file: {}", config_file);
-
-        // Open the file
-        let file_content =
-            std::fs::read_to_string(config_file).map_err(|e| NetsshError::IoError(e))?;
-
-        // Split into lines, filter out empty lines
-        let commands: Vec<&str> = file_content
-            .lines()
-            .map(|line| line.trim())
-            .filter(|line| !line.is_empty())
-            .collect();
-
-        debug!(target: "BaseConnection::send_config_from_file", "Read {} commands from file", commands.len());
-
-        // Send the commands
-        self.send_config_set(
-            &commands,
-            exit_config_mode,
-            read_timeout,
-            strip_prompt,
-            strip_command,
-            config_mode_command,
-            cmd_verify,
-            enter_config_mode,
-            error_pattern,
-            terminator,
-            bypass_commands,
-        )
-    }
-
-    /// Simple wrapper for send_config_from_file with default parameters
-    ///
-    /// # Arguments
-    ///
-    /// * `config_file` - Path to the configuration file
-    ///
-    /// # Returns
-    ///
-    /// The combined output from all commands as a vector (for compatibility)
-    pub fn send_config_from_file_simple(
-        &mut self,
-        config_file: &str,
-    ) -> Result<Vec<String>, NetsshError> {
-        let output = self.send_config_from_file(
-            config_file,
-            Some(true), // exit_config_mode
-            None,       // read_timeout
-            None,       // strip_prompt
-            None,       // strip_command
-            None,       // config_mode_command
-            Some(true), // cmd_verify
-            Some(true), // enter_config_mode
-            None,       // error_pattern
-            None,       // terminator
-            None,       // bypass_commands
-        )?;
-
-        // Return as vector for consistency with send_config_commands API
-        Ok(vec![output])
-    }
-
     /// Send multiple commands, each with a potentially different expect_string.
     ///
     /// # Arguments
@@ -3028,5 +2671,212 @@ impl BaseConnection {
         }
 
         (data.to_string(), true)
+    }
+
+    /// Send configuration commands using a more flexible approach, with extensive options.
+    ///
+    /// # Arguments
+    ///
+    /// * `config_commands` - Iterator of configuration commands to send to the device
+    /// * `exit_config_mode` - Whether to exit config mode after completion
+    /// * `read_timeout` - Timeout for reading responses from the device
+    /// * `strip_prompt` - Whether to strip trailing prompt from output
+    /// * `strip_command` - Whether to strip command echo from output
+    /// * `config_mode_command` - Command to enter config mode
+    /// * `cmd_verify` - Whether to verify command echoes
+    /// * `enter_config_mode` - Whether to enter config mode before sending commands
+    /// * `error_pattern` - Regex pattern to detect configuration errors
+    /// * `terminator` - Alternate terminator pattern
+    /// * `bypass_commands` - Regex pattern for commands that should bypass verification
+    /// * `fast_cli` - Whether to use fast mode (minimal verification)
+    ///
+    /// # Returns
+    ///
+    /// The combined output from all commands
+    pub fn send_config_set(
+        &mut self,
+        config_commands: Vec<String>,
+        exit_config_mode: Option<bool>,
+        read_timeout: Option<f64>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        config_mode_command: Option<&str>,
+        cmd_verify: Option<bool>,
+        enter_config_mode: Option<bool>,
+        error_pattern: Option<&str>,
+        terminator: Option<&str>,
+        bypass_commands: Option<&str>,
+        fast_cli: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        debug!(target: "BaseConnection::send_config_set_extended", "Sending configuration commands");
+
+        // Default values
+        let exit_config_mode = exit_config_mode.unwrap_or(true);
+        let read_timeout = read_timeout.unwrap_or(15.0);
+        let strip_prompt = strip_prompt.unwrap_or(false);
+        let strip_command = strip_command.unwrap_or(false);
+        let cmd_verify = cmd_verify.unwrap_or(true);
+        let enter_config_mode = enter_config_mode.unwrap_or(true);
+        let terminator = terminator.unwrap_or(r"#");
+        let fast_cli = fast_cli.unwrap_or(false);
+
+        if config_commands.is_empty() {
+            return Ok(String::new());
+        }
+
+        // Bypass pattern for commands where verification should be disabled
+        let bypass_commands_pattern = if let Some(pattern) = bypass_commands {
+            match Regex::new(pattern) {
+                Ok(re) => Some(re),
+                Err(e) => {
+                    warn!(target: "BaseConnection::send_config_set_extended", "Invalid bypass_commands regex: {}", e);
+                    None
+                }
+            }
+        } else {
+            // Default bypass for banner commands
+            match Regex::new(r"^banner .*$") {
+                Ok(re) => Some(re),
+                Err(_) => None,
+            }
+        };
+
+        // Error pattern for detecting configuration errors
+        let error_regex = if let Some(pattern) = error_pattern {
+            match Regex::new(pattern) {
+                Ok(re) => Some(re),
+                Err(e) => {
+                    warn!(target: "BaseConnection::send_config_set_extended", "Invalid error_pattern regex: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        // Check for bypass_detected
+        let bypass_detected = bypass_commands_pattern.as_ref().map_or(false, |re| {
+            config_commands.iter().any(|cmd| re.is_match(cmd))
+        });
+
+        // If bypass detected, disable cmd_verify
+        let cmd_verify = if bypass_detected {
+            debug!(target: "BaseConnection::send_config_set_extended", "Bypass command detected, disabling cmd_verify");
+            false
+        } else {
+            cmd_verify
+        };
+
+        // Send config commands
+        let mut output = String::new();
+
+        // Enter config mode if requested
+        if enter_config_mode {
+            if let Some(config_cmd) = config_mode_command {
+                let config_output = self.config_mode(Some(config_cmd), None, None)?;
+                output.push_str(&config_output);
+            } else {
+                let config_output = self.config_mode(None, None, None)?;
+                output.push_str(&config_output);
+            }
+        }
+
+        // Fast mode (send all commands at once, minimal verification)
+        if fast_cli && !error_regex.is_some() {
+            for cmd in &config_commands {
+                let cmd_str = format!("{}\n", cmd.trim());
+                self.write_channel(&cmd_str)?;
+            }
+
+            // Read all output at once
+            let cmd_output = self.read_channel_timing(None, Some(read_timeout))?;
+            output.push_str(&cmd_output);
+        }
+        // No command verification mode
+        else if !cmd_verify {
+            for cmd in &config_commands {
+                debug!(target: "BaseConnection::send_config_set_extended", "Sending command without verification: {}", cmd);
+                let cmd_str = format!("{}\n", cmd.trim());
+                self.write_channel(&cmd_str)?;
+
+                // Short sleep between commands
+                thread::sleep(Duration::from_millis(50));
+
+                // If error pattern is specified, check output after each command
+                if let Some(re) = &error_regex {
+                    let cmd_output = self.read_channel_timing(None, Some(read_timeout))?;
+                    output.push_str(&cmd_output);
+
+                    // Check for errors
+                    if re.is_match(&output) {
+                        let msg = format!("Invalid input detected at command: {}", cmd);
+                        return Err(NetsshError::ConfigError(msg));
+                    }
+                }
+            }
+
+            // If no error pattern specified, read all output at once
+            if error_regex.is_none() {
+                let cmd_output = self.read_channel_timing(None, Some(read_timeout))?;
+                output.push_str(&cmd_output);
+            }
+        }
+        // Command verification mode (default)
+        else {
+            for cmd in &config_commands {
+                debug!(target: "BaseConnection::send_config_set_extended", "Sending command with verification: {}", cmd);
+                let cmd_str = format!("{}\n", cmd.trim());
+                self.write_channel(&cmd_str)?;
+
+                // Make sure command is echoed
+                match self.read_until_pattern(&regex::escape(cmd.trim()), Some(read_timeout), None)
+                {
+                    Ok(data) => {
+                        output.push_str(&data);
+                    }
+                    Err(e) => {
+                        warn!(target: "BaseConnection::send_config_set_extended", "Command echo verification failed: {}", e);
+                        // Continue despite failure
+                    }
+                }
+
+                // Read until prompt or terminator pattern
+                let pattern = format!(
+                    "(?:{}.*$|{}.*$)",
+                    self.base_prompt.as_ref().map_or("", |p| p),
+                    terminator
+                );
+
+                match self.read_until_pattern(&pattern, Some(read_timeout), Some(8)) {
+                    // re.M = 8 in Python
+                    Ok(data) => {
+                        output.push_str(&data);
+                    }
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+
+                // Check for errors if error_pattern specified
+                if let Some(re) = &error_regex {
+                    if re.is_match(&output) {
+                        let msg = format!("Invalid input detected at command: {}", cmd);
+                        return Err(NetsshError::ConfigError(msg));
+                    }
+                }
+            }
+        }
+
+        // Exit config mode if requested
+        if exit_config_mode {
+            let exit_output = self.exit_config_mode(None, None)?;
+            output.push_str(&exit_output);
+        }
+
+        // Sanitize output
+        let sanitized_output = self._sanitize_output(&output, strip_command, None, strip_prompt);
+
+        debug!(target: "BaseConnection::send_config_set_extended", "Configuration commands sent successfully");
+        Ok(sanitized_output)
     }
 }

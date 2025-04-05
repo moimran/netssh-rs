@@ -1,6 +1,7 @@
 use crate::device_connection::{DeviceInfo, NetworkDeviceConnection};
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoDeviceConnection, CiscoNxosDevice};
+use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
 
 #[async_trait]
@@ -79,10 +80,8 @@ impl NetworkDeviceConnection for CiscoNxosDevice {
     }
 
     fn get_device_info(&mut self) -> Result<DeviceInfo, NetsshError> {
-        // Get device information using show version with explicit trait method
         let output = <Self as NetworkDeviceConnection>::send_command(self, "show version")?;
 
-        // Parse the output to extract device information
         let mut info = DeviceInfo {
             device_type: "cisco_nxos".to_string(),
             hostname: "unknown".to_string(),
@@ -92,17 +91,47 @@ impl NetworkDeviceConnection for CiscoNxosDevice {
             uptime: "unknown".to_string(),
         };
 
-        // Extract information from output
         for line in output.lines() {
             if line.contains("NXOS:") {
                 info.version = line.trim().to_string();
             } else if line.contains("uptime is") {
                 info.uptime = line.trim().to_string();
-            } else if line.contains("Hardware") {
+            } else if line.contains("cisco Nexus") {
                 info.model = line.trim().to_string();
             }
         }
 
         Ok(info)
+    }
+
+    fn send_config_set(
+        &mut self,
+        config_commands: Vec<String>,
+        exit_config_mode: Option<bool>,
+        read_timeout: Option<f64>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        config_mode_command: Option<&str>,
+        cmd_verify: Option<bool>,
+        enter_config_mode: Option<bool>,
+        error_pattern: Option<&str>,
+        terminator: Option<&str>,
+        bypass_commands: Option<&str>,
+        fast_cli: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        self.default_send_config_set(
+            config_commands,
+            exit_config_mode,
+            read_timeout,
+            strip_prompt,
+            strip_command,
+            config_mode_command,
+            cmd_verify,
+            enter_config_mode,
+            error_pattern,
+            terminator,
+            bypass_commands,
+            fast_cli,
+        )
     }
 }

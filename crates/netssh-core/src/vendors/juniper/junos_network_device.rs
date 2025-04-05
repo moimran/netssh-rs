@@ -1,5 +1,6 @@
 use crate::device_connection::{DeviceInfo, NetworkDeviceConnection};
 use crate::error::NetsshError;
+use crate::vendors::common::DefaultConfigSetMethods;
 use crate::vendors::juniper::{JuniperDeviceConnection, JuniperJunosDevice};
 use async_trait::async_trait;
 
@@ -95,5 +96,36 @@ impl NetworkDeviceConnection for JuniperJunosDevice {
         }
 
         Ok(info)
+    }
+
+    fn send_config_set(
+        &mut self,
+        config_commands: Vec<String>,
+        exit_config_mode: Option<bool>,
+        read_timeout: Option<f64>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        config_mode_command: Option<&str>,
+        cmd_verify: Option<bool>,
+        enter_config_mode: Option<bool>,
+        error_pattern: Option<&str>,
+        terminator: Option<&str>,
+        bypass_commands: Option<&str>,
+        fast_cli: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        self.default_send_config_set(
+            config_commands,
+            exit_config_mode,
+            read_timeout,
+            strip_prompt,
+            strip_command,
+            config_mode_command,
+            cmd_verify,
+            enter_config_mode,
+            error_pattern,
+            terminator,
+            bypass_commands,
+            fast_cli,
+        )
     }
 }

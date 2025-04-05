@@ -1,6 +1,7 @@
 use crate::base_connection::BaseConnection;
 use crate::channel::SSHChannel;
 use crate::error::NetsshError;
+use crate::vendors::common::DefaultConfigSetMethods;
 use crate::vendors::juniper::{JuniperDeviceConfig, JuniperDeviceConnection};
 use async_trait::async_trait;
 use lazy_static::lazy_static;
@@ -93,6 +94,12 @@ impl JuniperBaseConnection {
 
         debug!(target: "JuniperBaseConnection::close", "Connection closed successfully");
         Ok(())
+    }
+}
+
+impl DefaultConfigSetMethods for JuniperBaseConnection {
+    fn get_base_connection(&mut self) -> &mut BaseConnection {
+        &mut self.connection
     }
 }
 
