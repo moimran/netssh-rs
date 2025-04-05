@@ -334,8 +334,8 @@ impl CiscoBaseConnection {
         }
 
         let output = self.connection.save_config(
-            Some("copy run start"),
-            Some(false),
+            Some("copy running-config startup-config"),
+            Some(true),
             None,
         )?;
 
