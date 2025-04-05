@@ -6,6 +6,7 @@ use crate::session_log::SessionLog;
 use rand;
 use regex::Regex;
 use ssh2::Session;
+use std::collections::VecDeque;
 use std::net::TcpStream;
 use std::thread;
 use std::time::{Duration, SystemTime};
@@ -35,7 +36,7 @@ impl BaseConnection {
         thread::sleep(duration);
     }
 
-    #[instrument(level = "debug")]
+    // #[instrument(level = "debug")]
     pub fn new() -> Result<Self, NetsshError> {
         debug!("Creating new base connection");
         let config = NetsshConfig::default();
@@ -58,7 +59,7 @@ impl BaseConnection {
         })
     }
 
-    #[instrument(fields(config = ?std::any::type_name::<NetsshConfig>()), level = "debug")]
+    // #[instrument(fields(config = ?std::any::type_name::<NetsshConfig>()), level = "debug")]
     pub fn with_config(config: NetsshConfig) -> Result<Self, NetsshError> {
         debug!("Creating base connection with custom config");
         let mut session_log = SessionLog::new();
@@ -80,7 +81,7 @@ impl BaseConnection {
         })
     }
 
-    #[instrument(skip(self), level = "debug", name = "BaseConnection::connect")]
+    // #[instrument(skip(self), level = "debug", name = "BaseConnection::connect")]
     pub fn connect(
         &mut self,
         host: Option<&str>,
@@ -224,6 +225,7 @@ impl BaseConnection {
         })?;
 
         // After successful connection, enable keepalive mechanism
+
         debug!(target: "BaseConnection::connect", "Enabling SSH keep-alive");
         session.set_keepalive(true, 60); // Send keepalive every 60 seconds
         session.set_blocking(true);
@@ -235,7 +237,7 @@ impl BaseConnection {
         Ok(())
     }
 
-    #[instrument(skip(self), level = "debug", name = "BaseConnection::open_channel")]
+    // #[instrument(skip(self), level = "debug", name = "BaseConnection::open_channel")]
     pub fn open_channel(&mut self) -> Result<(), NetsshError> {
         debug!("Opening SSH channel");
         let session = self.session.as_mut().ok_or_else(|| {
@@ -265,11 +267,11 @@ impl BaseConnection {
         Ok(())
     }
 
-    #[instrument(
-        skip(self, data),
-        level = "debug",
-        name = "BaseConnection::write_channel"
-    )]
+    // #[instrument(
+    //     skip(self, data),
+    //     level = "debug",
+    //     name = "BaseConnection::write_channel"
+    // )]
     pub fn write_channel(&mut self, data: &str) -> Result<(), NetsshError> {
         debug!("Writing to channel: {:?}", data);
 
@@ -311,7 +313,7 @@ impl BaseConnection {
         ANSI_ESCAPE_PATTERN.replace_all(data, "").to_string()
     }
 
-    #[instrument(skip_all, level = "debug", name = "BaseConnection::read_channel")]
+    // #[instrument(skip_all, level = "debug", name = "BaseConnection::read_channel")]
     pub fn read_channel(&mut self) -> Result<String, NetsshError> {
         debug!("Reading from channel");
 
@@ -483,10 +485,7 @@ impl BaseConnection {
         read_timeout: Option<f64>,
         re_flags: Option<i32>,
     ) -> Result<String, NetsshError> {
-        debug!(target: "BaseConnection::read_until_pattern", "Reading until pattern: {}", pattern);
-
-        // Get current time for timeout tracking
-        let mut start = SystemTime::now();
+        debug!(target: "BaseConnection::read_until_pattern", "Reading until pattern: {} and timeout: {:?} re_flags: {:?}", pattern, read_timeout, re_flags);
 
         // Use provided timeout or default to 10 seconds
         let timeout = if let Some(t) = read_timeout {
@@ -511,7 +510,7 @@ impl BaseConnection {
             }
         };
 
-        debug!(target: "BaseConnection::read_until_pattern", "Pattern regex: {} pattern: {}", pattern_regex, pattern);
+        debug!(target: "BaseConnection::read_until_pattern", "Pattern regex: {} pattern: {} timeout: {:?}", pattern_regex, pattern, timeout);
 
         // Check for potential issues with pattern
         if pattern.contains('(') && !pattern.contains("(?:") {
@@ -524,12 +523,15 @@ impl BaseConnection {
 
         let mut output = String::with_capacity(16384); // Pre-allocate with reasonable size
         let loop_delay = Duration::from_millis(10); // 10ms delay between reads
+                                                    // Get current time for timeout tracking
+        let mut start = SystemTime::now();
 
         loop {
             // Check for timeout if one is set
             if let Some(timeout_duration) = timeout {
                 match start.elapsed() {
                     Ok(elapsed) if elapsed > timeout_duration => {
+                        debug!(target: "BaseConnection::read_until_pattern", "Timeout reached after {:?} timeout: {:?}", elapsed, timeout_duration);
                         let msg = format!(
                             "\n\nPattern not detected: {:?} in output.\n\n\
                             Things you might try to fix this:\n\
@@ -540,7 +542,7 @@ impl BaseConnection {
                             pattern
                         );
                         debug!(target: "BaseConnection::read_until_pattern", "Timeout reached after {:?}", elapsed);
-                        return Err(NetsshError::timeout(msg));
+                        return Err(NetsshError::TimeoutError(msg));
                     }
                     Ok(_) => {} // Still within timeout
                     Err(e) => {
@@ -840,7 +842,35 @@ impl BaseConnection {
         a_string.to_string()
     }
 
-    #[instrument(skip_all, level = "debug", name = "BaseConnection::send_command")]
+    pub fn command_echo_read(
+        &mut self,
+        command_string: &str,
+        read_timeout: f64,
+    ) -> Result<String, NetsshError> {
+        let cmd_to_verify = command_string.trim();
+        let mut output = String::new();
+
+        // Implement command echo verification logic
+        if !cmd_to_verify.is_empty() {
+            debug!(target: "BaseConnection::command_echo_read", "Verifying command echo and reading response: {}", cmd_to_verify);
+            // Escape the command string before using it as a regex pattern
+            let escaped_cmd = regex::escape(cmd_to_verify);
+            debug!(target: "BaseConnection::command_echo_read", "Original command: '{}', Escaped command: '{}'", cmd_to_verify, escaped_cmd);
+            match self.read_until_pattern(&escaped_cmd, Some(read_timeout), None) {
+                Ok(echo_data) => {
+                    output.push_str(&echo_data);
+                    debug!(target: "BaseConnection::command_echo_read", "Command echo verified: {}", echo_data);
+                }
+                Err(e) => {
+                    debug!(target: "BaseConnection::command_echo_read", "Command echo verification failed: {}", e);
+                    // Continue anyway, but note the failure
+                }
+            }
+        }
+
+        Ok(output)
+    }
+
     pub fn send_command(
         &mut self,
         command_string: &str,
@@ -861,6 +891,18 @@ impl BaseConnection {
         let strip_command = strip_command.unwrap_or(true);
         let normalize = normalize.unwrap_or(true);
         let cmd_verify = cmd_verify.unwrap_or(true);
+
+        debug!(
+            target: "BaseConnection::send_command","========================================="
+        );
+        debug!(target: "BaseConnection::send_command", "read_timeout: {}", read_timeout);
+        debug!(target: "BaseConnection::send_command", "auto_find_prompt: {}", auto_find_prompt);
+        debug!(target: "BaseConnection::send_command", "strip_prompt: {}", strip_prompt);
+        debug!(target: "BaseConnection::send_command", "strip_command: {}", strip_command);
+        debug!(target: "BaseConnection::send_command", "normalize: {}", normalize);
+        debug!(target: "BaseConnection::send_command", "cmd_verify: {}", cmd_verify);
+        debug!(target: "BaseConnection::send_command", "command_string: {}", command_string);
+        debug!(target: "BaseConnection::send_command", "expect_string: {:?}", expect_string);
 
         // Get search pattern from expect_string or from prompt
         let search_pattern = if let Some(pattern) = expect_string {
@@ -904,34 +946,135 @@ impl BaseConnection {
 
         // Command verification - make sure we see our command echoed back
         if cmd_verify {
-            // Get command without newline for verification
-            let cmd_to_verify = command_string.trim();
-
-            // Implement command echo verification logic
-            if !cmd_to_verify.is_empty() {
-                debug!(target: "BaseConnection::send_command", "Verifying command echo and reading response: {}", cmd_to_verify);
-                match self.read_until_pattern(&search_pattern, Some(read_timeout), None) {
-                    Ok(echo_data) => {
-                        output.push_str(&echo_data);
-                    }
-                    Err(e) => {
-                        debug!(target: "BaseConnection::send_command", "Command echo verification failed: {}", e);
-                        // Continue anyway, but note the failure
-                    }
-                }
-            }
-        } else {
-            // Read until we find the specified pattern
-            debug!(target: "BaseConnection::send_command", "Reading until pattern: {}", search_pattern);
-            match self.read_until_pattern(&search_pattern, Some(read_timeout), None) {
-                Ok(data) => {
-                    output.push_str(&data);
-                    debug!(target: "BaseConnection::send_command", "Data read: {}", data);
+            // Call the extracted method for command echo verification
+            match self.command_echo_read(command_string, 10.0) {
+                Ok(echo_data) => {
+                    output.push_str(&echo_data);
                 }
                 Err(e) => {
-                    return Err(e);
+                    debug!(target: "BaseConnection::send_command", "Command echo verification failed: {}", e);
+                    // Continue anyway, but note the failure
                 }
             }
+        }
+
+        // Read until we find the specified pattern - using a deque approach for large outputs
+        debug!(target: "BaseConnection::send_command", "Reading until pattern: {}", search_pattern);
+
+        const MAX_CHARS: usize = 2_000_000;
+        const DEQUE_SIZE: usize = 20;
+        let mut past_n_reads: VecDeque<String> = VecDeque::with_capacity(DEQUE_SIZE);
+        let mut first_line_processed = false;
+
+        debug!(target: "BaseConnection::send_command", "======output: {}", output);
+
+        // Process existing output before reading from channel
+        if !output.is_empty() {
+            past_n_reads.push_back(output.clone());
+
+            // Process first line right away if needed
+            if !first_line_processed {
+                let (processed_output, processed) =
+                    self.first_line_handler(&output, &search_pattern);
+                output = processed_output;
+                first_line_processed = processed;
+
+                // Check if we already have the pattern in the output
+                if let Ok(re) = Regex::new(&search_pattern) {
+                    if re.is_match(&output) {
+                        debug!(target: "BaseConnection::send_command", "Pattern found in initial output");
+                        // Skip reading loop since we already found the pattern
+                        // Sanitize output
+                        let sanitized_output = self._sanitize_output(
+                            &output,
+                            strip_command,
+                            Some(command_string),
+                            strip_prompt,
+                        );
+
+                        debug!(target: "BaseConnection::send_command", "Command complete, response length: {}", sanitized_output.len());
+                        return Ok(sanitized_output);
+                    }
+                }
+            }
+        }
+
+        // Keep reading data until search_pattern is found or until read_timeout
+        let loop_delay = 0.025; // seconds
+        while SystemTime::now()
+            .duration_since(start_time)
+            .unwrap_or_default()
+            .as_secs_f64()
+            < read_timeout
+        {
+            // First check if we have the pattern in existing output
+            if !first_line_processed {
+                let (processed_output, processed) =
+                    self.first_line_handler(&output, &search_pattern);
+                output = processed_output;
+                first_line_processed = processed;
+
+                // Check if we have already found our pattern
+                if let Ok(re) = Regex::new(&search_pattern) {
+                    if re.is_match(&output) {
+                        debug!(target: "BaseConnection::send_command", "Pattern found after first_line_handler");
+                        break;
+                    }
+                }
+            } else {
+                if output.len() <= MAX_CHARS {
+                    // For smaller outputs, search the entire output
+                    if let Ok(re) = Regex::new(&search_pattern) {
+                        if re.is_match(&output) {
+                            debug!(target: "BaseConnection::send_command", "Pattern found in entire output");
+                            break;
+                        }
+                    }
+                } else {
+                    // For larger outputs, only search in the recent reads
+                    let recent_data: String = past_n_reads.iter().cloned().collect();
+                    if let Ok(re) = Regex::new(&search_pattern) {
+                        if re.is_match(&recent_data) {
+                            debug!(target: "BaseConnection::send_command", "Pattern found in recent reads");
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Now try to read more data only if we haven't found the pattern yet
+            match self.read_channel() {
+                Ok(new_data) => {
+                    if !new_data.is_empty() {
+                        output.push_str(&new_data);
+                        past_n_reads.push_back(new_data);
+                        if past_n_reads.len() > DEQUE_SIZE {
+                            past_n_reads.pop_front();
+                        }
+                    }
+                }
+                Err(e) => {
+                    debug!(target: "BaseConnection::send_command", "Error reading channel: {}", e);
+                    // Continue anyway, might just be a temporary issue
+                }
+            }
+
+            // Sleep for a short time before trying again
+            thread::sleep(Duration::from_secs_f64(loop_delay));
+        }
+
+        // Check if we timed out
+        if SystemTime::now()
+            .duration_since(start_time)
+            .unwrap_or_default()
+            .as_secs_f64()
+            >= read_timeout
+        {
+            let msg = format!(
+                "Pattern not detected: {:?} in output.\n\nThings you might try to fix this:\n1. Explicitly set your pattern using the expect_string argument.\n2. Increase the read_timeout to a larger value.\n\nYou can also look at the session log or debug log for more information.\n",
+                search_pattern
+            );
+            return Err(NetsshError::TimeoutError(msg));
         }
 
         // Sanitize output
@@ -2329,11 +2472,11 @@ impl BaseConnection {
     /// # Returns
     ///
     /// Output from the command
-    #[instrument(
-        skip_all,
-        level = "debug",
-        name = "BaseConnection::send_command_simple"
-    )]
+    // #[instrument(
+    //     skip_all,
+    //     level = "debug",
+    //     name = "BaseConnection::send_command_simple"
+    // )]
     pub fn send_command_simple(&mut self, command_string: &str) -> Result<String, NetsshError> {
         debug!(target: "BaseConnection::send_command_simple", "Sending command: {}", command_string);
 
@@ -2861,5 +3004,29 @@ impl BaseConnection {
 
         debug!(target: "BaseConnection::send_command_timing", "Command complete, response length: {}", sanitized_output.len());
         Ok(sanitized_output)
+    }
+
+    // Helper method to handle first line with potential backspace characters
+    fn first_line_handler(&self, data: &str, search_pattern: &str) -> (String, bool) {
+        // Try to process the first line to handle backspace characters
+        let lines: Vec<&str> = data.split("\n").collect();
+        if lines.is_empty() {
+            return (data.to_string(), false);
+        }
+
+        let first_line = lines[0];
+        if first_line.contains("\u{0008}") {
+            // Backspace character
+            // Pattern to find and remove the search pattern and anything after it on the first line
+            let pattern = format!("{}.*$", regex::escape(search_pattern));
+            if let Ok(re) = Regex::new(&pattern) {
+                let first_line_replaced = re.replace(first_line, "").to_string();
+                let mut new_lines = lines.clone();
+                new_lines[0] = &first_line_replaced;
+                return (new_lines.join("\n"), true);
+            }
+        }
+
+        (data.to_string(), true)
     }
 }

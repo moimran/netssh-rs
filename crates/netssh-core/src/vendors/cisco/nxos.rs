@@ -2,8 +2,7 @@ use crate::base_connection::BaseConnection;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
 use async_trait::async_trait;
-use regex;
-use tracing::{debug, warn};
+use tracing::{debug, instrument, warn};
 
 pub struct CiscoNxosDevice {
     pub base: CiscoBaseConnection,
@@ -23,7 +22,7 @@ impl CiscoNxosDevice {
     }
 
     pub fn connect(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::connect", "Connecting to NX-OS device");
+        debug!(target: "CiscoNxosDevice::connect", "Connecting to NX-OS device");
 
         // Convert String to &str through Option by using as_str()
         let host = self.base.config.host.as_str();
@@ -47,22 +46,22 @@ impl CiscoNxosDevice {
     }
 
     pub fn check_enable_mode(&mut self) -> Result<bool, NetsshError> {
-        debug!(target: "CiscoNxosSsh::check_enable_mode", "Delegating to CiscoBaseConnection::check_enable_mode");
+        debug!(target: "CiscoNxosDevice::check_enable_mode", "Delegating to CiscoBaseConnection::check_enable_mode");
         self.base.check_enable_mode()
     }
 
     pub fn enable(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::enable", "Delegating to CiscoBaseConnection::enable");
+        debug!(target: "CiscoNxosDevice::enable", "Delegating to CiscoBaseConnection::enable");
         self.base.enable()
     }
 
     pub fn exit_enable_mode(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::exit_enable_mode", "Delegating to CiscoBaseConnection::exit_enable_mode");
+        debug!(target: "CiscoNxosDevice::exit_enable_mode", "Delegating to CiscoBaseConnection::exit_enable_mode");
         self.base.exit_enable_mode()
     }
 
     pub fn close(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::close", "Delegating to CiscoBaseConnection::close");
+        debug!(target: "CiscoNxosDevice::close", "Delegating to CiscoBaseConnection::close");
         self.base.close()
     }
 
@@ -71,17 +70,18 @@ impl CiscoNxosDevice {
     }
 
     // Use this save_config_with_params as an implementation detail
+    // #[tracing::instrument(name = "CiscoNxosDevice::save_config", skip(self), level = "debug")]
     pub fn save_config_with_params(
         &mut self,
         cmd: &str,
         confirm: bool,
         confirm_response: Option<&str>,
     ) -> Result<String, NetsshError> {
-        debug!(target: "CiscoNxosSsh::save_config", "Saving configuration with cmd: {}, confirm: {}", cmd, confirm);
+        debug!(target: "CiscoNxosDevice::save_config", "Saving configuration with cmd: {}, confirm: {}", cmd, confirm);
 
         // Ensure we're in enable mode
         if !self.check_enable_mode()? {
-            debug!(target: "CiscoNxosSsh::save_config", "Not in enable mode, entering enable mode first");
+            debug!(target: "CiscoNxosDevice::save_config", "Not in enable mode, entering enable mode first");
             self.enable()?;
         }
 
@@ -127,7 +127,7 @@ impl CiscoNxosDevice {
             }
         } else {
             // NX-OS is very slow on save_config, ensure it waits long enough
-            debug!(target: "CiscoNxosSsh::save_config", "Using long timeout for NX-OS save");
+            debug!(target: "CiscoNxosDevice::save_config", "Using long timeout for NX-OS save");
             let cmd_output = self.base.connection.send_command(
                 cmd,
                 None,        // expect_string
@@ -143,14 +143,14 @@ impl CiscoNxosDevice {
 
         // Check for errors in the output
         if output.contains("Error") {
-            warn!(target: "CiscoNxosSsh::save_config", "Error saving configuration: {}", output);
+            warn!(target: "CiscoNxosDevice::save_config", "Error saving configuration: {}", output);
             return Err(NetsshError::CommandError(format!(
                 "Failed to save configuration: {}",
                 output
             )));
         }
 
-        debug!(target: "CiscoNxosSsh::save_config", "Configuration saved successfully");
+        debug!(target: "CiscoNxosDevice::save_config", "Configuration saved successfully");
         Ok(output)
     }
 
@@ -160,7 +160,7 @@ impl CiscoNxosDevice {
         width: u32,
         pattern: &str,
     ) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::set_terminal_width_with_pattern", 
+        debug!(target: "CiscoNxosDevice::set_terminal_width_with_pattern", 
                "Setting NX-OS terminal width to {} with pattern {}", width, pattern);
 
         let cmd = format!("terminal width {}\n", width);
@@ -171,7 +171,7 @@ impl CiscoNxosDevice {
             .base
             .connection
             .read_until_pattern(pattern, None, None)?;
-        debug!(target: "CiscoNxosSsh::set_terminal_width_with_pattern", 
+        debug!(target: "CiscoNxosDevice::set_terminal_width_with_pattern", 
                "Terminal width response: {}", output);
 
         Ok(())
@@ -181,13 +181,13 @@ impl CiscoNxosDevice {
     pub fn normalize_linefeeds(&self, data: &str) -> String {
         // Implement the NX-OS specific line feed normalization logic
         // Convert '\r\n' or '\r\r\n' to '\n, and remove extra '\r's in the text
-        let mut result = data
+        let result = data
             .replace("\r\r\n\r", "\n")
             .replace("\r\r\n", "\n")
             .replace("\r\n", "\n")
             .replace("\r", "\n");
 
-        debug!(target: "CiscoNxosSsh::normalize_linefeeds", "Normalized line feeds");
+        debug!(target: "CiscoNxosDevice::normalize_linefeeds", "Normalized line feeds");
         result
     }
 }
@@ -195,7 +195,7 @@ impl CiscoNxosDevice {
 #[async_trait]
 impl CiscoDeviceConnection for CiscoNxosDevice {
     fn session_preparation(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::session_preparation", "Preparing NX-OS session");
+        debug!(target: "CiscoNxosDevice::session_preparation", "Preparing NX-OS session");
 
         // Enable ANSI escape code handling for NX-OS (matches Python's self.ansi_escape_codes = True)
         self.base.connection.ansi_escape_codes = true;
@@ -216,39 +216,39 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
 
         // Enter enable mode if needed
         if !self.check_enable_mode()? {
-            debug!(target: "CiscoNxosSsh::session_preparation", "Not in privileged mode, entering enable mode");
+            debug!(target: "CiscoNxosDevice::session_preparation", "Not in privileged mode, entering enable mode");
             self.enable()?;
         }
 
-        debug!(target: "CiscoNxosSsh::session_preparation", "NX-OS session preparation completed successfully");
+        debug!(target: "CiscoNxosDevice::session_preparation", "NX-OS session preparation completed successfully");
         Ok(())
     }
 
     fn terminal_settings(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::terminal_settings", "Configuring NX-OS terminal settings");
+        debug!(target: "CiscoNxosDevice::terminal_settings", "Configuring NX-OS terminal settings");
 
         // NX-OS specific terminal settings
         self.set_terminal_width(511)?;
         self.disable_paging()?;
 
-        debug!(target: "CiscoNxosSsh::terminal_settings", "NX-OS terminal settings configured successfully");
+        debug!(target: "CiscoNxosDevice::terminal_settings", "NX-OS terminal settings configured successfully");
         Ok(())
     }
 
     fn set_terminal_width(&mut self, width: u32) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::set_terminal_width", "Setting terminal width to {}", width);
+        debug!(target: "CiscoNxosDevice::set_terminal_width", "Setting terminal width to {}", width);
         self.base.set_terminal_width(width)
     }
 
     fn disable_paging(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::disable_paging", "Disabling paging for NX-OS");
+        debug!(target: "CiscoNxosDevice::disable_paging", "Disabling paging for NX-OS");
 
         // NX-OS uses "terminal length 0" just like IOS
         self.base.disable_paging()
     }
 
     fn set_base_prompt(&mut self) -> Result<String, NetsshError> {
-        debug!(target: "CiscoNxosSsh::set_base_prompt", "Setting base prompt for NX-OS");
+        debug!(target: "CiscoNxosDevice::set_base_prompt", "Setting base prompt for NX-OS");
 
         // Call the base implementation with NX-OS specific defaults
         self.base.connection.set_base_prompt(
@@ -260,22 +260,23 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
     }
 
     fn check_config_mode(&mut self) -> Result<bool, NetsshError> {
-        debug!(target: "CiscoNxosSsh::check_config_mode", "Delegating to CiscoBaseConnection::check_config_mode");
+        debug!(target: "CiscoNxosDevice::check_config_mode", "Delegating to CiscoBaseConnection::check_config_mode");
         self.base.check_config_mode()
     }
 
     fn config_mode(&mut self, config_command: Option<&str>) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::config_mode", "Delegating to CiscoBaseConnection::config_mode");
+        debug!(target: "CiscoNxosDevice::config_mode", "Delegating to CiscoBaseConnection::config_mode");
         self.base.config_mode(config_command)
     }
 
     fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetsshError> {
-        debug!(target: "CiscoNxosSsh::exit_config_mode", "Delegating to CiscoBaseConnection::exit_config_mode");
+        debug!(target: "CiscoNxosDevice::exit_config_mode", "Delegating to CiscoBaseConnection::exit_config_mode");
         self.base.exit_config_mode(exit_command)
     }
 
+    // #[instrument(name = "CiscoNxosDevice::send_command", skip(self), level = "debug")]
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        debug!(target: "CiscoNxosSsh::send_command", "Delegating to CiscoBaseConnection::send_command");
+        debug!(target: "CiscoNxosDevice::send_command", "Delegating to CiscoBaseConnection::send_command");
         self.base.send_command(command)
     }
 

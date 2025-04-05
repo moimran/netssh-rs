@@ -3,7 +3,7 @@ use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
 use async_trait::async_trait;
 use std::time::Duration;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 pub struct CiscoXrDevice {
     pub base: CiscoBaseConnection,
@@ -23,7 +23,7 @@ impl CiscoXrDevice {
     }
 
     pub fn connect(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::connect", "Connecting to XR device");
+        debug!(target: "CiscoXrDevice::connect", "Connecting to XR device");
 
         // Connect to the device using the base connection
         self.base.connection.connect(
@@ -45,22 +45,22 @@ impl CiscoXrDevice {
     }
 
     pub fn check_enable_mode(&mut self) -> Result<bool, NetsshError> {
-        debug!(target: "CiscoXrSsh::check_enable_mode", "Delegating to CiscoBaseConnection::check_enable_mode");
+        debug!(target: "CiscoXrDevice::check_enable_mode", "Delegating to CiscoBaseConnection::check_enable_mode");
         self.base.check_enable_mode()
     }
 
     pub fn enable(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::enable", "Delegating to CiscoBaseConnection::enable");
+        debug!(target: "CiscoXrDevice::enable", "Delegating to CiscoBaseConnection::enable");
         self.base.enable()
     }
 
     pub fn exit_enable_mode(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::exit_enable_mode", "Delegating to CiscoBaseConnection::exit_enable_mode");
+        debug!(target: "CiscoXrDevice::exit_enable_mode", "Delegating to CiscoBaseConnection::exit_enable_mode");
         self.base.exit_enable_mode()
     }
 
     pub fn close(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::close", "Delegating to CiscoBaseConnection::close");
+        debug!(target: "CiscoXrDevice::close", "Delegating to CiscoBaseConnection::close");
         self.base.close()
     }
 
@@ -77,7 +77,7 @@ impl CiscoXrDevice {
         port: Option<u16>,
         timeout: Option<Duration>,
     ) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::establish_connection", "Establishing connection to Cisco XR device");
+        debug!(target: "CiscoXrDevice::establish_connection", "Establishing connection to Cisco XR device");
 
         // Set up the config
         self.base.config.host = host.to_string();
@@ -91,7 +91,7 @@ impl CiscoXrDevice {
     }
 
     pub fn disconnect(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::disconnect", "Disconnecting from device");
+        debug!(target: "CiscoXrDevice::disconnect", "Disconnecting from device");
         self.close()
     }
 }
@@ -99,20 +99,20 @@ impl CiscoXrDevice {
 #[async_trait]
 impl CiscoDeviceConnection for CiscoXrDevice {
     fn session_preparation(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::session_preparation", "Preparing XR session");
+        debug!(target: "CiscoXrDevice::session_preparation", "Preparing XR session");
 
         // Only open a channel if one doesn't already exist
         if self.base.connection.channel.is_none() {
-            debug!(target: "CiscoXrSsh::session_preparation", "Opening a new channel");
+            debug!(target: "CiscoXrDevice::session_preparation", "Opening a new channel");
             self.base.connection.open_channel()?;
         } else {
-            debug!(target: "CiscoXrSsh::session_preparation", "Channel already exists, skipping open_channel");
+            debug!(target: "CiscoXrDevice::session_preparation", "Channel already exists, skipping open_channel");
         }
 
         // add delay to ensure the channel is ready
         // std::thread::sleep(Duration::from_millis(500));
 
-        debug!(target: "CiscoXrSsh::session_preparation", "Setting base prompt");
+        debug!(target: "CiscoXrDevice::session_preparation", "Setting base prompt");
         // Set base prompt
         self.set_base_prompt()?;
 
@@ -121,41 +121,41 @@ impl CiscoDeviceConnection for CiscoXrDevice {
 
         // Enter enable mode if not already in it
         if !self.check_enable_mode()? {
-            debug!(target: "CiscoXrSsh::session_preparation", "Not in privileged mode #, entering enable mode");
+            debug!(target: "CiscoXrDevice::session_preparation", "Not in privileged mode #, entering enable mode");
             self.base.enable()?;
         } else {
-            debug!(target: "CiscoXrSsh::session_preparation", "Already in privileged mode");
+            debug!(target: "CiscoXrDevice::session_preparation", "Already in privileged mode");
         }
 
-        debug!(target: "CiscoXrSsh::session_preparation", "Session preparation completed successfully");
+        debug!(target: "CiscoXrDevice::session_preparation", "Session preparation completed successfully");
         Ok(())
     }
 
     fn terminal_settings(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::terminal_settings", "Configuring XR terminal settings");
+        debug!(target: "CiscoXrDevice::terminal_settings", "Configuring XR terminal settings");
 
         // XR specific terminal settings
         self.set_terminal_width(511)?;
         self.disable_paging()?;
 
-        debug!(target: "CiscoXrSsh::terminal_settings", "XR terminal settings configured successfully");
+        debug!(target: "CiscoXrDevice::terminal_settings", "XR terminal settings configured successfully");
         Ok(())
     }
 
     fn set_terminal_width(&mut self, width: u32) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::set_terminal_width", "Setting terminal width to {}", width);
+        debug!(target: "CiscoXrDevice::set_terminal_width", "Setting terminal width to {}", width);
         self.base.set_terminal_width(width)
     }
 
     fn disable_paging(&mut self) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::disable_paging", "Disabling paging for XR");
+        debug!(target: "CiscoXrDevice::disable_paging", "Disabling paging for XR");
 
         // XR uses "terminal length 0" just like IOS
         self.base.disable_paging()
     }
 
     fn set_base_prompt(&mut self) -> Result<String, NetsshError> {
-        debug!(target: "CiscoXrSsh::set_base_prompt", "Setting base prompt for XR");
+        debug!(target: "CiscoXrDevice::set_base_prompt", "Setting base prompt for XR");
 
         // Use the base implementation but set XR-specific default prompt if needed
         let result = self.base.set_base_prompt();
@@ -175,32 +175,33 @@ impl CiscoDeviceConnection for CiscoXrDevice {
     }
 
     fn check_config_mode(&mut self) -> Result<bool, NetsshError> {
-        debug!(target: "CiscoXrSsh::check_config_mode", "Delegating to CiscoBaseConnection::check_config_mode");
+        debug!(target: "CiscoXrDevice::check_config_mode", "Delegating to CiscoBaseConnection::check_config_mode");
         self.base.check_config_mode()
     }
 
     fn config_mode(&mut self, config_command: Option<&str>) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::config_mode", "Delegating to CiscoBaseConnection::config_mode");
+        debug!(target: "CiscoXrDevice::config_mode", "Delegating to CiscoBaseConnection::config_mode");
         self.base.config_mode(config_command)
     }
 
     fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetsshError> {
-        debug!(target: "CiscoXrSsh::exit_config_mode", "Delegating to CiscoBaseConnection::exit_config_mode");
+        debug!(target: "CiscoXrDevice::exit_config_mode", "Delegating to CiscoBaseConnection::exit_config_mode");
         self.base.exit_config_mode(exit_command)
     }
 
+    #[tracing::instrument(name = "CiscoXrDevice::save_config", skip(self), level = "debug")]
     fn save_config(&mut self) -> Result<String, NetsshError> {
-        debug!(target: "CiscoXrSsh::save_config", "Saving XR configuration");
+        debug!(target: "CiscoXrDevice::save_config", "Saving XR configuration");
 
         // Ensure we're in enable mode
         if !self.check_enable_mode()? {
-            debug!(target: "CiscoXrSsh::save_config", "Not in enable mode, entering enable mode first");
+            debug!(target: "CiscoXrDevice::save_config", "Not in enable mode, entering enable mode first");
             self.enable()?;
         }
 
         // Exit config mode if we're in it
         if self.check_config_mode()? {
-            debug!(target: "CiscoXrSsh::save_config", "In config mode, exiting config mode first");
+            debug!(target: "CiscoXrDevice::save_config", "In config mode, exiting config mode first");
         }
 
         // Send save command - XR uses "commit"
@@ -213,19 +214,20 @@ impl CiscoDeviceConnection for CiscoXrDevice {
             .read_until_pattern(&self.base.prompt, None, None)?;
 
         if output.contains("Error") {
-            debug!(target: "CiscoXrSsh::save_config", "Error saving configuration: {}", output);
+            debug!(target: "CiscoXrDevice::save_config", "Error saving configuration: {}", output);
             return Err(NetsshError::CommandError(format!(
                 "Failed to save configuration: {}",
                 output
             )));
         }
 
-        debug!(target: "CiscoXrSsh::save_config", "Configuration saved successfully");
+        debug!(target: "CiscoXrDevice::save_config", "Configuration saved successfully");
         Ok(output)
     }
 
+    #[instrument(name = "CiscoXrDevice::send_command", skip(self), level = "debug")]
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        debug!(target: "CiscoXrSsh::send_command", "Delegating to CiscoBaseConnection::send_command");
+        debug!(target: "CiscoXrDevice::send_command", "Delegating to CiscoBaseConnection::send_command");
         self.base.send_command(command)
     }
 }
