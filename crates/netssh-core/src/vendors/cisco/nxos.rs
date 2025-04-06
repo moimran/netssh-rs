@@ -3,7 +3,7 @@ use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoBaseConnection, CiscoDeviceConfig, CiscoDeviceConnection};
 use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
-use tracing::{debug, instrument, warn};
+use tracing::{debug, warn};
 
 pub struct CiscoNxosDevice {
     pub base: CiscoBaseConnection,

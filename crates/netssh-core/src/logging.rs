@@ -101,6 +101,7 @@ pub fn init_logging(
 }
 
 /// Creates a debug file writer
+#[allow(dead_code)]
 fn create_debug_writer() -> Result<impl io::Write, NetsshError> {
     let debug_path = "logs/debug.log";
     let debug_file = std::fs::OpenOptions::new()

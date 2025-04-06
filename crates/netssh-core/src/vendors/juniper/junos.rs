@@ -5,7 +5,6 @@ use crate::vendors::juniper::{
     JuniperBaseConnection, JuniperDeviceConfig, JuniperDeviceConnection,
 };
 use async_trait::async_trait;
-use std::time::Duration;
 use tracing::debug;
 
 pub struct JuniperJunosDevice {

@@ -25,11 +25,13 @@ pub struct BaseConnection {
 }
 
 // Constants for sleep durations
-const DEFAULT_COMMAND_WAIT_MS: u64 = 500;
-const DEFAULT_LOOP_DELAY_MS: u64 = 10;
+const DEFAULT_COMMAND_WAIT_MS: u64 = 500; // Used by sleep_for_command
+                                          // const DEFAULT_LOOP_DELAY_MS: u64 = 10;  // Kept for potential future use
 
 impl BaseConnection {
     // Helper method to sleep for a configurable duration
+    // Kept for potential future use
+    #[allow(dead_code)]
     fn sleep_for_command(&self, duration_ms: Option<u64>) {
         let duration = Duration::from_millis(duration_ms.unwrap_or(DEFAULT_COMMAND_WAIT_MS));
         debug!(target: "BaseConnection::sleep_for_command", "Sleeping for {:?}", duration);
@@ -412,8 +414,8 @@ impl BaseConnection {
         // Build pattern based on terminators if not provided
         let search_pattern = if pattern.is_none() {
             if !pri_prompt_terminator.is_empty() && !alt_prompt_terminator.is_empty() {
-                let pri_term = regex::escape(pri_prompt_terminator);
-                let alt_term = regex::escape(alt_prompt_terminator);
+                let _pri_term = regex::escape(pri_prompt_terminator);
+                let _alt_term = regex::escape(alt_prompt_terminator);
                 format!(r"[{}{}]", pri_prompt_terminator, alt_prompt_terminator)
             } else if !pri_prompt_terminator.is_empty() {
                 regex::escape(pri_prompt_terminator)
@@ -1272,7 +1274,7 @@ impl BaseConnection {
         last_read: Option<f64>,
         read_timeout: Option<f64>,
     ) -> Result<String, NetsshError> {
-        let last_read = Duration::from_secs_f64(last_read.unwrap_or(2.0));
+        let _last_read = Duration::from_secs_f64(last_read.unwrap_or(2.0));
         let read_timeout = if let Some(timeout) = read_timeout {
             if timeout == 0.0 {
                 None // No timeout
@@ -2164,7 +2166,7 @@ impl BaseConnection {
         let _ = self.cleanup_session(None, None);
 
         // Close SSH connection
-        if let Some(mut session) = self.session.take() {
+        if let Some(session) = self.session.take() {
             debug!(target: "BaseConnection::disconnect", "Closing SSH session");
 
             // Close the session
@@ -2188,7 +2190,7 @@ impl BaseConnection {
     ///
     /// Use disconnect() for graceful disconnection with cleanup.
     pub fn close(&mut self) -> Result<(), NetsshError> {
-        if let Some(mut session) = self.session.take() {
+        if let Some(session) = self.session.take() {
             if let Err(e) = session.disconnect(None, "Closing connection", None) {
                 warn!(target: "BaseConnection::close", "Error during close: {}", e);
                 // Continue despite errors
@@ -2547,9 +2549,9 @@ impl BaseConnection {
     /// The output from the save command
     pub fn save_config(
         &mut self,
-        cmd: Option<&str>,
-        confirm: Option<bool>,
-        confirm_response: Option<&str>,
+        _cmd: Option<&str>,
+        _confirm: Option<bool>,
+        _confirm_response: Option<&str>,
     ) -> Result<String, NetsshError> {
         debug!(target: "BaseConnection::save_config", "Base implementation of save_config does nothing");
         Err(NetsshError::UnsupportedOperation(
@@ -2717,7 +2719,7 @@ impl BaseConnection {
         let strip_command = strip_command.unwrap_or(false);
         let cmd_verify = cmd_verify.unwrap_or(true);
         let enter_config_mode = enter_config_mode.unwrap_or(true);
-        let terminator = terminator.unwrap_or(r"#");
+        let _terminator = terminator.unwrap_or(r"#");
         let fast_cli = fast_cli.unwrap_or(false);
 
         if config_commands.is_empty() {

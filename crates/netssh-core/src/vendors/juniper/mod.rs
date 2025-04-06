@@ -1,6 +1,5 @@
 use crate::error::NetsshError;
 use crate::vendors::common::DefaultConfigSetMethods;
-use async_trait::async_trait;
 
 pub mod juniperdevicebase;
 pub mod junos;

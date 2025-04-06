@@ -3,7 +3,6 @@ use crate::channel::SSHChannel;
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoDeviceConfig, CiscoDeviceConnection};
 use crate::vendors::common::DefaultConfigSetMethods;
-use async_trait::async_trait;
 use lazy_static::lazy_static;
 use regex::Regex;
 use tracing::{debug, warn};
@@ -95,7 +94,7 @@ impl CiscoBaseConnection {
         let pattern = "assword";
         let secret = self.config.secret.as_deref();
 
-        if let Some(secret_str) = secret {
+        if let Some(_secret_str) = secret {
             let output =
                 self.connection
                     .enable(Some(cmd), Some(pattern), None, Some(true), None)?;

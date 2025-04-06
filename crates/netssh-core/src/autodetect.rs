@@ -2,7 +2,7 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
-use tracing::{debug, error, info, instrument, trace, warn, Span};
+use tracing::{debug, info};
 
 use crate::base_connection::BaseConnection;
 use crate::device_connection::DeviceConfig;

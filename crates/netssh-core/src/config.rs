@@ -1,4 +1,4 @@
-use crate::settings::{get_ssh_timeout, SshTimeoutType, SETTINGS};
+use crate::settings::{get_ssh_timeout, SshTimeoutType};
 use std::time::Duration;
 
 /// Configuration settings for Netssh-RS connections

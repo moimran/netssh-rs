@@ -15,6 +15,7 @@ use std::time::Duration;
 // Define custom PyConnectionError
 #[pyclass]
 struct PyConnectionError {
+    #[allow(dead_code)]
     msg: String,
 }
 
