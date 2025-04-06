@@ -1,13 +1,4 @@
-use netssh_core::{
-    device_connection::{DeviceConfig, NetworkDeviceConnection},
-    device_factory::DeviceFactory,
-    error::NetsshError,
-};
-use std::env;
-use std::time::Duration;
-
-/// This file demonstrates how the reorganized test structure can be used.
-/// It shows how to import and use different test components from their respective modules.
+mod utils;
 
 #[cfg(test)]
 mod tests {

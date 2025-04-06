@@ -1,23 +1,23 @@
-use std::sync::{Arc, Mutex, Condvar};
+use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
-use tracing::{debug, trace, warn};
 use thiserror::Error;
+use tracing::{debug, trace, warn};
 
 /// Error types for semaphore operations
 #[derive(Error, Debug)]
 pub enum SemaphoreError {
     #[error("Timed out waiting for semaphore permit")]
     Timeout,
-    
+
     #[error("Semaphore is closed")]
     Closed,
-    
+
     #[error("Failed to acquire lock: {0}")]
     LockError(String),
 }
 
 /// A counting semaphore implementation with timeout support
-/// 
+///
 /// This semaphore allows a maximum number of permits to be acquired
 /// and supports timeout-based acquisition to prevent excessive queuing
 /// during high loads.
@@ -29,10 +29,10 @@ pub struct TimeoutSemaphore {
 struct SemaphoreState {
     /// Current available permits
     available: usize,
-    
+
     /// Maximum number of permits
     max_permits: usize,
-    
+
     /// Whether the semaphore is closed
     closed: bool,
 }
@@ -49,7 +49,11 @@ impl Drop for SemaphorePermit {
         if let Ok(mut state) = lock.lock() {
             if !state.closed {
                 state.available += 1;
-                trace!("Permit released, available: {}/{}", state.available, state.max_permits);
+                trace!(
+                    "Permit released, available: {}/{}",
+                    state.available,
+                    state.max_permits
+                );
                 cvar.notify_one();
             }
         }
@@ -65,25 +69,30 @@ impl TimeoutSemaphore {
             max_permits,
             closed: false,
         };
-        
+
         Self {
             state: Arc::new((Mutex::new(state), Condvar::new())),
         }
     }
-    
+
     /// Try to acquire a permit without waiting
     pub fn try_acquire(&self) -> Result<SemaphorePermit, SemaphoreError> {
         let (lock, _) = &*self.state;
-        let mut state = lock.lock()
+        let mut state = lock
+            .lock()
             .map_err(|e| SemaphoreError::LockError(e.to_string()))?;
-        
+
         if state.closed {
             return Err(SemaphoreError::Closed);
         }
-        
+
         if state.available > 0 {
             state.available -= 1;
-            trace!("Permit acquired immediately, remaining: {}/{}", state.available, state.max_permits);
+            trace!(
+                "Permit acquired immediately, remaining: {}/{}",
+                state.available,
+                state.max_permits
+            );
             Ok(SemaphorePermit {
                 semaphore: self.state.clone(),
             })
@@ -91,104 +100,124 @@ impl TimeoutSemaphore {
             Err(SemaphoreError::Timeout)
         }
     }
-    
+
     /// Acquire a permit, waiting indefinitely if necessary
     pub fn acquire(&self) -> Result<SemaphorePermit, SemaphoreError> {
         self.acquire_timeout(None)
     }
-    
+
     /// Acquire a permit with a timeout
-    pub fn acquire_timeout(&self, timeout: Option<Duration>) -> Result<SemaphorePermit, SemaphoreError> {
+    pub fn acquire_timeout(
+        &self,
+        timeout: Option<Duration>,
+    ) -> Result<SemaphorePermit, SemaphoreError> {
         let (lock, cvar) = &*self.state;
-        let mut state = lock.lock()
+        let mut state = lock
+            .lock()
             .map_err(|e| SemaphoreError::LockError(e.to_string()))?;
-        
+
         if state.closed {
             return Err(SemaphoreError::Closed);
         }
-        
+
         // Fast path: if a permit is available immediately, take it
         if state.available > 0 {
             state.available -= 1;
-            trace!("Permit acquired immediately, remaining: {}/{}", state.available, state.max_permits);
+            trace!(
+                "Permit acquired immediately, remaining: {}/{}",
+                state.available,
+                state.max_permits
+            );
             return Ok(SemaphorePermit {
                 semaphore: self.state.clone(),
             });
         }
-        
+
         // If no timeout, wait indefinitely
         if timeout.is_none() {
             debug!("Waiting for permit (indefinitely)");
-            state = cvar.wait_while(state, |s| s.available == 0 && !s.closed)
+            state = cvar
+                .wait_while(state, |s| s.available == 0 && !s.closed)
                 .map_err(|e| SemaphoreError::LockError(e.to_string()))?;
-                
+
             if state.closed {
                 return Err(SemaphoreError::Closed);
             }
-            
+
             state.available -= 1;
-            trace!("Permit acquired after waiting, remaining: {}/{}", state.available, state.max_permits);
+            trace!(
+                "Permit acquired after waiting, remaining: {}/{}",
+                state.available,
+                state.max_permits
+            );
             return Ok(SemaphorePermit {
                 semaphore: self.state.clone(),
             });
         }
-        
+
         // Wait with timeout
         let timeout = timeout.unwrap();
         let start = Instant::now();
         debug!("Waiting for permit with timeout: {:?}", timeout);
-        
+
         loop {
             let elapsed = start.elapsed();
             if elapsed >= timeout {
                 warn!("Timeout waiting for semaphore permit");
                 return Err(SemaphoreError::Timeout);
             }
-            
+
             let remaining = timeout - elapsed;
-            let result = cvar.wait_timeout_while(state, remaining, |s| s.available == 0 && !s.closed)
+            let result = cvar
+                .wait_timeout_while(state, remaining, |s| s.available == 0 && !s.closed)
                 .map_err(|e| SemaphoreError::LockError(e.to_string()))?;
-                
+
             state = result.0;
             let timed_out = result.1.timed_out();
-            
+
             if state.closed {
                 return Err(SemaphoreError::Closed);
             }
-            
+
             if !timed_out && state.available > 0 {
                 state.available -= 1;
-                trace!("Permit acquired after waiting, remaining: {}/{}", state.available, state.max_permits);
+                trace!(
+                    "Permit acquired after waiting, remaining: {}/{}",
+                    state.available,
+                    state.max_permits
+                );
                 return Ok(SemaphorePermit {
                     semaphore: self.state.clone(),
                 });
             }
-            
+
             if timed_out {
                 warn!("Timeout waiting for semaphore permit");
                 return Err(SemaphoreError::Timeout);
             }
         }
     }
-    
+
     /// Get the current number of available permits
     pub fn available_permits(&self) -> Result<usize, SemaphoreError> {
         let (lock, _) = &*self.state;
-        let state = lock.lock()
+        let state = lock
+            .lock()
             .map_err(|e| SemaphoreError::LockError(e.to_string()))?;
-        
+
         Ok(state.available)
     }
-    
+
     /// Get the maximum number of permits
     pub fn max_permits(&self) -> Result<usize, SemaphoreError> {
         let (lock, _) = &*self.state;
-        let state = lock.lock()
+        let state = lock
+            .lock()
             .map_err(|e| SemaphoreError::LockError(e.to_string()))?;
-        
+
         Ok(state.max_permits)
     }
-    
+
     /// Close the semaphore, preventing further acquisitions
     pub fn close(&self) {
         let (lock, cvar) = &*self.state;
@@ -197,45 +226,58 @@ impl TimeoutSemaphore {
             cvar.notify_all();
         }
     }
-    
+
     /// Add permits to the semaphore
     pub fn add_permits(&self, count: usize) -> Result<(), SemaphoreError> {
         let (lock, cvar) = &*self.state;
-        let mut state = lock.lock()
+        let mut state = lock
+            .lock()
             .map_err(|e| SemaphoreError::LockError(e.to_string()))?;
-        
+
         if state.closed {
             return Err(SemaphoreError::Closed);
         }
-        
+
         state.max_permits += count;
         state.available += count;
-        
-        debug!("Added {} permits, now available: {}/{}", 
-               count, state.available, state.max_permits);
-        
+
+        debug!(
+            "Added {} permits, now available: {}/{}",
+            count, state.available, state.max_permits
+        );
+
         cvar.notify_all();
         Ok(())
     }
-    
+
     /// Remove permits from the semaphore
     /// This will not affect permits that have already been acquired
     pub fn remove_permits(&self, count: usize) -> Result<(), SemaphoreError> {
         let (lock, _) = &*self.state;
-        let mut state = lock.lock()
+        let mut state = lock
+            .lock()
             .map_err(|e| SemaphoreError::LockError(e.to_string()))?;
-        
+
         if state.closed {
             return Err(SemaphoreError::Closed);
         }
-        
+
+        // Calculate held permits (max_permits - available)
+        let held_permits = state.max_permits - state.available;
+
+        // Remove permits from max_permits
         let remove = count.min(state.max_permits);
         state.max_permits -= remove;
-        state.available = state.available.min(state.max_permits);
-        
-        debug!("Removed {} permits, now available: {}/{}", 
-               remove, state.available, state.max_permits);
-        
+
+        // Ensure available permits = max_permits - held_permits
+        // This preserves the number of held permits
+        state.available = state.max_permits.saturating_sub(held_permits);
+
+        debug!(
+            "Removed {} permits, now available: {}/{} (held: {})",
+            remove, state.available, state.max_permits, held_permits
+        );
+
         Ok(())
     }
-} 
+}

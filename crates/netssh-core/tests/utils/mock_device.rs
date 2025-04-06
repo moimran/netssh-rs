@@ -348,7 +348,9 @@ impl MockNetworkDevice {
                                 .unwrap()
                                 .get(&line)
                                 .cloned()
-                                .unwrap_or_else(|| format!("Command '{}' not recognized\r\n", line));
+                                .unwrap_or_else(|| {
+                                    format!("Command '{}' not recognized\r\n", line)
+                                });
 
                             println!("Sending response: {:?}", response);
 
@@ -392,6 +394,15 @@ impl MockNetworkDevice {
         }
 
         Ok(())
+    }
+
+    pub fn with_credentials(
+        _device_type: &str,
+        _hostname: &str,
+        _auth_credentials: Arc<Mutex<Vec<(String, String)>>>,
+    ) -> Self {
+        let port = Self::find_available_port();
+        Self::with_port(port)
     }
 }
 

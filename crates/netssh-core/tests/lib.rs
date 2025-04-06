@@ -1,20 +1,15 @@
-// Re-export the test modules
-mod utils;
-
-use crate::utils::mock_device::{MockNetworkDevice, PromptStyle};
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::time::Duration;
 
+mod utils;
+use crate::utils::mock_device::{MockNetworkDevice, PromptStyle};
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::mock_device::{MockNetworkDevice, PromptStyle};
-    use netssh_core::{
-        device_connection::{DeviceConfig, NetworkDeviceConnection},
-        device_factory::DeviceFactory,
-        error::NetsshError,
-    };
+    use netssh_core::{device_connection::NetworkDeviceConnection, error::NetsshError};
+    use std::thread;
 
     fn read_until_prompt(stream: &mut TcpStream, prompt: &str) -> Result<String, std::io::Error> {
         let mut buffer = [0u8; 1024];
@@ -103,19 +98,28 @@ mod tests {
 
         // Read the initial banner and prompt
         let initial_output = read_until_prompt(&mut stream, "Router1>")?;
-        assert!(initial_output.contains("Welcome to Cisco IOS"), "Expected welcome banner");
+        assert!(
+            initial_output.contains("Welcome to Cisco IOS"),
+            "Expected welcome banner"
+        );
         assert!(initial_output.contains("Router1>"), "Expected prompt");
 
         // Send a test command
         stream.write_all(b"show version\n")?;
         let output = read_until_prompt(&mut stream, "Router1>")?;
-        assert!(output.contains("Cisco IOS Software"), "Expected version info");
+        assert!(
+            output.contains("Cisco IOS Software"),
+            "Expected version info"
+        );
         assert!(output.contains("Uptime: 10 days"), "Expected uptime info");
 
         // Send another test command
         stream.write_all(b"show interfaces\n")?;
         let output = read_until_prompt(&mut stream, "Router1>")?;
-        assert!(output.contains("GigabitEthernet0/0"), "Expected interface info");
+        assert!(
+            output.contains("GigabitEthernet0/0"),
+            "Expected interface info"
+        );
         assert!(output.contains("192.168.1.1/24"), "Expected IP info");
 
         // Send exit command
@@ -127,7 +131,10 @@ mod tests {
 
         // Check if we've exceeded the timeout
         if test_start.elapsed() > test_timeout {
-            panic!("Test exceeded timeout of {} seconds", test_timeout.as_secs());
+            panic!(
+                "Test exceeded timeout of {} seconds",
+                test_timeout.as_secs()
+            );
         }
 
         // Stop the mock device
