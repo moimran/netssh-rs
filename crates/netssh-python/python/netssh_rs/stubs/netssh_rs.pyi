@@ -1,34 +1,202 @@
 """
-Type stubs for netssh_rs Rust extension module.
+Type stubs for the netssh_rs Python module.
 
-This file provides type hints for the Rust-generated Python bindings,
-enabling proper IntelliSense support in VSCode and other editors.
+This module provides type annotations for the Rust-implemented netssh_rs library,
+which offers high-performance network device automation via SSH.
+
+The main components include:
+- Device configuration (PyDeviceConfig)
+- Network device connection and command execution (PyNetworkDevice)
+- Command results and output handling (PyCommandResult, PyBatchCommandResults)
+- Parallel execution across multiple devices (PyParallelExecutionManager)
+
+These type stubs are for IDE integration and type checking and are not used at runtime.
 """
 
-from typing import Dict, List, Any, Optional, Union, Tuple, Type, TypeVar, overload
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union, overload, Type
 from types import TracebackType
+import datetime
 
 T = TypeVar('T', bound='PyNetworkDevice')
 
-def initialize_logging(debug: bool = False, console: bool = False) -> None:
-    """
-    Initialize logging for the netssh_rs module.
+__version__: str
+"""The version of the netssh_rs package"""
 
-    Configures the logging system for the netssh-rs library. This should typically
-    be called once at the start of your application.
+# Re-exports for convenience
+NetworkDevice = PyNetworkDevice
+DeviceConfig = PyDeviceConfig
+CommandResult = PyCommandResult
+BatchCommandResults = PyBatchCommandResults
+ParallelExecutionManager = PyParallelExecutionManager
+ParallelExecutionConfig = PyParallelExecutionConfig
+
+# Specific device creation helpers
+def create_cisco_ios_device(
+    hostname: str,
+    username: str,
+    password: str,
+    port: int = 22,
+    enable_password: Optional[str] = None,
+    **kwargs: Any
+) -> PyNetworkDevice:
+    """
+    Create a Cisco IOS device with the specified configuration.
+
+    This is a convenience function that creates a PyDeviceConfig with the
+    device_type set to 'cisco_ios' and then creates a PyNetworkDevice.
 
     Args:
-        debug: When True, enables detailed debug logging for troubleshooting
-        console: When True, logs to console instead of file. Useful for interactive sessions.
-              When False, logs to file location specified in configuration.
+        hostname: The hostname or IP address of the device
+        username: The username for authentication
+        password: The password for authentication
+        port: The SSH port to connect to (default 22)
+        enable_password: The enable password for privileged mode (optional)
+        **kwargs: Additional configuration options to pass to PyDeviceConfig
+
+    Returns:
+        A configured PyNetworkDevice instance ready to connect
 
     Examples:
         ```python
-        # Basic logging to file
-        initialize_logging()
+        # Create a Cisco IOS device
+        device = create_cisco_ios_device(
+            hostname="192.168.1.1",
+            username="admin",
+            password="password",
+            enable_password="enable_pass"
+        )
+        
+        # Connect and send a command
+        with device:
+            result = device.send_command("show version")
+            print(result.output)
+        ```
+    """
+    ...
 
-        # Debug logging to console
-        initialize_logging(debug=True, console=True)
+def create_juniper_junos_device(
+    hostname: str,
+    username: str,
+    password: str,
+    port: int = 22,
+    **kwargs: Any
+) -> PyNetworkDevice:
+    """
+    Create a Juniper JunOS device with the specified configuration.
+
+    This is a convenience function that creates a PyDeviceConfig with the
+    device_type set to 'juniper_junos' and then creates a PyNetworkDevice.
+
+    Args:
+        hostname: The hostname or IP address of the device
+        username: The username for authentication
+        password: The password for authentication
+        port: The SSH port to connect to (default 22)
+        **kwargs: Additional configuration options to pass to PyDeviceConfig
+
+    Returns:
+        A configured PyNetworkDevice instance ready to connect
+
+    Examples:
+        ```python
+        # Create a Juniper JunOS device
+        device = create_juniper_junos_device(
+            hostname="192.168.1.2",
+            username="admin",
+            password="password"
+        )
+        
+        # Connect and send a command
+        with device:
+            result = device.send_command("show version")
+            print(result.output)
+        ```
+    """
+    ...
+
+def create_arista_eos_device(
+    hostname: str,
+    username: str,
+    password: str,
+    port: int = 22,
+    enable_password: Optional[str] = None,
+    **kwargs: Any
+) -> PyNetworkDevice:
+    """
+    Create an Arista EOS device with the specified configuration.
+
+    This is a convenience function that creates a PyDeviceConfig with the
+    device_type set to 'arista_eos' and then creates a PyNetworkDevice.
+
+    Args:
+        hostname: The hostname or IP address of the device
+        username: The username for authentication
+        password: The password for authentication
+        port: The SSH port to connect to (default 22)
+        enable_password: The enable password for privileged mode (optional)
+        **kwargs: Additional configuration options to pass to PyDeviceConfig
+
+    Returns:
+        A configured PyNetworkDevice instance ready to connect
+
+    Examples:
+        ```python
+        # Create an Arista EOS device
+        device = create_arista_eos_device(
+            hostname="192.168.1.3",
+            username="admin",
+            password="password"
+        )
+        
+        # Connect and send a command
+        with device:
+            result = device.send_command("show version")
+            print(result.output)
+        ```
+    """
+    ...
+
+# Constants
+SUPPORTED_DEVICE_TYPES: List[str]
+"""List of supported device types in the library"""
+
+def initialize_logging(
+    level: str = "info",
+    log_to_file: bool = False,
+    log_file_path: Optional[str] = None,
+    log_format: Optional[str] = None
+) -> None:
+    """
+    Initialize the logging system for the netssh-rs library.
+
+    This function configures the logging system for the netssh-rs library.
+    It must be called before any other functions in the library are used
+    if you want to capture log output.
+
+    Args:
+        level: The log level to use. One of "error", "warn", "info", "debug", "trace".
+               Default is "info".
+        log_to_file: Whether to log to a file. Default is False.
+        log_file_path: The path to the log file. Only used if log_to_file is True.
+                       If None, a default path will be used.
+        log_format: The format string to use for log messages. If None, a default format
+                   will be used. See the documentation for the log crate for details on
+                   the format string syntax.
+
+    Examples:
+        ```python
+        # Initialize logging with default settings (info level, console only)
+        initialize_logging()
+        
+        # Initialize logging with debug level
+        initialize_logging(level="debug")
+        
+        # Initialize logging with output to a file
+        initialize_logging(
+            level="debug",
+            log_to_file=True,
+            log_file_path="/var/log/netssh-rs.log"
+        )
         ```
     """
     ...
@@ -310,7 +478,7 @@ class PyNetworkDevice:
         """
         ...
 
-    def enter_config_mode(self, config_command: Optional[str] = None) -> None:
+    def enter_config_mode(self, config_command: Optional[str] = None) -> PyCommandResult:
         """
         Enter configuration mode.
 
@@ -322,21 +490,24 @@ class PyNetworkDevice:
             config_command: Optional custom configuration command if the default
                             command for the device type is not appropriate
 
+        Returns:
+            CommandResult: Result of the command execution
+
         Raises:
             RuntimeError: If entering config mode fails (e.g., permission denied)
 
         Examples:
             ```python
             # Enter config mode with default command
-            device.enter_config_mode()
-
+            result = device.enter_config_mode()
+            
             # Use custom config command
-            device.enter_config_mode(config_command="conf t")
+            result = device.enter_config_mode(config_command="conf t")
             ```
         """
         ...
 
-    def exit_config_mode(self, exit_command: Optional[str] = None) -> None:
+    def exit_config_mode(self, exit_command: Optional[str] = None) -> PyCommandResult:
         """
         Exit configuration mode.
 
@@ -347,16 +518,19 @@ class PyNetworkDevice:
             exit_command: Optional custom exit command if the default command
                         for the device type is not appropriate
 
+        Returns:
+            CommandResult: Result of the command execution
+
         Raises:
             RuntimeError: If exiting config mode fails
 
         Examples:
             ```python
             # Exit config mode with default command
-            device.exit_config_mode()
+            result = device.exit_config_mode()
 
             # Use custom exit command
-            device.exit_config_mode(exit_command="end")
+            result = device.exit_config_mode(exit_command="end")
             ```
         """
         ...
@@ -402,144 +576,15 @@ class PyNetworkDevice:
         """
         ...
 
-    def send_config_set(
-        self,
-        config_commands: List[str],
-        exit_config_mode: Optional[bool] = None,
-        read_timeout: Optional[float] = None,
-        strip_prompt: Optional[bool] = None,
-        strip_command: Optional[bool] = None,
-        config_mode_command: Optional[str] = None,
-        cmd_verify: Optional[bool] = None,
-        enter_config_mode: Optional[bool] = None,
-        error_pattern: Optional[str] = None,
-        terminator: Optional[str] = None,
-        bypass_commands: Optional[str] = None,
-        fast_cli: Optional[bool] = None
-    ) -> str:
-        """
-        Send a set of configuration commands to the device.
-
-        This method provides a flexible way to send configuration commands with various
-        options for verification, error handling, and output processing. It's particularly
-        useful for making configuration changes to network devices.
-
-        Args:
-            config_commands: List of configuration commands to send to the device
-            exit_config_mode: Whether to exit config mode after sending commands (default: True)
-            read_timeout: Timeout for reading command output in seconds (default: 15.0)
-            strip_prompt: Whether to strip the prompt from the output (default: False)
-            strip_command: Whether to strip the command from the output (default: False)
-            config_mode_command: Custom command to enter config mode (device-specific default if None)
-            cmd_verify: Whether to verify each command was accepted (default: True)
-            enter_config_mode: Whether to enter config mode before sending commands (default: True)
-            error_pattern: Regex pattern to detect configuration errors (default: None)
-            terminator: Alternate terminator pattern for command completion (default: '#')
-            bypass_commands: Regex pattern for commands that should bypass verification (default: 'banner .*')
-            fast_cli: Whether to use fast mode with minimal verification (default: False)
-
-        Returns:
-            The combined output from all configuration commands
-
-        Raises:
-            RuntimeError: If configuration fails or device rejects commands
-
-        Examples:
-            ```python
-            # Basic configuration example
-            output = device.send_config_set([
-                "interface GigabitEthernet0/1",
-                "description WAN Link",
-                "ip address 192.168.1.1 255.255.255.0",
-                "no shutdown"
-            ])
-
-            # Advanced configuration with custom options
-            output = device.send_config_set(
-                config_commands=[
-                    "router ospf 1",
-                    "network 192.168.1.0 0.0.0.255 area 0"
-                ],
-                error_pattern=r"% Invalid input",
-                cmd_verify=True,
-                read_timeout=30.0
-            )
-            ```
-        """
-        ...
-
-    def set_terminal_width(self, width: int) -> None:
-        """
-        Set terminal width.
-
-        Configures the terminal width to prevent line wrapping or truncation
-        which can cause parsing issues.
-
-        Args:
-            width: Width in characters (typically 511 or larger is recommended)
-
-        Raises:
-            RuntimeError: If setting terminal width fails
-
-        Examples:
-            ```python
-            # Set a wide terminal to prevent wrapping
-            device.set_terminal_width(511)
-            ```
-        """
-        ...
-
-    def disable_paging(self) -> None:
-        """
-        Disable paging on the device.
-
-        Turns off the "more" prompt or paging behavior when output exceeds
-        the screen length. This ensures that commands return all output at once
-        without requiring user interaction.
-
-        Raises:
-            RuntimeError: If disabling paging fails
-
-        Examples:
-            ```python
-            # Disable paging for long outputs
-            device.disable_paging()
-
-            # Now commands like "show run" will return complete output
-            full_config = device.send_command("show running-config")
-            ```
-        """
-        ...
-
-    def set_base_prompt(self) -> str:
-        """
-        Set and return the base prompt.
-
-        Determines the device's command prompt pattern for accurate command
-        completion detection. This is typically called automatically during
-        connection setup.
-
-        Returns:
-            The base prompt string detected from the device
-
-        Raises:
-            RuntimeError: If setting base prompt fails
-
-        Examples:
-            ```python
-            # Manually update the base prompt if needed
-            prompt = device.set_base_prompt()
-            print(f"Detected prompt: {prompt}")
-            ```
-        """
-        ...
-
-    def save_configuration(self) -> None:
+    def save_configuration(self) -> PyCommandResult:
         """
         Save or commit the configuration.
 
         Persists configuration changes using the appropriate command for the
         device type (e.g., "write memory" for Cisco IOS, "commit" for Juniper).
+
+        Returns:
+            CommandResult: Result of the save configuration command
 
         Raises:
             RuntimeError: If saving configuration fails
@@ -553,14 +598,14 @@ class PyNetworkDevice:
             device.exit_config_mode()
 
             # Save changes
-            device.save_configuration()
+            result = device.save_configuration()
             ```
         """
         ...
 
-    def send_command(self, command: str) -> str:
+    def send_command(self, command: str) -> PyCommandResult:
         """
-        Send a command to the device and return the output.
+        Send a command to the device and return the result.
 
         Executes a single command on the device and waits for completion.
         This method handles command termination detection and timing.
@@ -569,7 +614,7 @@ class PyNetworkDevice:
             command: The command string to execute on the device
 
         Returns:
-            The command output as a string, with prompt removed
+            PyCommandResult: Command result containing output and status information
 
         Raises:
             RuntimeError: If command execution fails or times out
@@ -577,55 +622,14 @@ class PyNetworkDevice:
         Examples:
             ```python
             # Get interface status
-            output = device.send_command("show ip interface brief")
-
-            # Check version information
-            version = device.send_command("show version")
+            result = device.send_command("show ip interface brief")
+            
+            # Check if the command was successful
+            if result.is_success():
+                print(f"Output: {result.output}")
+            else:
+                print(f"Error: {result.error}")
             ```
-        """
-        ...
-
-    def send_commands(self, commands: List[str]) -> List[str]:
-        """
-        Send multiple commands to the device and return the outputs.
-
-        Executes a list of commands sequentially and collects their outputs.
-        This is more efficient than making multiple send_command calls.
-
-        Args:
-            commands: List of command strings to execute
-
-        Returns:
-            List of command outputs as strings, in the same order as commands
-
-        Raises:
-            RuntimeError: If any command execution fails
-
-        Examples:
-            ```python
-            # Get multiple show commands at once
-            results = device.send_commands([
-                "show version",
-                "show ip interface brief",
-                "show vlan brief"
-            ])
-
-            # Access results by index
-            version_output = results[0]
-            interface_output = results[1]
-            ```
-        """
-        ...
-
-    def get_device_info(self) -> "PyDeviceInfo":
-        """
-        Get detailed information about the device.
-
-        Returns:
-            A PyDeviceInfo object containing device details
-
-        Raises:
-            RuntimeError: If getting device info fails
         """
         ...
 
@@ -654,6 +658,72 @@ class PyNetworkDevice:
         """Context manager exit."""
         ...
 
+    def send_config_set(
+        self,
+        config_commands: List[str],
+        exit_config_mode: Optional[bool] = None,
+        read_timeout: Optional[float] = None,
+        strip_prompt: Optional[bool] = None,
+        strip_command: Optional[bool] = None,
+        config_mode_command: Optional[str] = None,
+        cmd_verify: Optional[bool] = None,
+        enter_config_mode: Optional[bool] = None,
+        error_pattern: Optional[str] = None,
+        terminator: Optional[str] = None,
+        bypass_commands: Optional[str] = None,
+        fast_cli: Optional[bool] = None
+    ) -> PyCommandResult:
+        """
+        Send a set of configuration commands to the device.
+
+        This method provides a flexible way to send configuration commands with various
+        options for verification, error handling, and output processing. It's particularly
+        useful for making configuration changes to network devices.
+
+        Args:
+            config_commands: List of configuration commands to send to the device
+            exit_config_mode: Whether to exit config mode after sending commands (default: True)
+            read_timeout: Timeout for reading command output in seconds (default: 15.0)
+            strip_prompt: Whether to strip the prompt from the output (default: False)
+            strip_command: Whether to strip the command from the output (default: False)
+            config_mode_command: Custom command to enter config mode (device-specific default if None)
+            cmd_verify: Whether to verify each command was accepted (default: True)
+            enter_config_mode: Whether to enter config mode before sending commands (default: True)
+            error_pattern: Regex pattern to detect configuration errors (default: None)
+            terminator: Alternate terminator pattern for command completion (default: '#')
+            bypass_commands: Regex pattern for commands that should bypass verification (default: 'banner .*')
+            fast_cli: Whether to use fast mode with minimal verification (default: False)
+
+        Returns:
+            PyCommandResult: Result of the command execution
+
+        Raises:
+            RuntimeError: If configuration fails or device rejects commands
+
+        Examples:
+            ```python
+            # Basic configuration example
+            result = device.send_config_set([
+                "interface GigabitEthernet0/1",
+                "description WAN Link",
+                "ip address 192.168.1.1 255.255.255.0",
+                "no shutdown"
+            ])
+
+            # Advanced configuration with custom options
+            result = device.send_config_set(
+                config_commands=[
+                    "router ospf 1",
+                    "network 192.168.1.0 0.0.0.255 area 0"
+                ],
+                error_pattern=r"% Invalid input",
+                cmd_verify=True,
+                read_timeout=30.0
+            )
+            ```
+        """
+        ...
+
 class PyCommandResult:
     """
     Result of a single command execution on a network device.
@@ -663,552 +733,522 @@ class PyCommandResult:
     and metadata about the execution.
 
     Attributes:
+        device_id: The hostname or identifier of the device
+        device_type: The type of device (e.g., 'cisco_ios', 'juniper_junos')
         command: The command that was executed
-        output: The raw text output from the command
-        success: Whether the command completed successfully
-        hostname: The hostname of the device on which the command was executed
-        device_type: The type of the device on which the command was executed
+        output: The text output returned by the command
+        start_time: When the command started executing (ISO format)
+        end_time: When the command finished executing (ISO format)
+        duration_ms: How long the command took to execute in milliseconds
+        status: The execution status ('Success', 'Failed', 'Timeout', 'Skipped')
+        error: Error message if the command failed
 
     Examples:
         ```python
         # Execute a command and check the result
         result = device.send_command("show version")
 
-        if result.success:
+        if result.is_success():
             print(f"Command output: {result.output}")
         else:
-            print(f"Command failed on {result.hostname}")
-
-        # Access structured data if supported (not all commands/devices)
-        structured_data = result.get_structured_data()
-        if structured_data:
-            print(f"Parsed data: {structured_data}")
+            print(f"Command failed: {result.error}")
         ```
     """
 
-    command: str
-    """The command string that was executed on the device"""
-
-    output: str
-    """The raw text output returned by the device"""
-
-    success: bool
-    """Whether the command completed successfully (True) or failed (False)"""
-
-    hostname: str
-    """The hostname of the device where the command was executed"""
+    device_id: str
+    """The hostname or identifier of the device where the command was executed"""
 
     device_type: str
-    """The device type (e.g., 'cisco_ios', 'juniper_junos') of the device"""
+    """The device type (e.g., 'cisco_ios', 'juniper_junos')"""
 
-    def __init__(
-        self,
-        command: str,
-        output: str,
-        success: bool,
-        hostname: str,
-        device_type: str
-    ) -> None:
+    command: str
+    """The command that was executed"""
+
+    output: Optional[str]
+    """The text output from the command, or None if the command failed"""
+
+    start_time: str
+    """When the command started executing, in ISO format"""
+
+    end_time: str
+    """When the command finished executing, in ISO format"""
+
+    duration_ms: int
+    """How long the command took to execute, in milliseconds"""
+
+    status: str
+    """The execution status ('Success', 'Failed', 'Timeout', 'Skipped')"""
+
+    error: Optional[str]
+    """Error message if the command failed, or None if successful"""
+
+    def to_dict(self) -> Dict[str, Any]:
         """
-        Initialize a new command result.
-
-        Creates a new command result with the specified parameters. This is typically
-        not called directly, but is returned by PyNetworkDevice.send_command().
-
-        Args:
-            command: The command string that was executed
-            output: The raw text output from the command
-            success: Whether the command completed successfully
-            hostname: The hostname of the device
-            device_type: The type of the device
-        """
-        ...
-
-    def get_structured_data(self) -> Optional[Dict[str, Any]]:
-        """
-        Get structured data parsed from the command output.
-
-        For supported command types and devices, this method parses the raw
-        text output into a structured dictionary. This uses TextFSM templates
-        when available for the specific command and device type.
+        Convert the command result to a Python dictionary.
 
         Returns:
-            A dictionary of parsed data if available, None otherwise
-
-        Examples:
-            ```python
-            # Execute a command and get structured data
-            result = device.send_command("show ip interface brief")
-            data = result.get_structured_data()
-
-            if data:
-                # Process structured data
-                for interface in data:
-                    print(f"Interface {interface['interface']} has IP {interface['ip_address']}")
-            else:
-                # Fall back to raw text processing
-                print(f"Raw output: {result.output}")
-            ```
+            A dictionary containing all result attributes
         """
         ...
 
     def __str__(self) -> str:
         """
-        Get string representation of the command result.
+        Get a string representation of the command result.
 
         Returns:
-            A string representation of the command result including the command
-            and a preview of the output
+            A formatted string showing command, device, status, and duration
+        """
+        ...
+
+    def is_success(self) -> bool:
+        """
+        Check if the command was successful.
+
+        Returns:
+            True if the command executed successfully, False otherwise
+        """
+        ...
+
+    def is_failure(self) -> bool:
+        """
+        Check if the command failed.
+
+        Returns:
+            True if the command failed, False otherwise
+        """
+        ...
+
+    def is_timeout(self) -> bool:
+        """
+        Check if the command timed out.
+
+        Returns:
+            True if the command timed out, False otherwise
         """
         ...
 
 class PyBatchCommandResults:
     """
-    Collection of command results from a batch execution.
+    Results of executing commands on multiple devices.
 
-    This class encapsulates results from executing multiple commands, either
-    on a single device or across multiple devices in parallel. It provides
-    methods to access and analyze the results.
+    This class provides methods to access and analyze the results of batch command
+    execution across multiple devices. It includes utilities for filtering and
+    formatting results.
 
     Attributes:
-        success: Whether all commands completed successfully
-        results: List of individual PyCommandResult objects
+        command_count: Total number of commands executed
+        success_count: Number of successful commands
+        failure_count: Number of failed commands
+        device_count: Number of devices that commands were executed on
+        duration_ms: Total execution time in milliseconds
 
     Examples:
         ```python
-        # Execute multiple commands on multiple devices
-        configs = [config1, config2, config3]  # List of PyDeviceConfig objects
-        commands = ["show version", "show ip interface brief"]
-
+        # Execute commands on multiple devices
         manager = PyParallelExecutionManager()
-        batch_results = manager.execute_commands_on_all(configs, commands)
+        results = manager.execute_commands_on_all(
+            [device1_config, device2_config],
+            ["show version", "show ip interface brief"]
+        )
 
-        # Check overall success
-        if batch_results.success:
-            print("All commands completed successfully")
-
-        # Access individual results
-        for result in batch_results.results:
-            print(f"Command '{result.command}' on {result.hostname}: {'Success' if result.success else 'Failed'}")
-
+        # Get all successful results
+        success_results = results.get_successful_results()
+        
         # Get results for a specific device
-        device_results = batch_results.get_results_for_device("router1")
-        for result in device_results:
-            print(f"Output from {result.command}: {result.output}")
+        device_results = results.get_device_results("router1")
+        
+        # Export results
+        csv_data = results.to_csv()
+        json_data = results.to_json()
         ```
     """
 
-    success: bool
-    """Whether all commands in the batch completed successfully"""
+    command_count: int
+    """Total number of commands executed across all devices"""
 
-    results: List[PyCommandResult]
-    """List of individual command results"""
+    success_count: int
+    """Number of commands that completed successfully"""
 
-    def __init__(self, results: List[PyCommandResult]) -> None:
+    failure_count: int
+    """Number of commands that failed"""
+
+    device_count: int
+    """Number of devices that commands were executed on"""
+
+    duration_ms: int
+    """Total execution time in milliseconds"""
+
+    def get_device_results(self, device_id: str) -> Optional[List[PyCommandResult]]:
         """
-        Initialize a new batch command results.
-
-        Creates a new batch command results object with the specified parameters.
-        This is typically not called directly, but is returned by PyParallelExecutionManager
-        methods.
+        Get all results for a specific device.
 
         Args:
-            results: List of PyCommandResult objects
-        """
-        ...
-
-    def get_results_for_device(self, hostname: str) -> List[PyCommandResult]:
-        """
-        Get all command results for a specific device.
-
-        Filters the results to only include those from the specified hostname.
-
-        Args:
-            hostname: The hostname of the device to filter by
+            device_id: The device identifier or hostname
 
         Returns:
-            A list of PyCommandResult objects for the specified device
-
-        Examples:
-            ```python
-            # Get results for a specific device
-            device_results = batch_results.get_results_for_device("router1")
-
-            # Process device-specific results
-            for result in device_results:
-                print(f"Command: {result.command}")
-                print(f"Output: {result.output}")
-            ```
+            A list of PyCommandResult objects for the device, or None if not found
         """
         ...
 
-    def get_results_for_command(self, command: str) -> List[PyCommandResult]:
+    def get_all_results(self) -> List[PyCommandResult]:
         """
-        Get all results for a specific command.
+        Get all command results across all devices.
 
-        Filters the results to only include those for the specified command,
-        potentially across multiple devices.
+        Returns:
+            A list of all PyCommandResult objects
+        """
+        ...
+
+    def get_successful_results(self) -> List[PyCommandResult]:
+        """
+        Get all successful command results.
+
+        Returns:
+            A list of PyCommandResult objects with 'Success' status
+        """
+        ...
+
+    def get_failed_results(self) -> List[PyCommandResult]:
+        """
+        Get all failed command results.
+
+        Returns:
+            A list of PyCommandResult objects with 'Failed' status
+        """
+        ...
+
+    def get_command_results(self, command: str) -> List[PyCommandResult]:
+        """
+        Get results for a specific command across all devices.
 
         Args:
-            command: The command string to filter by
+            command: The command to filter by
 
         Returns:
             A list of PyCommandResult objects for the specified command
-
-        Examples:
-            ```python
-            # Get results for a specific command across all devices
-            version_results = batch_results.get_results_for_command("show version")
-
-            # Process command-specific results
-            for result in version_results:
-                print(f"Device: {result.hostname}")
-                print(f"Output: {result.output}")
-            ```
         """
         ...
 
-    def get_result(self, hostname: str, command: str) -> Optional[PyCommandResult]:
+    def format_as_table(self) -> str:
         """
-        Get a specific result by hostname and command.
+        Format the results as a table for display.
 
-        Finds the result for a specific command on a specific device.
+        Returns:
+            A formatted string containing a table of results
+        """
+        ...
+
+    def to_json(self) -> str:
+        """
+        Convert the batch results to JSON.
+
+        Returns:
+            A JSON string representation of the results
+        """
+        ...
+
+    def to_csv(self) -> str:
+        """
+        Convert the batch results to CSV.
+
+        Returns:
+            A CSV string representation of the results
+        """
+        ...
+
+    def compare_outputs(self, command: str) -> Dict[str, str]:
+        """
+        Compare command outputs across devices.
 
         Args:
-            hostname: The hostname of the device
-            command: The command string
+            command: The command to compare across devices
 
         Returns:
-            The PyCommandResult for the specified device and command, or None if not found
-
-        Examples:
-            ```python
-            # Get a specific command result for a specific device
-            result = batch_results.get_result("router1", "show version")
-
-            if result:
-                print(f"Version info for {result.hostname}: {result.output}")
-            else:
-                print("Result not found")
-            ```
+            A dictionary mapping device IDs to their command outputs
         """
         ...
 
-    def __str__(self) -> str:
-        """
-        Get string representation of the batch results.
+class PyParallelExecutionConfig:
+    """
+    Configuration for parallel execution of network commands.
 
-        Returns:
-            A string summary of the batch results including success rate and command count
+    This class configures how commands are executed in parallel across devices,
+    including timeout settings, concurrency limits, and error handling behavior.
+
+    Attributes:
+        num_threads: Maximum number of devices to connect to simultaneously
+        command_timeout_sec: Maximum time allowed for a single command to complete
+        connect_timeout_sec: Maximum time allowed for establishing a connection
+        stop_on_error: Whether to stop all execution when any error occurs
+        retry_failed_devices: Whether to retry failed devices after all others complete
+        max_retries_per_device: Maximum number of retry attempts per device
+        delay_between_commands_ms: Delay between executing commands on the same device
+
+    Examples:
+        ```python
+        # Default configuration
+        config = PyParallelExecutionConfig()
+
+        # Custom configuration
+        config = PyParallelExecutionConfig(
+            num_threads=20,
+            command_timeout_sec=60,
+            connect_timeout_sec=30,
+            stop_on_error=False
+        )
+        
+        # Use with parallel execution manager
+        manager = PyParallelExecutionManager(config)
+        ```
+    """
+
+    def __init__(
+        self,
+        num_threads: int = 10,
+        command_timeout_sec: int = 30,
+        connect_timeout_sec: int = 15,
+        stop_on_error: bool = False,
+        retry_failed_devices: bool = False,
+        max_retries_per_device: int = 1,
+        delay_between_commands_ms: int = 100
+    ) -> None:
+        """
+        Initialize a new parallel execution configuration.
+
+        Args:
+            num_threads: Maximum number of devices to connect to simultaneously
+            command_timeout_sec: Maximum time allowed for a single command to complete
+            connect_timeout_sec: Maximum time allowed for establishing a connection
+            stop_on_error: Whether to stop all execution when any error occurs
+            retry_failed_devices: Whether to retry failed devices after all others complete
+            max_retries_per_device: Maximum number of retry attempts per device
+            delay_between_commands_ms: Delay between executing commands on the same device
         """
         ...
 
 class PyParallelExecutionManager:
     """
-    Manager for executing commands on multiple devices in parallel.
+    Manager for parallel execution of commands across multiple network devices.
 
-    This class provides functionality to execute commands on multiple network
-    devices simultaneously, enabling efficient command execution across a network.
-    It handles connection pooling, command dispatching, and result aggregation.
-
-    The PyParallelExecutionManager uses a thread pool to execute commands in
-    parallel, with configurable concurrency limits and timeout settings.
+    This class provides methods to execute commands in parallel across multiple
+    network devices, with configurable concurrency and error handling behavior.
 
     Examples:
         ```python
-        # Create device configurations
-        device1 = PyDeviceConfig(
-            device_type="cisco_ios",
-            host="192.168.1.1",
-            username="admin",
-            password="cisco123"
-        )
-
-        device2 = PyDeviceConfig(
-            device_type="juniper_junos",
-            host="192.168.1.2",
-            username="admin",
-            password="juniper123"
-        )
-
-        # Create a parallel execution manager
+        # Create a manager with default configuration
         manager = PyParallelExecutionManager()
-
-        # Set execution parameters (optional)
-        manager.set_max_concurrency(10)
-        manager.set_command_timeout(30)
-
-        # Execute commands on both devices in parallel
-        commands = ["show version", "show ip interface brief"]
-        results = manager.execute_commands_on_all([device1, device2], commands)
-
+        
+        # Create device configurations
+        configs = [
+            PyDeviceConfig(hostname="router1", username="admin", password="pass"),
+            PyDeviceConfig(hostname="router2", username="admin", password="pass")
+        ]
+        
+        # Execute the same commands on all devices
+        results = manager.execute_commands_on_all(configs, [
+            "show version", 
+            "show ip interface brief"
+        ])
+        
+        # Execute device-specific commands
+        device_commands = {
+            "router1": ["show version", "show ip route"],
+            "router2": ["show version", "show interfaces"]
+        }
+        results = manager.execute_device_specific_commands(configs, device_commands)
+        
         # Process results
-        for result in results.results:
-            print(f"Device: {result.hostname}, Command: {result.command}")
-            print(f"Success: {result.success}")
-            print(f"Output: {result.output}")
+        print(f"Success: {results.success_count}/{results.command_count}")
+        print(results.format_as_table())
         ```
     """
 
-    def __init__(self) -> None:
+    def __init__(self, config: Optional[PyParallelExecutionConfig] = None) -> None:
         """
         Initialize a new parallel execution manager.
 
-        Creates a new parallel execution manager with default settings. The default
-        values can be customized using the setter methods.
-
-        Examples:
-            ```python
-            # Create with default settings
-            manager = PyParallelExecutionManager()
-
-            # Create and customize
-            manager = PyParallelExecutionManager()
-            manager.set_max_concurrency(20)
-            manager.set_command_timeout(60)
-            ```
+        Args:
+            config: Configuration for parallel execution behavior
         """
         ...
 
-    def set_max_concurrency(self, max_workers: int) -> None:
+    def execute_commands_on_all(
+        self, 
+        device_configs: List[PyDeviceConfig], 
+        commands: List[str]
+    ) -> PyBatchCommandResults:
         """
-        Set the maximum number of parallel workers.
-
-        Configures the size of the thread pool used for parallel execution.
-        Higher values allow more devices to be accessed simultaneously, but
-        consume more system resources.
+        Execute the same commands on multiple devices in parallel.
 
         Args:
-            max_workers: Maximum number of parallel worker threads
-
-        Examples:
-            ```python
-            # Set to 10 workers (execute on 10 devices simultaneously)
-            manager.set_max_concurrency(10)
-
-            # For larger networks, increase accordingly
-            manager.set_max_concurrency(50)
-            ```
-        """
-        ...
-
-    def set_command_timeout(self, timeout_seconds: int) -> None:
-        """
-        Set the command execution timeout.
-
-        Configures the maximum time allowed for a single command to complete
-        before it's considered failed. This is distinct from the connection
-        timeout in the PyDeviceConfig.
-
-        Args:
-            timeout_seconds: Maximum time in seconds for a command to complete
-
-        Examples:
-            ```python
-            # Set a 30 second timeout for all commands
-            manager.set_command_timeout(30)
-
-            # For commands that might take longer (e.g., transfers)
-            manager.set_command_timeout(300)  # 5 minutes
-            ```
-        """
-        ...
-
-    def set_connection_timeout(self, timeout_seconds: int) -> None:
-        """
-        Set the connection establishment timeout.
-
-        Configures the maximum time allowed to establish a connection to a device
-        before the connection attempt is considered failed.
-
-        Args:
-            timeout_seconds: Maximum time in seconds to establish a connection
-
-        Examples:
-            ```python
-            # Set a 10 second connection timeout
-            manager.set_connection_timeout(10)
-
-            # For slow or remote networks, increase the timeout
-            manager.set_connection_timeout(30)
-            ```
-        """
-        ...
-
-    def set_failure_strategy(self, strategy: str) -> None:
-        """
-        Set the failure handling strategy.
-
-        Configures how the manager responds when a device connection or command
-        execution fails. Available strategies include "continue" (proceed with
-        other devices) and "abort" (stop all operations).
-
-        Args:
-            strategy: The failure strategy to use ("continue" or "abort")
-
-        Examples:
-            ```python
-            # Continue with other devices even if some fail
-            manager.set_failure_strategy("continue")
-
-            # Abort all operations if any device fails
-            manager.set_failure_strategy("abort")
-            ```
-        """
-        ...
-
-    def set_reuse_connections(self, reuse: bool) -> None:
-        """
-        Set whether to reuse connections between command executions.
-
-        When enabled, connections to devices are kept open between command
-        executions, improving performance for multiple commands. When disabled,
-        new connections are established for each execution.
-
-        Args:
-            reuse: True to reuse connections, False to establish new ones each time
-
-        Examples:
-            ```python
-            # Enable connection reuse for better performance
-            manager.set_reuse_connections(True)
-
-            # Disable for more isolation between commands
-            manager.set_reuse_connections(False)
-            ```
-        """
-        ...
-
-    def execute_command_on_all(self, configs: List[PyDeviceConfig], command: str) -> PyBatchCommandResults:
-        """
-        Execute a single command on multiple devices.
-
-        Connects to all specified devices in parallel and executes the same
-        command on each. This is useful for commands like "show version" that
-        you want to run on many devices.
-
-        Args:
-            configs: List of device configurations to connect to
-            command: The command string to execute on all devices
+            device_configs: List of device configurations to connect to
+            commands: List of commands to execute on each device
 
         Returns:
-            A PyBatchCommandResults object containing all command results
+            Batch command results containing all execution results
 
         Raises:
-            RuntimeError: If the execution fails catastrophically
+            Exception: If there are issues creating devices or during execution
+        """
+        ...
 
-        Examples:
-            ```python
-            # Execute the same command on multiple devices
-            results = manager.execute_command_on_all(
-                [device1, device2, device3],
-                "show version"
+    def execute_device_specific_commands(
+        self, 
+        device_configs: List[PyDeviceConfig], 
+        device_commands: Dict[str, List[str]]
+    ) -> PyBatchCommandResults:
+        """
+        Execute different commands on different devices in parallel.
+
+        The commands are specified per device based on the device's hostname.
+
+        Args:
+            device_configs: List of device configurations to connect to
+            device_commands: Dictionary mapping device hostnames to command lists
+
+        Returns:
+            Batch command results containing all execution results
+
+        Raises:
+            Exception: If there are issues creating devices or during execution
+        """
+        ...
+
+    def execute_with_existing_devices(
+        self, 
+        devices: List[PyNetworkDevice], 
+        commands: List[str]
+    ) -> PyBatchCommandResults:
+        """
+        Execute commands using pre-initialized network device objects.
+
+        Useful when you've already established connections and want to reuse them.
+
+        Args:
+            devices: List of connected network device objects
+            commands: List of commands to execute on each device
+
+        Returns:
+            Batch command results containing all execution results
+
+        Raises:
+            Exception: If there are issues during execution
+        """
+        ...
+
+class NetworkError(Exception):
+    """
+    Base exception for all netssh network-related errors.
+
+    This is the parent class for all exceptions raised by the netssh library
+    related to network operations.
+    """
+    pass
+
+class AuthenticationError(NetworkError):
+    """
+    Raised when authentication to a device fails.
+
+    This exception is raised when the library cannot authenticate to a device
+    using the provided credentials.
+    """
+    pass
+
+class ConnectionError(NetworkError):
+    """
+    Raised when a connection to a device cannot be established.
+
+    This exception is raised when the library cannot establish a connection
+    to a device due to network issues, incorrect hostname, etc.
+    """
+    pass
+
+class CommandError(NetworkError):
+    """
+    Raised when a command execution fails.
+
+    This exception is raised when a command execution on a device fails
+    for any reason other than timeout.
+    """
+    pass
+
+class CommandTimeoutError(CommandError):
+    """
+    Raised when a command execution times out.
+
+    This exception is raised when a command execution takes longer than
+    the configured timeout period.
+    """
+    pass
+
+class ConfigModeError(NetworkError):
+    """
+    Raised when entering or exiting configuration mode fails.
+
+    This exception is raised when the library cannot enter or exit
+    configuration mode on a device.
+    """
+    pass
+
+def autodetect_device_type(
+    host: str, 
+    username: str, 
+    password: str, 
+    port: int = 22,
+    enable_password: Optional[str] = None,
+    timeout: int = 10
+) -> str:
+    """
+    Automatically detect the device type from a network device.
+
+    This function attempts to connect to the device and determine its type
+    based on the device's response patterns.
+
+    Args:
+        host: The hostname or IP address of the device
+        username: The username for authentication
+        password: The password for authentication
+        port: The SSH port to connect to (default 22)
+        enable_password: The enable password if required (optional)
+        timeout: Connection timeout in seconds (default 10)
+
+    Returns:
+        A string indicating the detected device type (e.g., 'cisco_ios', 'juniper_junos')
+        
+    Raises:
+        ConnectionError: If connection to the device fails
+        AuthenticationError: If authentication to the device fails
+        NetworkError: For other network-related errors
+
+    Examples:
+        ```python
+        try:
+            device_type = autodetect_device_type(
+                host="192.168.1.1",
+                username="admin",
+                password="password"
             )
+            print(f"Detected device type: {device_type}")
+        except NetworkError as e:
+            print(f"Error detecting device type: {e}")
+        ```
+    """
+    ...
 
-            # Check overall success
-            if results.success:
-                print("Command executed successfully on all devices")
+def set_log_level(level: str) -> None:
+    """
+    Set the global logging level for the netssh library.
 
-            # Process individual results
-            for result in results.results:
-                print(f"Device: {result.hostname}")
-                print(f"Output: {result.output}")
-            ```
-        """
-        ...
+    Args:
+        level: The logging level to set ("error", "warn", "info", "debug", "trace")
 
-    def execute_commands(self, config: PyDeviceConfig, commands: List[str]) -> PyBatchCommandResults:
-        """
-        Execute multiple commands on a single device.
-
-        Connects to the specified device and executes a sequence of commands.
-        This is useful for gathering multiple pieces of information from a
-        single device.
-
-        Args:
-            config: The device configuration to connect to
-            commands: List of command strings to execute sequentially
-
-        Returns:
-            A PyBatchCommandResults object containing all command results
-
-        Raises:
-            RuntimeError: If the execution fails catastrophically
-
-        Examples:
-            ```python
-            # Execute multiple commands on one device
-            results = manager.execute_commands(
-                device_config,
-                ["show version", "show ip interface brief", "show vlan"]
-            )
-
-            # Process results by command
-            for command in ["show version", "show ip interface brief", "show vlan"]:
-                cmd_results = results.get_results_for_command(command)
-                if cmd_results:
-                    print(f"Output of {command}: {cmd_results[0].output}")
-            ```
-        """
-        ...
-
-    def execute_commands_on_all(self, configs: List[PyDeviceConfig], commands: List[str]) -> PyBatchCommandResults:
-        """
-        Execute multiple commands on multiple devices.
-
-        Connects to all specified devices in parallel and executes the same
-        sequence of commands on each. This is the most comprehensive method,
-        allowing you to run a command set on many devices simultaneously.
-
-        Args:
-            configs: List of device configurations to connect to
-            commands: List of command strings to execute on each device
-
-        Returns:
-            A PyBatchCommandResults object containing all command results
-
-        Raises:
-            RuntimeError: If the execution fails catastrophically
-
-        Examples:
-            ```python
-            # Execute multiple commands on multiple devices
-            device_configs = [device1_config, device2_config, device3_config]
-            commands = ["show version", "show ip interface brief"]
-
-            results = manager.execute_commands_on_all(device_configs, commands)
-
-            # Process all results
-            for result in results.results:
-                print(f"Device: {result.hostname}")
-                print(f"Command: {result.command}")
-                print(f"Output: {result.output}")
-
-            # Get results for a specific device and command
-            router1_version = results.get_result("router1", "show version")
-            if router1_version:
-                print(f"Router1 version: {router1_version.output}")
-            ```
-        """
-        ...
-
-    def cleanup(self) -> None:
-        """
-        Clean up all resources used by the manager.
-
-        Closes all open connections and releases thread pool resources.
-        This should be called when the manager is no longer needed to
-        prevent resource leaks.
-
-        Examples:
-            ```python
-            # Execute commands
-            results = manager.execute_commands_on_all(devices, commands)
-
-            # Process results...
-
-            # Clean up when done
-            manager.cleanup()
-            ```
-        """
-        ...
+    Examples:
+        ```python
+        # Enable debug logging
+        set_log_level("debug")
+        
+        # Set to minimal logging
+        set_log_level("error")
+        ```
+    """
+    ...

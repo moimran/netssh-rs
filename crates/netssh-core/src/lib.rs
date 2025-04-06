@@ -2,6 +2,7 @@ pub mod autodetect;
 pub mod base_connection;
 pub mod buffer_pool;
 pub mod channel;
+pub mod command_result;
 pub mod config;
 pub mod device_connection;
 pub mod device_connection_impl;
@@ -51,12 +52,12 @@ pub use vendors::juniper;
 pub use autodetect::SSHDetect;
 pub use base_connection::BaseConnection;
 pub use buffer_pool::{BorrowedBuffer, BufferPool};
+pub use command_result::{BatchCommandResults, CommandResult, CommandStatus};
 pub use config::{NetsshConfig, NetsshConfigBuilder};
 pub use error::NetsshError;
 pub use logging::init_logging as initialize_logging;
 pub use parallel_execution::{
-    BatchCommandResults, CommandResult, CommandStatus, FailureStrategy, ParallelExecutionConfig,
-    ParallelExecutionManager,
+    FailureStrategy, ParallelExecutionConfig, ParallelExecutionManager,
 };
 pub use semaphore::{SemaphoreError, SemaphorePermit, TimeoutSemaphore};
 pub use settings::{

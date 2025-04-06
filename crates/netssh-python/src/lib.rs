@@ -1,35 +1,63 @@
-use pyo3::exceptions::PyRuntimeError;
+use chrono::Utc;
+use netssh_core::command_result::{BatchCommandResults, CommandResult};
+use netssh_core::device_connection::{DeviceConfig, NetworkDeviceConnection};
+use netssh_core::device_factory::DeviceFactory;
+use netssh_core::error::NetsshError;
+use netssh_core::{FailureStrategy, ParallelExecutionConfig, ParallelExecutionManager};
+use pyo3::conversion::ToPyObject;
+use pyo3::exceptions::{PyException, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use pyo3::wrap_pyfunction;
 use std::collections::HashMap;
 use std::time::Duration;
 
-use netssh_core::device_connection::{DeviceConfig, DeviceInfo, NetworkDeviceConnection};
-use netssh_core::device_factory::DeviceFactory;
-use netssh_core::error::NetsshError;
-use netssh_core::parallel_execution::{
-    BatchCommandResults, CommandResult, FailureStrategy, ParallelExecutionConfig,
-    ParallelExecutionManager,
-};
+// Define custom PyConnectionError
+#[pyclass]
+struct PyConnectionError {
+    msg: String,
+}
+
+#[pymethods]
+impl PyConnectionError {
+    #[new]
+    fn new(msg: String) -> Self {
+        Self { msg }
+    }
+}
+
+// Function to convert NetsshError to PyErr
+fn netssh_error_to_pyerr(err: NetsshError) -> PyErr {
+    match err {
+        NetsshError::ConnectionError(msg) => {
+            PyException::new_err(format!("Connection error: {}", msg))
+        }
+        NetsshError::AuthenticationError(msg) => {
+            PyException::new_err(format!("Authentication error: {}", msg))
+        }
+        NetsshError::CommandError(msg) => PyValueError::new_err(format!("Command error: {}", msg)),
+        // Add other error variants as needed
+        _ => PyRuntimeError::new_err(format!("Netssh error: {}", err)),
+    }
+}
 
 /// Python module for netssh-rs
 #[pymodule]
 fn netssh_rs(_py: Python, m: &PyModule) -> PyResult<()> {
+    // Register custom exception
+    m.add_class::<PyConnectionError>()?;
+
+    // Add classes
     m.add_class::<PyDeviceConfig>()?;
-    m.add_class::<PyDeviceInfo>()?;
     m.add_class::<PyNetworkDevice>()?;
     m.add_class::<PyCommandResult>()?;
     m.add_class::<PyBatchCommandResults>()?;
     m.add_class::<PyParallelExecutionManager>()?;
+
+    // Add functions
     m.add_function(wrap_pyfunction!(initialize_logging, m)?)?;
 
     Ok(())
-}
-
-/// Convert NetsshError to PyErr
-fn netssh_error_to_pyerr(err: NetsshError) -> PyErr {
-    PyRuntimeError::new_err(format!("{}", err))
 }
 
 /// Initialize logging
@@ -123,36 +151,6 @@ fn py_config_to_rust_config(config: &PyDeviceConfig) -> DeviceConfig {
     }
 }
 
-/// Python wrapper for DeviceInfo
-#[pyclass]
-struct PyDeviceInfo {
-    #[pyo3(get)]
-    device_type: String,
-    #[pyo3(get)]
-    model: String,
-    #[pyo3(get)]
-    version: String,
-    #[pyo3(get)]
-    hostname: String,
-    #[pyo3(get)]
-    serial: String,
-    #[pyo3(get)]
-    uptime: String,
-}
-
-impl From<DeviceInfo> for PyDeviceInfo {
-    fn from(info: DeviceInfo) -> Self {
-        Self {
-            device_type: info.device_type,
-            model: info.model,
-            version: info.version,
-            hostname: info.hostname,
-            serial: info.serial,
-            uptime: info.uptime,
-        }
-    }
-}
-
 /// Python wrapper for NetworkDeviceConnection
 ///
 /// This class represents a connection to a network device and provides
@@ -172,7 +170,7 @@ impl PyNetworkDevice {
     ///     config: The device configuration
     ///
     /// Returns:
-    ///     A new PyNetworkDevice instance
+    ///     PyNetworkDevice: A new network device connection instance
     ///
     /// Raises:
     ///     RuntimeError: If device creation fails
@@ -190,6 +188,9 @@ impl PyNetworkDevice {
     ///
     /// Establishes an SSH connection to the network device and performs initial setup.
     ///
+    /// Returns:
+    ///     None
+    ///
     /// Raises:
     ///     ConnectionError: If connection fails
     ///     AuthenticationError: If authentication fails
@@ -201,6 +202,9 @@ impl PyNetworkDevice {
     }
 
     /// Close the connection to the device
+    ///
+    /// Returns:
+    ///     None
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn close(&mut self) -> PyResult<()> {
@@ -208,6 +212,9 @@ impl PyNetworkDevice {
     }
 
     /// Check if the device is in configuration mode
+    ///
+    /// Returns:
+    ///     bool: True if device is in configuration mode, False otherwise
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn check_config_mode(&mut self) -> PyResult<bool> {
@@ -217,24 +224,107 @@ impl PyNetworkDevice {
     }
 
     /// Enter configuration mode
+    ///
+    /// Args:
+    ///     config_command (str, optional): Custom configuration command to use
+    ///
+    /// Returns:
+    ///     CommandResult: Result of the command execution
     #[pyo3(signature = (config_command=None))]
     #[pyo3(text_signature = "(config_command=None)")]
-    fn enter_config_mode(&mut self, config_command: Option<&str>) -> PyResult<()> {
-        self.device
+    fn enter_config_mode(&mut self, config_command: Option<&str>) -> PyResult<PyCommandResult> {
+        let start_time = Utc::now();
+        let result = self
+            .device
             .enter_config_mode(config_command)
-            .map_err(netssh_error_to_pyerr)
+            .map_err(netssh_error_to_pyerr);
+        let end_time = Utc::now();
+
+        match result {
+            Ok(_) => {
+                let device_type = self.device.get_device_type().to_string();
+                let cmd = config_command.unwrap_or("configure terminal").to_string();
+                let output_string = String::new();
+
+                Ok(PyCommandResult::from(CommandResult::success(
+                    get_device_hostname(&self.device),
+                    device_type,
+                    cmd,
+                    output_string,
+                    start_time,
+                    end_time,
+                )))
+            }
+            Err(err) => {
+                let device_type = self.device.get_device_type().to_string();
+                let cmd = config_command.unwrap_or("configure terminal").to_string();
+
+                Ok(PyCommandResult::from(CommandResult::failure(
+                    get_device_hostname(&self.device),
+                    device_type,
+                    cmd,
+                    String::new(),
+                    start_time,
+                    end_time,
+                    format!("{}", err),
+                )))
+            }
+        }
     }
 
     /// Exit configuration mode
+    ///
+    /// Args:
+    ///     exit_command (str, optional): Custom exit command to use
+    ///
+    /// Returns:
+    ///     CommandResult: Result of the command execution
     #[pyo3(signature = (exit_command=None))]
     #[pyo3(text_signature = "(exit_command=None)")]
-    fn exit_config_mode(&mut self, exit_command: Option<&str>) -> PyResult<()> {
-        self.device
+    fn exit_config_mode(&mut self, exit_command: Option<&str>) -> PyResult<PyCommandResult> {
+        let start_time = Utc::now();
+        let result = self
+            .device
             .exit_config_mode(exit_command)
-            .map_err(netssh_error_to_pyerr)
+            .map_err(netssh_error_to_pyerr);
+        let end_time = Utc::now();
+
+        match result {
+            Ok(_) => {
+                let device_type = self.device.get_device_type().to_string();
+                let cmd = exit_command.unwrap_or("exit").to_string();
+                let output_string = String::new();
+
+                Ok(PyCommandResult::from(CommandResult::success(
+                    get_device_hostname(&self.device),
+                    device_type,
+                    cmd,
+                    output_string,
+                    start_time,
+                    end_time,
+                )))
+            }
+            Err(err) => {
+                let device_type = self.device.get_device_type().to_string();
+                let cmd = exit_command.unwrap_or("exit").to_string();
+
+                Ok(PyCommandResult::from(CommandResult::failure(
+                    get_device_hostname(&self.device),
+                    device_type,
+                    cmd,
+                    String::new(),
+                    start_time,
+                    end_time,
+                    format!("{}", err),
+                )))
+            }
+        }
     }
 
     /// Prepare the session after connection
+    ///
+    /// Returns:
+    ///     None
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn session_preparation(&mut self) -> PyResult<()> {
@@ -244,6 +334,9 @@ impl PyNetworkDevice {
     }
 
     /// Configure terminal settings
+    ///
+    /// Returns:
+    ///     None
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn terminal_settings(&mut self) -> PyResult<()> {
@@ -253,6 +346,12 @@ impl PyNetworkDevice {
     }
 
     /// Set terminal width
+    ///
+    /// Args:
+    ///     width (int): Terminal width in characters
+    ///
+    /// Returns:
+    ///     None
     #[pyo3(signature = (width))]
     #[pyo3(text_signature = "(width)")]
     fn set_terminal_width(&mut self, width: u32) -> PyResult<()> {
@@ -261,52 +360,122 @@ impl PyNetworkDevice {
             .map_err(netssh_error_to_pyerr)
     }
 
-    /// Disable paging
+    /// Disable paging on the device
+    ///
+    /// Returns:
+    ///     None
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn disable_paging(&mut self) -> PyResult<()> {
         self.device.disable_paging().map_err(netssh_error_to_pyerr)
     }
 
-    /// Set base prompt
+    /// Set the base prompt
+    ///
+    /// Returns:
+    ///     str: The detected base prompt
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn set_base_prompt(&mut self) -> PyResult<String> {
         self.device.set_base_prompt().map_err(netssh_error_to_pyerr)
     }
 
-    /// Save or commit configuration
-    #[pyo3(signature = ())]
-    #[pyo3(text_signature = "()")]
-    fn save_configuration(&mut self) -> PyResult<()> {
-        self.device
-            .save_configuration()
-            .map_err(netssh_error_to_pyerr)
-    }
-
-    /// Send command to device
-    ///
-    /// Sends a command to the device and returns the output.
-    ///
-    /// Args:
-    ///     command: The command to execute
+    /// Save the device configuration
     ///
     /// Returns:
-    ///     The command output as a string
-    ///
-    /// Raises:
-    ///     ConnectionError: If the device is not connected
-    ///     RuntimeError: If the command execution fails
-    ///     TimeoutError: If the command times out
-    #[pyo3(signature = (command))]
-    #[pyo3(text_signature = "(command)")]
-    fn send_command(&mut self, command: &str) -> PyResult<String> {
-        self.device
-            .send_command(command)
-            .map_err(netssh_error_to_pyerr)
+    ///     CommandResult: Result of the save configuration command
+    #[pyo3(signature = ())]
+    #[pyo3(text_signature = "()")]
+    fn save_configuration(&mut self) -> PyResult<PyCommandResult> {
+        let start_time = Utc::now();
+        let result = self
+            .device
+            .save_configuration()
+            .map_err(netssh_error_to_pyerr);
+        let end_time = Utc::now();
+
+        match result {
+            Ok(_) => {
+                let device_type = self.device.get_device_type().to_string();
+                let cmd = "save configuration".to_string();
+                let output_string = String::new();
+
+                Ok(PyCommandResult::from(CommandResult::success(
+                    get_device_hostname(&self.device),
+                    device_type,
+                    cmd,
+                    output_string,
+                    start_time,
+                    end_time,
+                )))
+            }
+            Err(err) => {
+                let device_type = self.device.get_device_type().to_string();
+                let cmd = "save configuration".to_string();
+
+                Ok(PyCommandResult::from(CommandResult::failure(
+                    get_device_hostname(&self.device),
+                    device_type,
+                    cmd,
+                    String::new(),
+                    start_time,
+                    end_time,
+                    format!("{}", err),
+                )))
+            }
+        }
     }
 
-    /// Get the device type (vendor and model)
+    /// Send a command to the device
+    ///
+    /// Args:
+    ///     command (str): The command to execute on the device
+    ///
+    /// Returns:
+    ///     CommandResult: Result of the command execution containing output, timing information, and status
+    #[pyo3(signature = (command))]
+    #[pyo3(text_signature = "(command)")]
+    fn send_command(&mut self, command: &str) -> PyResult<PyCommandResult> {
+        let start_time = Utc::now();
+        let result = self
+            .device
+            .send_command(command)
+            .map_err(netssh_error_to_pyerr);
+        let end_time = Utc::now();
+
+        match result {
+            Ok(output) => {
+                let device_type = self.device.get_device_type().to_string();
+
+                Ok(PyCommandResult::from(CommandResult::success(
+                    get_device_hostname(&self.device),
+                    device_type,
+                    command.to_string(),
+                    output.to_string(),
+                    start_time,
+                    end_time,
+                )))
+            }
+            Err(err) => {
+                let device_type = self.device.get_device_type().to_string();
+
+                Ok(PyCommandResult::from(CommandResult::failure(
+                    get_device_hostname(&self.device),
+                    device_type,
+                    command.to_string(),
+                    String::new(),
+                    start_time,
+                    end_time,
+                    format!("{}", err),
+                )))
+            }
+        }
+    }
+
+    /// Get the device type
+    ///
+    /// Returns:
+    ///     str: The device type string
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn get_device_type(&self) -> &str {
@@ -329,34 +498,27 @@ impl PyNetworkDevice {
         _traceback: Option<&PyAny>,
     ) -> PyResult<bool> {
         self.close()?;
-        Ok(false) // Don't suppress exceptions
+        Ok(false)
     }
 
     /// Send configuration commands to the device
     ///
-    /// This method sends multiple configuration commands to the device. It
-    /// handles entering and exiting config mode as well as various options
-    /// for command verification and error detection.
-    ///
     /// Args:
-    ///     config_commands: A list of configuration commands to send
-    ///     exit_config_mode: Whether to exit config mode after sending commands (default: True)
-    ///     read_timeout: Timeout for reading output after sending commands (in seconds, default: 15.0)
-    ///     strip_prompt: Whether to strip the prompt from output (default: False)
-    ///     strip_command: Whether to strip command echo from output (default: False)
-    ///     config_mode_command: Custom command to enter config mode (optional)
-    ///     cmd_verify: Whether to verify command echoes (default: True)
-    ///     enter_config_mode: Whether to enter config mode before sending commands (default: True)
-    ///     error_pattern: Regex pattern to detect command errors (optional)
-    ///     terminator: Alternate terminator pattern to detect end of output (optional)
-    ///     bypass_commands: Regex pattern for commands that should bypass verification (optional)
-    ///     fast_cli: Whether to use fast mode with minimal verification (default: False)
+    ///     config_commands (list): List of configuration commands to send
+    ///     exit_config_mode (bool, optional): Whether to exit config mode after sending commands
+    ///     read_timeout (float, optional): Read timeout in seconds
+    ///     strip_prompt (bool, optional): Whether to strip the prompt from the output
+    ///     strip_command (bool, optional): Whether to strip the command from the output
+    ///     config_mode_command (str, optional): Custom command to enter config mode
+    ///     cmd_verify (bool, optional): Whether to verify command echoing
+    ///     enter_config_mode (bool, optional): Whether to enter config mode before sending commands
+    ///     error_pattern (str, optional): Regex pattern to detect errors in output
+    ///     terminator (str, optional): Command terminator character
+    ///     bypass_commands (str, optional): Commands to bypass verification
+    ///     fast_cli (bool, optional): Whether to optimize for faster command execution
     ///
     /// Returns:
-    ///     The output from the configuration commands
-    ///
-    /// Raises:
-    ///     RuntimeError: If an error occurs during configuration
+    ///     CommandResult: Result of the config commands execution
     #[pyo3(signature = (
         config_commands,
         exit_config_mode=None,
@@ -369,10 +531,10 @@ impl PyNetworkDevice {
         error_pattern=None,
         terminator=None,
         bypass_commands=None,
-        fast_cli=None
+        fast_cli=None,
     ))]
     #[pyo3(
-        text_signature = "(config_commands, exit_config_mode=True, read_timeout=15.0, strip_prompt=False, strip_command=False, config_mode_command=None, cmd_verify=True, enter_config_mode=True, error_pattern=None, terminator=None, bypass_commands=None, fast_cli=False)"
+        text_signature = "(config_commands, exit_config_mode=None, read_timeout=None, strip_prompt=None, strip_command=None, config_mode_command=None, cmd_verify=None, enter_config_mode=None, error_pattern=None, terminator=None, bypass_commands=None, fast_cli=None)"
     )]
     fn send_config_set(
         &mut self,
@@ -388,15 +550,15 @@ impl PyNetworkDevice {
         terminator: Option<&str>,
         bypass_commands: Option<&str>,
         fast_cli: Option<bool>,
-    ) -> PyResult<String> {
-        // Convert the Python list of commands to a Vec of Strings
+    ) -> PyResult<PyCommandResult> {
         let commands: Vec<String> = config_commands
             .iter()
-            .map(|x| x.extract::<String>())
+            .map(|item| item.extract::<String>())
             .collect::<Result<Vec<String>, _>>()?;
 
-        // Call the Rust implementation
-        self.device
+        let start_time = Utc::now();
+        let result = self
+            .device
             .send_config_set(
                 commands,
                 exit_config_mode,
@@ -411,11 +573,54 @@ impl PyNetworkDevice {
                 bypass_commands,
                 fast_cli,
             )
-            .map_err(netssh_error_to_pyerr)
+            .map_err(netssh_error_to_pyerr);
+        let end_time = Utc::now();
+
+        match result {
+            Ok(output) => {
+                let device_type = self.device.get_device_type().to_string();
+                let cmd = "config set".to_string();
+
+                Ok(PyCommandResult::from(CommandResult::success(
+                    get_device_hostname(&self.device),
+                    device_type,
+                    cmd,
+                    output.to_string(),
+                    start_time,
+                    end_time,
+                )))
+            }
+            Err(err) => {
+                let device_type = self.device.get_device_type().to_string();
+                let cmd = "config set".to_string();
+
+                Ok(PyCommandResult::from(CommandResult::failure(
+                    get_device_hostname(&self.device),
+                    device_type,
+                    cmd,
+                    String::new(),
+                    start_time,
+                    end_time,
+                    format!("{}", err),
+                )))
+            }
+        }
     }
 }
 
 /// Python wrapper for CommandResult
+///
+/// This class represents the result of executing a command on a network device.
+/// It contains detailed information about the command execution, including:
+/// - device_id: The identifier for the device
+/// - device_type: The type of device
+/// - command: The command that was executed
+/// - output: The output text from the command
+/// - start_time: When command execution started
+/// - end_time: When command execution ended
+/// - duration_ms: How long the command took to execute in milliseconds
+/// - status: The execution status (Success, Failed, Timeout, Skipped)
+/// - error: Error message if the command failed
 #[pyclass]
 #[derive(Clone)]
 struct PyCommandResult {
@@ -446,8 +651,8 @@ impl From<CommandResult> for PyCommandResult {
             device_type: result.device_type,
             command: result.command,
             output: result.output,
-            start_time: result.start_time.to_string(),
-            end_time: result.end_time.to_string(),
+            start_time: result.start_time.to_rfc3339(),
+            end_time: result.end_time.to_rfc3339(),
             duration_ms: result.duration_ms,
             status: format!("{:?}", result.status),
             error: result.error,
@@ -455,11 +660,19 @@ impl From<CommandResult> for PyCommandResult {
     }
 }
 
+impl ToPyObject for PyCommandResult {
+    fn to_object(&self, py: Python<'_>) -> PyObject {
+        // We need to create a new PyCell with our PyCommandResult instance
+        PyCell::new(py, self.clone()).unwrap().into()
+    }
+}
+
 #[pymethods]
 impl PyCommandResult {
-    /// Convert to Python dictionary
-    #[pyo3(signature = ())]
-    #[pyo3(text_signature = "()")]
+    /// Convert the command result to a Python dictionary
+    ///
+    /// Returns:
+    ///     dict: Dictionary representation of the command result
     fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<&'py PyDict> {
         let dict = PyDict::new(py);
         dict.set_item("device_id", &self.device_id)?;
@@ -468,14 +681,52 @@ impl PyCommandResult {
         dict.set_item("output", &self.output)?;
         dict.set_item("start_time", &self.start_time)?;
         dict.set_item("end_time", &self.end_time)?;
-        dict.set_item("duration_ms", self.duration_ms)?;
+        dict.set_item("duration_ms", &self.duration_ms)?;
         dict.set_item("status", &self.status)?;
         dict.set_item("error", &self.error)?;
         Ok(dict)
     }
+
+    /// String representation of the command result
+    ///
+    /// Returns:
+    ///     str: A formatted string describing the command result
+    fn __str__(&self) -> PyResult<String> {
+        Ok(format!(
+            "Command '{}' on device '{}' ({}): Status={}, Duration={}ms",
+            self.command, self.device_id, self.device_type, self.status, self.duration_ms
+        ))
+    }
+
+    /// Check if the command was successful
+    ///
+    /// Returns:
+    ///     bool: True if command executed successfully, False otherwise
+    fn is_success(&self) -> bool {
+        self.status == "Success"
+    }
+
+    /// Check if the command failed
+    ///
+    /// Returns:
+    ///     bool: True if command failed, False otherwise
+    fn is_failure(&self) -> bool {
+        self.status == "Failed"
+    }
+
+    /// Check if the command timed out
+    ///
+    /// Returns:
+    ///     bool: True if command timed out, False otherwise
+    fn is_timeout(&self) -> bool {
+        self.status == "Timeout"
+    }
 }
 
 /// Python wrapper for BatchCommandResults
+///
+/// This class represents the results of executing commands on multiple devices.
+/// It provides methods to access and analyze the results in various formats.
 #[pyclass]
 struct PyBatchCommandResults {
     results: BatchCommandResults,
@@ -490,160 +741,220 @@ impl From<BatchCommandResults> for PyBatchCommandResults {
 #[pymethods]
 impl PyBatchCommandResults {
     /// Get all results for a specific device
-    #[pyo3(signature = (device_id))]
-    #[pyo3(text_signature = "(device_id)")]
+    ///
+    /// Args:
+    ///     device_id (str): The device identifier
+    ///
+    /// Returns:
+    ///     list[CommandResult]: A list of CommandResult objects for the specified device, or None if device not found
     fn get_device_results<'py>(
         &self,
         py: Python<'py>,
         device_id: &str,
     ) -> PyResult<Option<&'py PyList>> {
-        // Get the results for a specific device
-        let results = self.results.get_device_results(device_id);
-
-        // If no results for this device, return None
-        if let Some(results) = results {
-            if results.is_empty() {
-                return Ok(None);
+        match self.results.get_device_results(device_id) {
+            Some(device_results) => {
+                // Convert results to PyList of PyCommandResult objects
+                let py_list = PyList::empty(py);
+                for result in device_results {
+                    let py_result = PyCommandResult::from(result.clone());
+                    py_list.append(py_result)?;
+                }
+                Ok(Some(py_list))
             }
-        } else {
-            return Ok(None);
+            None => Ok(None),
         }
-
-        // Convert results to PyList of PyCommandResult objects
-        let py_list = PyList::empty(py);
-
-        if let Some(results) = results {
-            for result in results {
-                let py_result = PyCommandResult::from(result.clone());
-                py_list.append(py_result.to_dict(py)?)?;
-            }
-        }
-
-        Ok(Some(py_list))
     }
 
-    /// Get all results
-    #[pyo3(signature = ())]
-    #[pyo3(text_signature = "()")]
+    /// Get all command results across all devices
+    ///
+    /// Returns:
+    ///     list[CommandResult]: A list of all CommandResult objects
     fn get_all_results<'py>(&self, py: Python<'py>) -> PyResult<&'py PyList> {
         let py_list = PyList::empty(py);
-
-        // Collect all results from all devices
-        for (_, device_results) in self.results.results.iter() {
-            for result in device_results {
+        for results in self.results.results.values() {
+            for result in results {
                 let py_result = PyCommandResult::from(result.clone());
-                py_list.append(py_result.to_dict(py)?)?;
+                py_list.append(py_result)?;
             }
         }
-
         Ok(py_list)
     }
 
-    /// Get successful results
-    #[pyo3(signature = ())]
-    #[pyo3(text_signature = "()")]
+    /// Get all successful command results
+    ///
+    /// Returns:
+    ///     list[CommandResult]: A list of CommandResult objects with Success status
     fn get_successful_results<'py>(&self, py: Python<'py>) -> PyResult<&'py PyList> {
         let py_list = PyList::empty(py);
-
-        // Collect all successful results from all devices
-        for (_, device_results) in self.results.results.iter() {
-            for result in device_results {
-                if result.status == netssh_core::parallel_execution::CommandStatus::Success {
-                    let py_result = PyCommandResult::from(result.clone());
-                    py_list.append(py_result.to_dict(py)?)?;
-                }
-            }
+        for result in self.results.successful_results() {
+            let py_result = PyCommandResult::from(result.clone());
+            py_list.append(py_result)?;
         }
-
         Ok(py_list)
     }
 
-    /// Get failed results
-    #[pyo3(signature = ())]
-    #[pyo3(text_signature = "()")]
+    /// Get all failed command results
+    ///
+    /// Returns:
+    ///     list[CommandResult]: A list of CommandResult objects with Failed status
     fn get_failed_results<'py>(&self, py: Python<'py>) -> PyResult<&'py PyList> {
         let py_list = PyList::empty(py);
-
-        // Collect all failed results from all devices
-        for (_, device_results) in self.results.results.iter() {
-            for result in device_results {
-                if result.status == netssh_core::parallel_execution::CommandStatus::Failed {
-                    let py_result = PyCommandResult::from(result.clone());
-                    py_list.append(py_result.to_dict(py)?)?;
-                }
-            }
-        }
-
-        Ok(py_list)
-    }
-
-    /// Get results for a specific command
-    #[pyo3(signature = (command))]
-    #[pyo3(text_signature = "(command)")]
-    fn get_command_results<'py>(&self, py: Python<'py>, command: &str) -> PyResult<&'py PyList> {
-        let py_list = PyList::empty(py);
-
-        // Use the get_command_results method from BatchCommandResults
-        let results = self.results.get_command_results(command);
-
-        for result in results {
+        for result in self.results.failed_results() {
             let py_result = PyCommandResult::from(result.clone());
-            py_list.append(py_result.to_dict(py)?)?;
+            py_list.append(py_result)?;
         }
-
         Ok(py_list)
     }
 
-    /// Format results as an ASCII table
-    #[pyo3(signature = ())]
-    #[pyo3(text_signature = "()")]
+    /// Get results for a specific command across all devices
+    ///
+    /// Args:
+    ///     command (str): The command to filter by
+    ///
+    /// Returns:
+    ///     list[CommandResult]: A list of CommandResult objects for the specified command
+    fn get_command_results<'py>(&self, py: Python<'py>, command: &str) -> PyResult<&'py PyList> {
+        // Use the get_command_results method from BatchCommandResults
+        let py_list = PyList::empty(py);
+        for result in self.results.get_command_results(command) {
+            let py_result = PyCommandResult::from(result.clone());
+            py_list.append(py_result)?;
+        }
+        Ok(py_list)
+    }
+
+    /// Format the results as a table for display
+    ///
+    /// Returns:
+    ///     str: A formatted string containing a table of results
     fn format_as_table(&self) -> String {
-        netssh_core::parallel_execution::utils::format_as_table(&self.results)
+        format!("{:#?}", self.results)
     }
 
-    /// Convert results to JSON format
-    #[pyo3(signature = ())]
-    #[pyo3(text_signature = "()")]
+    /// Convert the batch results to JSON
+    ///
+    /// Returns:
+    ///     str: A JSON string representation of the results
     fn to_json(&self) -> PyResult<String> {
-        netssh_core::parallel_execution::utils::to_json(&self.results)
-            .map_err(|e| PyRuntimeError::new_err(format!("JSON serialization error: {}", e)))
+        serde_json::to_string_pretty(&self.results)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 
-    /// Convert results to CSV format
-    #[pyo3(signature = ())]
-    #[pyo3(text_signature = "()")]
+    /// Convert the batch results to CSV
+    ///
+    /// Returns:
+    ///     str: A CSV string representation of the results
     fn to_csv(&self) -> String {
-        netssh_core::parallel_execution::utils::to_csv(&self.results)
-    }
+        let mut csv = String::from(
+            "device_id,device_type,command,status,duration_ms,start_time,end_time,error\n",
+        );
 
-    /// Compare outputs for the same command across devices
-    #[pyo3(signature = (command))]
-    #[pyo3(text_signature = "(command)")]
-    fn compare_outputs<'py>(&self, py: Python<'py>, command: &str) -> PyResult<&'py PyDict> {
-        // Use the compare_outputs function from the utilities module
-        let comparisons =
-            netssh_core::parallel_execution::utils::compare_outputs(&self.results, command);
+        for results in self.results.results.values() {
+            for result in results {
+                let error_text = match &result.error {
+                    Some(err) => err.replace(',', ";").replace('\n', " "),
+                    None => String::from(""),
+                };
 
-        // Convert to Python dict of {device_id: {'unique': [...], 'common': [...]}}
-        let py_dict = PyDict::new(py);
-
-        for (device_id, comparison) in comparisons {
-            let device_dict = PyDict::new(py);
-
-            let unique_list = PyList::empty(py);
-            for unique_line in comparison {
-                unique_list.append(unique_line)?;
+                csv.push_str(&format!(
+                    "{},{},{},{:?},{},{},{},{}\n",
+                    result.device_id,
+                    result.device_type,
+                    result.command,
+                    result.status,
+                    result.duration_ms,
+                    result.start_time,
+                    result.end_time,
+                    error_text
+                ));
             }
-            device_dict.set_item("unique", unique_list)?;
-
-            // Common lines are not provided in this implementation
-            let common_list = PyList::empty(py);
-            device_dict.set_item("common", common_list)?;
-
-            py_dict.set_item(device_id, device_dict)?;
         }
 
-        Ok(py_dict)
+        csv
+    }
+
+    /// Compare command outputs across devices
+    ///
+    /// Args:
+    ///     command (str): The command to compare across devices
+    ///
+    /// Returns:
+    ///     dict: A dictionary mapping devices to their command outputs
+    fn compare_outputs<'py>(&self, py: Python<'py>, command: &str) -> PyResult<&'py PyDict> {
+        let dict = PyDict::new(py);
+
+        // Get all results for the specified command
+        let command_results = self.results.get_command_results(command);
+
+        // Group by device and get the output
+        for result in command_results {
+            if let Some(output) = &result.output {
+                dict.set_item(&result.device_id, output)?;
+            }
+        }
+
+        Ok(dict)
+    }
+
+    /// Get the total number of commands executed
+    ///
+    /// Returns:
+    ///     int: Total command count
+    #[getter]
+    fn command_count(&self) -> usize {
+        self.results.command_count
+    }
+
+    /// Get the number of successful commands
+    ///
+    /// Returns:
+    ///     int: Successful command count
+    #[getter]
+    fn success_count(&self) -> usize {
+        self.results.success_count
+    }
+
+    /// Get the number of failed commands
+    ///
+    /// Returns:
+    ///     int: Failed command count
+    #[getter]
+    fn failure_count(&self) -> usize {
+        self.results.failure_count
+    }
+
+    /// Get the number of devices processed
+    ///
+    /// Returns:
+    ///     int: Device count
+    #[getter]
+    fn device_count(&self) -> usize {
+        self.results.device_count
+    }
+
+    /// Get the total duration of the batch execution in milliseconds
+    ///
+    /// Returns:
+    ///     int: Duration in milliseconds
+    #[getter]
+    fn duration_ms(&self) -> u64 {
+        self.results.duration_ms
+    }
+
+    /// String representation of the batch results
+    ///
+    /// Returns:
+    ///     str: A formatted string describing the batch results
+    fn __str__(&self) -> String {
+        format!(
+            "BatchCommandResults: {} devices, {} commands ({} success, {} failed), {}ms",
+            self.results.device_count,
+            self.results.command_count,
+            self.results.success_count,
+            self.results.failure_count,
+            self.results.duration_ms
+        )
     }
 }
 
@@ -905,4 +1216,10 @@ fn extract_device_configs(configs: &PyList) -> PyResult<Vec<DeviceConfig>> {
     }
 
     Ok(rust_configs)
+}
+
+// Add a helper function for getting hostname with a default value
+fn get_device_hostname(device: &Box<dyn NetworkDeviceConnection + Send>) -> String {
+    // Use device_type or other identifier when hostname is not available
+    device.get_device_type().to_string()
 }

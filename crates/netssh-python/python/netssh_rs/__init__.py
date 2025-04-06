@@ -12,7 +12,6 @@ try:
         PyParallelExecutionManager,
         PyCommandResult,
         PyBatchCommandResults,
-        PyDeviceInfo,
         initialize_logging
     )
 except ImportError as e:
@@ -24,6 +23,5 @@ __all__ = [
     "PyParallelExecutionManager",
     "PyCommandResult",
     "PyBatchCommandResults",
-    "PyDeviceInfo",
     "initialize_logging"
 ]
