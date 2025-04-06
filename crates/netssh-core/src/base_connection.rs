@@ -2841,11 +2841,11 @@ impl BaseConnection {
                 }
 
                 // Read until prompt or terminator pattern
-                let pattern = format!(
-                    "(?:{}.*$|{}.*$)",
-                    self.base_prompt.as_ref().map_or("", |p| p),
-                    terminator
-                );
+                // let pattern = format!(
+                //     "(?:{}.*$|{}.*$)",
+                //     self.base_prompt.as_ref().map_or("", |p| p),
+                //     terminator
+                // );
 
                 // match self.read_until_pattern(&pattern, Some(read_timeout), Some(8)) {
                 //     // re.M = 8 in Python
