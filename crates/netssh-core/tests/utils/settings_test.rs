@@ -18,7 +18,7 @@ fn test_settings_default() {
     assert_eq!(settings.network.max_retry_attempts, 3);
     
     // Test default SSH settings
-    assert_eq!(settings.ssh.handshake_timeout_secs, 30);
+    assert_eq!(settings.ssh.blocking_timeout_secs, 30);
     assert_eq!(settings.ssh.keepalive_interval_secs, 60);
     
     // Test default buffer settings
@@ -45,7 +45,7 @@ fn test_settings_from_json() {
             "max_retry_attempts": 5
         },
         "ssh": {
-            "handshake_timeout_secs": 15,
+            "blocking_timeout_secs": 15,
             "keepalive_interval_secs": 30
         },
         "buffer": {
@@ -72,7 +72,7 @@ fn test_settings_from_json() {
     assert_eq!(settings.network.max_retry_attempts, 5);
     
     // Test custom SSH settings
-    assert_eq!(settings.ssh.handshake_timeout_secs, 15);
+    assert_eq!(settings.ssh.blocking_timeout_secs, 15);
     assert_eq!(settings.ssh.keepalive_interval_secs, 30);
     
     // Test custom buffer settings
@@ -100,7 +100,7 @@ fn test_settings_from_file() {
             "default_ssh_port": 8022
         },
         "ssh": {
-            "handshake_timeout_secs": 25
+            "blocking_timeout_secs": 25
         },
         "buffer": {
             "read_buffer_size": 16384
@@ -125,7 +125,7 @@ fn test_settings_from_file() {
     // Test settings loaded from file
     assert_eq!(settings.network.tcp_connect_timeout_secs, 45);
     assert_eq!(settings.network.default_ssh_port, 8022);
-    assert_eq!(settings.ssh.handshake_timeout_secs, 25);
+    assert_eq!(settings.ssh.blocking_timeout_secs, 25);
     assert_eq!(settings.buffer.read_buffer_size, 16384);
     assert_eq!(settings.concurrency.max_connections, 75);
     assert_eq!(settings.logging.enable_session_log, true);
@@ -177,8 +177,8 @@ fn test_get_ssh_timeout() {
     let _ = Settings::init(None);
     
     // Test getting different SSH timeout types
-    let handshake = get_ssh_timeout(SshTimeoutType::Handshake);
-    assert_eq!(handshake, Duration::from_secs(30));
+    let blocking = get_ssh_timeout(SshTimeoutType::Blocking);
+    assert_eq!(blocking, Duration::from_secs(30));
     
     let keepalive = get_ssh_timeout(SshTimeoutType::KeepaliveInterval);
     assert_eq!(keepalive, Duration::from_secs(60));

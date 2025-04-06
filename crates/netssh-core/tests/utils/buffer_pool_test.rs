@@ -21,13 +21,13 @@ fn test_buffer_pool_reuse() {
     }
     
     // Get another buffer, should be from the pool
-    let buffer = pool.get_buffer(1024);
+    let mut buffer = pool.get_buffer(1024);
     
     // Buffer should be empty even though we previously filled one
     assert_eq!(buffer.len(), 0);
     
     // But it should have capacity
-    assert!(buffer.capacity() >= 1024);
+    assert!(buffer.get_mut().capacity() >= 1024);
 }
 
 #[test]
@@ -58,7 +58,7 @@ fn test_borrowed_buffer_operations() {
     // Test resizing
     buffer.resize(100, 42);
     assert_eq!(buffer.len(), 100);
-    assert!(buffer.capacity() >= 100);
+    assert!(buffer.get_mut().capacity() >= 100);
     
     // Test clear
     buffer.clear();
@@ -123,12 +123,12 @@ fn test_buffer_utf8_conversion() {
     
     // Valid UTF-8
     buffer.clear();
-    buffer.extend_from_slice("Hello, world!".as_bytes());
+    buffer.get_mut().extend_from_slice("Hello, world!".as_bytes());
     assert_eq!(buffer.as_utf8_string().unwrap(), "Hello, world!");
     
     // Invalid UTF-8
     buffer.clear();
-    buffer.extend_from_slice(&[0xFF, 0x00, 0x80, 0xBF]);
+    buffer.get_mut().extend_from_slice(&[0xFF, 0x00, 0x80, 0xBF]);
     assert!(buffer.as_utf8_string().is_err());
     
     // Test lossy conversion
@@ -150,9 +150,9 @@ fn test_buffer_reuse_threshold() {
     drop(small_buffer);
     
     // Now get a buffer - the small one should have been returned to the pool
-    let buffer = pool.get_buffer(256);
+    let mut buffer = pool.get_buffer(256);
     
     // If this capacity matches the small buffer's capacity, it was reused
-    assert!(buffer.capacity() >= 256);
-    assert!(buffer.capacity() < 2048); // Should not be the large buffer
+    assert!(buffer.get_mut().capacity() >= 256);
+    assert!(buffer.get_mut().capacity() < 2048); // Should not be the large buffer
 } 
