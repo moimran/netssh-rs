@@ -14,6 +14,7 @@ pub mod parallel_execution;
 pub mod semaphore;
 pub mod session_log;
 pub mod settings;
+pub mod vendor_error_patterns;
 pub mod vendors;
 
 // Import lazy_static for common regex patterns
@@ -56,9 +57,7 @@ pub use command_result::{BatchCommandResults, CommandResult, CommandStatus};
 pub use config::{NetsshConfig, NetsshConfigBuilder};
 pub use error::NetsshError;
 pub use logging::init_logging as initialize_logging;
-pub use parallel_execution::{
-    FailureStrategy, ParallelExecutionConfig, ParallelExecutionManager,
-};
+pub use parallel_execution::{FailureStrategy, ParallelExecutionConfig, ParallelExecutionManager};
 pub use semaphore::{SemaphoreError, SemaphorePermit, TimeoutSemaphore};
 pub use settings::{
     get_buffer_setting, get_concurrency_setting, get_network_timeout, get_ssh_timeout, Settings,

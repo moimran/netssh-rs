@@ -141,4 +141,8 @@ impl NetsshError {
             action: action.into(),
         }
     }
+
+    pub fn command_error(error_message: impl Into<String>) -> Self {
+        Self::CommandError(error_message.into())
+    }
 }

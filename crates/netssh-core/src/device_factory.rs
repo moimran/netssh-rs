@@ -90,6 +90,9 @@ impl DeviceFactory {
             return DeviceFactory::create_device(&new_config);
         }
 
+        // Parse device type
+        let device_type = Self::parse_device_type(&config.device_type);
+
         // Handle known device types
         match config.device_type.as_str() {
             "cisco_ios" => {
@@ -104,7 +107,10 @@ impl DeviceFactory {
                 };
 
                 // Create a base connection with default config
-                let base_connection = BaseConnection::new()?;
+                let mut base_connection = BaseConnection::new()?;
+
+                // Set the device type in BaseConnection
+                base_connection.set_device_type(DeviceType::CiscoIos);
 
                 // Create the device with the base connection and config
                 let device = CiscoIosDevice::with_connection(base_connection, cisco_config);
@@ -122,7 +128,10 @@ impl DeviceFactory {
                 };
 
                 // Create a base connection with default config
-                let base_connection = BaseConnection::new()?;
+                let mut base_connection = BaseConnection::new()?;
+
+                // Set the device type in BaseConnection
+                base_connection.set_device_type(DeviceType::CiscoXr);
 
                 // Create the device with the base connection and config
                 let device = CiscoXrDevice::with_connection(base_connection, cisco_config);
@@ -140,7 +149,10 @@ impl DeviceFactory {
                 };
 
                 // Create a base connection with default config
-                let base_connection = BaseConnection::new()?;
+                let mut base_connection = BaseConnection::new()?;
+
+                // Set the device type in BaseConnection
+                base_connection.set_device_type(DeviceType::CiscoNxos);
 
                 // Create the device with the base connection and config
                 let device = CiscoNxosDevice::with_connection(base_connection, cisco_config);
@@ -158,7 +170,10 @@ impl DeviceFactory {
                 };
 
                 // Create a base connection with default config
-                let base_connection = BaseConnection::new()?;
+                let mut base_connection = BaseConnection::new()?;
+
+                // Set the device type in BaseConnection
+                base_connection.set_device_type(DeviceType::CiscoAsa);
 
                 // Create the device with the base connection and config
                 let device = CiscoAsaDevice::with_connection(base_connection, cisco_config);
@@ -175,7 +190,15 @@ impl DeviceFactory {
                     session_log: config.session_log.clone(),
                 };
 
-                let device = JuniperJunosDevice::new(juniper_config)?;
+                // Create a base connection with default config
+                let mut base_connection = BaseConnection::new()?;
+
+                // Set the device type in BaseConnection
+                base_connection.set_device_type(DeviceType::JuniperJunos);
+
+                // Create the device with the base connection and config
+                let device = JuniperJunosDevice::with_connection(base_connection, juniper_config);
+
                 Ok(Box::new(device))
             }
             _ => Err(NetsshError::UnsupportedOperation(format!(

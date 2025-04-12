@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use crate::error::NetsshError;
 
 /// Represents the execution status of a command
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -131,6 +132,72 @@ impl CommandResult {
             duration_ms: 0,
             status: CommandStatus::Skipped,
             error: None,
+        }
+    }
+
+    /// Create a CommandResult from a command execution error
+    pub fn from_error(
+        device_id: String,
+        device_type: String,
+        command: String,
+        error: NetsshError,
+        start_time: DateTime<Utc>,
+        output: Option<String>,
+    ) -> Self {
+        let end_time = Utc::now();
+        let duration = end_time.signed_duration_since(start_time);
+        let duration_ms = duration.num_milliseconds() as u64;
+
+        // Check if it's a timeout error
+        match &error {
+            NetsshError::Timeout { .. } => Self {
+                device_id,
+                device_type,
+                command,
+                output,
+                start_time,
+                end_time,
+                duration_ms,
+                status: CommandStatus::Timeout,
+                error: Some(format!("{}", error)),
+            },
+            NetsshError::CommandError(msg) => Self {
+                device_id,
+                device_type,
+                command,
+                output,
+                start_time,
+                end_time,
+                duration_ms,
+                status: CommandStatus::Failed,
+                error: Some(msg.clone()),
+            },
+            // All other errors get mapped to Failed status
+            _ => Self {
+                device_id,
+                device_type,
+                command,
+                output,
+                start_time,
+                end_time,
+                duration_ms,
+                status: CommandStatus::Failed,
+                error: Some(format!("{}", error)),
+            },
+        }
+    }
+
+    /// Create a CommandResult from a command execution result
+    pub fn from_result(
+        device_id: String,
+        device_type: String,
+        command: String,
+        result: Result<String, NetsshError>,
+        start_time: DateTime<Utc>,
+    ) -> Self {
+        match result {
+            Ok(output) => Self::success(device_id, device_type, command, output, start_time, Utc::now()),
+            Err(error) => Self::from_error(device_id, device_type, command, error, start_time, None),
         }
     }
 }

@@ -1,8 +1,10 @@
 use crate::channel::SSHChannel;
 use crate::config::NetsshConfig;
+use crate::device_connection::DeviceType;
 use crate::error::NetsshError;
 use crate::patterns::{ANSI_ESCAPE_PATTERN, CRLF_PATTERN};
 use crate::session_log::SessionLog;
+use crate::vendor_error_patterns;
 use rand;
 use regex::Regex;
 use ssh2::Session;
@@ -22,6 +24,7 @@ pub struct BaseConnection {
     pub ansi_escape_codes: bool,
     pub read_timeout_override: Option<Duration>,
     _read_buffer: String,
+    pub device_type: DeviceType,
 }
 
 // Constants for sleep durations
@@ -58,6 +61,7 @@ impl BaseConnection {
             ansi_escape_codes: false,
             read_timeout_override: None,
             _read_buffer: String::new(),
+            device_type: DeviceType::Unknown,
         })
     }
 
@@ -80,6 +84,7 @@ impl BaseConnection {
             ansi_escape_codes: false,
             read_timeout_override: None,
             _read_buffer: String::new(),
+            device_type: DeviceType::Unknown,
         })
     }
 
@@ -994,6 +999,13 @@ impl BaseConnection {
                         );
 
                         debug!(target: "BaseConnection::send_command", "Command complete, response length: {}", sanitized_output.len());
+                        // Check for device-specific error patterns
+                        if let Err(err) =
+                            vendor_error_patterns::check_command_output(&sanitized_output, &self.device_type)
+                        {
+                            debug!("Command produced error pattern: {}", err);
+                            return Err(err);
+                        }
                         return Ok(sanitized_output);
                     }
                 }
@@ -1083,6 +1095,16 @@ impl BaseConnection {
             self._sanitize_output(&output, strip_command, Some(command_string), strip_prompt);
 
         debug!(target: "BaseConnection::send_command", "Command complete, response length: {}", sanitized_output.len());
+
+        // Check for device-specific error patterns
+        if let Err(err) =
+            vendor_error_patterns::check_command_output(&sanitized_output, &self.device_type)
+        {
+            debug!("Command produced error pattern: {}", err);
+            return Err(err);
+        }
+
+        // Return the output if no error patterns were found
         Ok(sanitized_output)
     }
 
@@ -2880,5 +2902,11 @@ impl BaseConnection {
 
         debug!(target: "BaseConnection::send_config_set_extended", "Configuration commands sent successfully");
         Ok(sanitized_output)
+    }
+
+    /// Set the device type for this connection
+    pub fn set_device_type(&mut self, device_type: DeviceType) {
+        debug!("Setting device type to {:?}", device_type);
+        self.device_type = device_type;
     }
 }

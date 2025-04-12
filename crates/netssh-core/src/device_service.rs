@@ -1,5 +1,9 @@
-use crate::device_connection::{DeviceInfo, NetworkDeviceConnection};
+use crate::command_result::CommandResult;
+use crate::device_connection::{DeviceInfo, DeviceType, NetworkDeviceConnection};
 use crate::error::NetsshError;
+use crate::vendor_error_patterns;
+use chrono::Utc;
+use std::str::FromStr;
 use tracing::{debug, info, instrument, trace, warn};
 
 /// Basic interface information
@@ -115,10 +119,58 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
         Ok(interfaces)
     }
 
-    /// Execute a command on the device
+    /// Execute a command and return the raw result
     pub fn execute_command(&mut self, command: &str) -> Result<String, NetsshError> {
         info!("Executing command: {}", command);
         self.device.send_command(command)
+    }
+
+    /// Execute a command and return a CommandResult object
+    ///
+    /// This method executes a command and converts the result to a CommandResult,
+    /// including checking for device-specific error patterns in the output.
+    pub fn execute_command_with_result(&mut self, command: &str) -> CommandResult {
+        info!("Executing command with result: {}", command);
+        let start_time = Utc::now();
+        let device_type = self.device.get_device_type().to_string();
+        let device_id = match &self.device.get_device_info() {
+            Ok(info) => info.hostname.clone(),
+            Err(_) => "unknown".to_string(),
+        };
+
+        // First execute the command
+        let result = self.device.send_command(command);
+
+        // If the command succeeded, check for error patterns in the output
+        if let Ok(output) = &result {
+            // Try to convert the device_type string to the DeviceType enum
+            if let Ok(device_type_enum) = DeviceType::from_str(&device_type) {
+                // Check for error patterns in the output
+                if let Some(error_message) =
+                    vendor_error_patterns::check_for_errors(output, &device_type_enum)
+                {
+                    debug!("Found error pattern in command output: {}", error_message);
+                    // Return a CommandResult with Failed status
+                    return CommandResult::from_error(
+                        device_id,
+                        device_type,
+                        command.to_string(),
+                        NetsshError::command_error(error_message),
+                        start_time,
+                        Some(output.clone()),
+                    );
+                }
+            }
+        }
+
+        // Convert the result to a CommandResult
+        CommandResult::from_result(
+            device_id,
+            device_type,
+            command.to_string(),
+            result,
+            start_time,
+        )
     }
 }
 
