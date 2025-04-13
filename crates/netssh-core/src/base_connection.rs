@@ -2010,99 +2010,52 @@ impl BaseConnection {
         &mut self,
         cmd: Option<&str>,
         pattern: Option<&str>,
-        enable_pattern: Option<&str>,
-        check_state: Option<bool>,
+        secret: Option<&str>,
         _re_flags: Option<i32>, // Not used in Rust implementation
     ) -> Result<String, NetsshError> {
-        let cmd = cmd.unwrap_or("enable");
+        let cmd: &str = cmd.unwrap_or("enable");
         let pattern = pattern.unwrap_or("assword");
-        let check_state = check_state.unwrap_or(true);
+        let secret = secret.unwrap_or("");
 
         let mut output = String::new();
 
         debug!(target: "BaseConnection::enable", "Entering enable mode with command: {}", cmd);
 
-        // Check if already in enable mode and skip if so
-        if check_state && self.check_enable_mode(None)? {
-            debug!(target: "BaseConnection::enable", "Already in enable mode");
-            return Ok(output);
-        }
-
         // Send enable command
         let cmd_str = format!("{}\n", cmd.trim());
         self.write_channel(&cmd_str)?;
 
+        // give 10ms delay
+        thread::sleep(Duration::from_millis(100));
+
         // Read command echo
-        if let Ok(data) = self.read_until_pattern(&regex::escape(cmd.trim()), None, None) {
+        if let Ok(data) = self.channel.read_channel_until_pattern(&pattern) {
             output.push_str(&data);
         }
 
-        // Read until prompt or password pattern
-        let prompt_pattern = if let Some(base_prompt) = &self.base_prompt {
-            regex::escape(base_prompt)
-        } else {
-            String::new()
-        };
+        // If password prompt appears, send the secret
+        if output.contains(pattern) {
+            debug!(target: "BaseConnection::enable", "Password prompt detected, sending secret");
+            if !secret.is_empty() {
+            // Send the secret
+            let secret_str = format!("{}\n", secret);
+            self.write_channel(&secret_str)?;
 
-        let combined_pattern = if !prompt_pattern.is_empty() {
-            format!(r"(?:{}|{})", pattern, prompt_pattern)
-        } else {
-            pattern.to_string()
-        };
-
-        match self.read_until_pattern(&combined_pattern, None, None) {
-            Ok(data) => {
-                output.push_str(&data);
-
-                // If password prompt appears, send the secret
-                if output.contains(pattern) {
-                    debug!(target: "BaseConnection::enable", "Password prompt detected, sending secret");
-
-                    // Check if secret is available in config
-                    if let Some(secret) = &self.config.secret {
-                        // Send the secret
-                        let secret_str = format!("{}\n", secret);
-                        self.write_channel(&secret_str)?;
-
-                        // Read the response
-                        match self.read_until_prompt(None, None, None) {
-                            Ok(data) => {
-                                output.push_str(&data);
-                            }
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-                    } else {
-                        return Err(NetsshError::AuthenticationError(
-                            "Enable password required but not provided".to_string(),
-                        ));
+            // Read the response
+            match self.read_until_prompt(None, None, None) {
+                Ok(data) => {
+                    output.push_str(&data);
+                }
+                Err(e) => {
+                    return Err(e);
                     }
                 }
-
-                // Check for enable pattern if provided
-                if let Some(enable_pat) = enable_pattern {
-                    if !output.contains(enable_pat) {
-                        match self.read_until_pattern(enable_pat, None, None) {
-                            Ok(data) => {
-                                output.push_str(&data);
-                            }
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-                    }
-                }
-
-                // Verify we're in enable mode
-                if !self.check_enable_mode(None)? {
-                    return Err(NetsshError::AuthenticationError(
-                        "Failed to enter enable mode".to_string(),
-                    ));
-                }
-            }
-            Err(e) => {
-                return Err(e);
+            } 
+            else 
+            {
+                return Err(NetsshError::AuthenticationError(
+                    "Enable password required but not provided".to_string(),
+                ));
             }
         }
 

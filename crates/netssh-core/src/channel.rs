@@ -189,7 +189,6 @@ impl SSHChannel {
 
         // Read while there's data and we haven't found a prompt
         while !channel.eof() {
-            debug!(target: "SSHChannel::read_channel", "Reading from channel");
             match channel.read(&mut buffer) {
                 Ok(n) => {
                     if n > 0 {
@@ -198,6 +197,13 @@ impl SSHChannel {
                         match std::str::from_utf8(&buffer[..n]) {
                             Ok(s) => output.push_str(s),
                             Err(_) => output.push_str(&String::from_utf8_lossy(&buffer[..n])),
+                        }
+
+                        debug!(target: "SSHChannel::read_channel", "Read bytes from channel loop output: {}", output);
+
+                        if output.contains("assword:"){
+                            debug!(target: "SSHChannel::read_channel", "Found prompt/terminator, exiting read loop");
+                            break;
                         }
 
                         // If we have a prompt or terminating character, break early
@@ -230,6 +236,75 @@ impl SSHChannel {
         }
 
         debug!(target: "SSHChannel::read_channel", "Read complete, output length: {}", output.len());
+        Ok(output)
+    }
+
+    pub fn read_channel_until_pattern(&self, pattern: &str) -> Result<String, NetsshError> {
+        debug!(target: "SSHChannel::read_channel", "Reading all available data from channel");
+
+        // Check if we have a channel
+        if self.is_none() {
+            return Err(NetsshError::ReadError(
+                "Attempt to read, but there is no active channel.".to_string(),
+            ));
+        }
+
+        let mut remote_conn = self.remote_conn.borrow_mut();
+        let channel = remote_conn.as_mut().unwrap(); // Safe because we checked is_none()
+
+        let mut output = String::new();
+        let mut read_something = false;
+        let mut buffer = vec![0; 8192];
+
+        // Read while there's data and we haven't found a prompt
+        while !channel.eof() {
+            match channel.read(&mut buffer) {
+                Ok(n) => {
+                    if n > 0 {
+                        read_something = true;
+                        // Optimize UTF-8 validation by only processing bytes we've read
+                        match std::str::from_utf8(&buffer[..n]) {
+                            Ok(s) => output.push_str(s),
+                            Err(_) => output.push_str(&String::from_utf8_lossy(&buffer[..n])),
+                        }
+
+                        debug!(target: "SSHChannel::read_channel_until_pattern", "Read bytes from channel loop output: {}", output);
+
+                        if output.contains(pattern) {
+                            debug!(target: "SSHChannel::read_channel_until_pattern", "Found pattern, exiting read loop");
+                            break;
+                        }
+
+                        // If we have a prompt or terminating character, break early
+                        if output.contains(">") || output.contains("#") {
+                            debug!(target: "SSHChannel::read_channel_until_pattern", "Found prompt/terminator, exiting read loop");
+                            break;
+                        }
+                    } else {
+                        // No data available or connection closed
+                        debug!(target: "SSHChannel::read_channel_until_pattern", "No data available or channel closed");
+                        if !read_something {
+                            return Ok(String::new());
+                        }
+                        break;
+                    }
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    debug!(target: "SSHChannel::read_channel_until_pattern", "No more data available right now, read_something: {}", read_something);
+                    if !read_something {
+                        return Ok(String::new());
+                    }
+                    // Short sleep before checking eof() again
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+                Err(e) => {
+                    debug!(target: "SSHChannel::read_channel_until_pattern", "Error reading from channel: {}", e);
+                    break;
+                }
+            }
+        }
+
+        debug!(target: "SSHChannel::read_channel_until_pattern", "Read complete, output length: {}", output.len());
         Ok(output)
     }
 

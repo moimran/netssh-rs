@@ -85,31 +85,32 @@ impl CiscoBaseConnection {
     pub fn enable(&mut self) -> Result<(), NetsshError> {
         debug!(target: "CiscoBaseConnection::enable", "Entering enable mode");
 
-        if self.check_enable_mode()? {
-            debug!(target: "CiscoBaseConnection::enable", "Already in enable mode");
-            return Ok(());
-        }
-
         let cmd = "enable";
-        let pattern = "assword";
+        let pattern = "assword:";
         let secret = self.config.secret.as_deref();
 
         if let Some(_secret_str) = secret {
-            let output =
-                self.connection
-                    .enable(Some(cmd), Some(pattern), None, Some(true), None)?;
+            let output = self
+                .connection
+                .enable(Some(cmd), Some(pattern.trim()), secret, None)?;
 
             debug!(target: "CiscoBaseConnection::enable", "Enable output: {}", output);
 
             self.in_enable_mode = true;
         } else {
-            self.connection.write_channel("enable\n")?;
-            let output = self.connection.read_until_pattern("#", None, None)?;
+            debug!(target: "CiscoBaseConnection::enable", "secret is None, entering enable mode");
+            let cmd_str = format!("{}\n", cmd.trim());
+            self.connection.write_channel(&cmd_str)?;
+            // add a delay
+            let output =
+                self.connection
+                    .read_until_pattern("(Error in authentication|#)", None, None)?;
 
             if !output.trim().ends_with("#") {
-                return Err(NetsshError::CommandError(
-                    "Failed to enter enable mode".to_string(),
-                ));
+                return Err(NetsshError::CommandError(format!(
+                    "Failed to enter enable mode: {}",
+                    output
+                )));
             }
 
             self.in_enable_mode = true;
