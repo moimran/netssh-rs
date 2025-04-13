@@ -102,19 +102,6 @@ impl CiscoIosDevice {
         self.base.terminal_settings()
     }
 
-    // /// Configure terminal settings specific to Cisco IOS devices
-    // pub fn terminal_settings(&mut self) -> Result<(), NetsshError> {
-    //     debug!(target: "CiscoIosDevice::terminal_settings", "Configuring IOS terminal settings");
-
-    //     // Set terminal width to 511 characters
-    //     self.set_terminal_width(511)?;
-
-    //     // Disable paging
-    //     self.disable_paging()?;
-
-    //     debug!(target: "CiscoIosDevice::terminal_settings", "IOS terminal settings configured successfully");
-    //     Ok(())
-    // }
 }
 
 impl DefaultConfigSetMethods for CiscoIosDevice {
@@ -163,5 +150,36 @@ impl CiscoDeviceConnection for CiscoIosDevice {
 
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
         self.send_command(command)
+    }
+
+    fn send_config_set(
+        &mut self,
+        config_commands: Vec<String>,
+        exit_config_mode: Option<bool>,
+        read_timeout: Option<f64>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        config_mode_command: Option<&str>,
+        cmd_verify: Option<bool>,
+        enter_config_mode: Option<bool>,
+        error_pattern: Option<&str>,
+        terminator: Option<&str>,
+        bypass_commands: Option<&str>,
+        fast_cli: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        self.base.connection.send_config_set(
+            config_commands,
+            exit_config_mode,
+            read_timeout,
+            strip_prompt,
+            strip_command,
+            config_mode_command,
+            cmd_verify,
+            enter_config_mode,
+            error_pattern,
+            terminator,
+            bypass_commands,
+            fast_cli,
+        )
     }
 }

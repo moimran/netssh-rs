@@ -122,13 +122,14 @@ impl NetworkDeviceConnection for CiscoXrDevice {
         bypass_commands: Option<&str>,
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
-        self.default_send_config_set(
+        <Self as CiscoDeviceConnection>::send_config_set(
+            self,
             config_commands,
             exit_config_mode,
             read_timeout,
             strip_prompt,
             strip_command,
-            config_mode_command.or(Some("configure terminal")),
+            config_mode_command,
             cmd_verify,
             enter_config_mode,
             error_pattern,

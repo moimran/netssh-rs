@@ -193,7 +193,14 @@ impl CiscoDeviceConnection for CiscoXrDevice {
 
     fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetsshError> {
         debug!(target: "CiscoXrDevice::exit_config_mode", "Delegating to CiscoBaseConnection::exit_config_mode");
-        self.base.exit_config_mode(exit_command)
+
+        if self.save_config().is_ok() {
+            self.base.exit_config_mode(exit_command)
+        } else {
+            Err(NetsshError::CommandError(
+                "Failed to save configuration".to_string(),
+            ))
+        }
     }
 
     #[tracing::instrument(name = "CiscoXrDevice::save_config", skip(self), level = "debug")]
@@ -236,5 +243,43 @@ impl CiscoDeviceConnection for CiscoXrDevice {
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
         debug!(target: "CiscoXrDevice::send_command", "Delegating to CiscoBaseConnection::send_command");
         self.base.send_command(command)
+    }
+
+    #[instrument(name = "CiscoXrDevice::send_config_set", skip(self), level = "debug")]
+    fn send_config_set(
+        &mut self,
+        config_commands: Vec<String>,
+        exit_config_mode: Option<bool>,
+        read_timeout: Option<f64>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        config_mode_command: Option<&str>,
+        cmd_verify: Option<bool>,
+        enter_config_mode: Option<bool>,
+        error_pattern: Option<&str>,
+        terminator: Option<&str>,
+        bypass_commands: Option<&str>,
+        fast_cli: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        debug!(target: "CiscoXrDevice::send_config_set", "Delegating to BaseConnection::send_config_set");
+        let output = self.base.connection.send_config_set(
+            config_commands,
+            Some(false),
+            read_timeout,
+            strip_prompt,
+            strip_command,
+            config_mode_command,
+            cmd_verify,
+            enter_config_mode,
+            error_pattern,
+            terminator,
+            bypass_commands,
+            fast_cli,
+        )?;
+
+        // Exit config mode
+        self.exit_config_mode(None)?;
+
+        Ok(output)
     }
 }

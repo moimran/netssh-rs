@@ -288,4 +288,22 @@ impl CiscoDeviceConnection for CiscoAsaDevice {
         // This method is already implemented as a public method in the CiscoAsaDevice impl block
         self.change_context(context_name)
     }
+
+    fn send_config_set(
+        &mut self,
+        config_commands: Vec<String>,
+        exit_config_mode: Option<bool>,
+        read_timeout: Option<f64>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        config_mode_command: Option<&str>,
+        cmd_verify: Option<bool>,
+        enter_config_mode: Option<bool>,
+        error_pattern: Option<&str>,
+        terminator: Option<&str>,
+        bypass_commands: Option<&str>,
+        fast_cli: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        self.base.connection.send_config_set(config_commands, exit_config_mode, read_timeout, strip_prompt, strip_command, config_mode_command, cmd_verify, enter_config_mode, error_pattern, terminator, bypass_commands, fast_cli)
+    }
 }

@@ -31,6 +31,21 @@ pub trait CiscoDeviceConnection: DefaultConfigSetMethods {
     fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetsshError>;
     fn save_config(&mut self) -> Result<String, NetsshError>;
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError>;
+    fn send_config_set(
+        &mut self,
+        config_commands: Vec<String>,
+        exit_config_mode: Option<bool>,
+        read_timeout: Option<f64>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        config_mode_command: Option<&str>,
+        cmd_verify: Option<bool>,
+        enter_config_mode: Option<bool>,
+        error_pattern: Option<&str>,
+        terminator: Option<&str>,
+        bypass_commands: Option<&str>,
+        fast_cli: Option<bool>,
+    ) -> Result<String, NetsshError>;
     fn change_context(&mut self, _context_name: &str) -> Result<(), NetsshError> {
         Ok(())
     }

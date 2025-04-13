@@ -577,28 +577,6 @@ impl BaseConnection {
 
                             debug!(target: "BaseConnection::read_until_pattern", "Output: {}", output);
 
-                            // Split the output at the pattern
-                            // let parts: Vec<&str> =
-                            //     pattern_regex.splitn(output.as_str(), 2).collect();
-
-                            // if parts.len() == 2 {
-                            //     // Get everything up to and including the pattern
-                            //     let (before, after) = (parts[0], parts[1]);
-                            //     let pattern_match = pattern_regex
-                            //         .find(&output)
-                            //         .map(|m| m.as_str())
-                            //         .unwrap_or("");
-
-                            //     // Store any remaining data in the read buffer
-                            //     if !after.is_empty() {
-                            //         self._read_buffer = after.to_string();
-                            //     }
-
-                            //     // Return everything up to and including the pattern
-                            //     let result = format!("{}{}", before, pattern_match);
-                            //     debug!(target: "BaseConnection::read_until_pattern", "Returning matched output: {:?}", result);
-                            //     return Ok(result);
-                            // }
                             return Ok(output);
                         }
                     }
@@ -2697,6 +2675,15 @@ impl BaseConnection {
         let _terminator = terminator.unwrap_or(r"#");
         let fast_cli = fast_cli.unwrap_or(false);
 
+        // Print all the arguements
+        debug!(target: "BaseConnection::send_config_set_extended", "exit_config_mode: {}", exit_config_mode);
+        debug!(target: "BaseConnection::send_config_set_extended", "read_timeout: {}", read_timeout);
+        debug!(target: "BaseConnection::send_config_set_extended", "strip_prompt: {}", strip_prompt);
+        debug!(target: "BaseConnection::send_config_set_extended", "strip_command: {}", strip_command);
+        debug!(target: "BaseConnection::send_config_set_extended", "cmd_verify: {}", cmd_verify);
+        debug!(target: "BaseConnection::send_config_set_extended", "enter_config_mode: {}", enter_config_mode);
+        debug!(target: "BaseConnection::send_config_set_extended", "fast_cli: {}", fast_cli);
+
         if config_commands.is_empty() {
             return Ok(String::new());
         }
@@ -2816,23 +2803,6 @@ impl BaseConnection {
                         // Continue despite failure
                     }
                 }
-
-                // Read until prompt or terminator pattern
-                // let pattern = format!(
-                //     "(?:{}.*$|{}.*$)",
-                //     self.base_prompt.as_ref().map_or("", |p| p),
-                //     terminator
-                // );
-
-                // match self.read_until_pattern(&pattern, Some(read_timeout), Some(8)) {
-                //     // re.M = 8 in Python
-                //     Ok(data) => {
-                //         output.push_str(&data);
-                //     }
-                //     Err(e) => {
-                //         return Err(e);
-                //     }
-                // }
 
                 // Check for errors if error_pattern specified
                 if let Some(re) = &error_regex {

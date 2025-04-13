@@ -90,9 +90,6 @@ impl DeviceFactory {
             return DeviceFactory::create_device(&new_config);
         }
 
-        // Parse device type
-        let device_type = Self::parse_device_type(&config.device_type);
-
         // Handle known device types
         match config.device_type.as_str() {
             "cisco_ios" => {
