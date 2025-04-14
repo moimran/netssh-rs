@@ -1,7 +1,6 @@
 use crate::device_connection::{DeviceInfo, NetworkDeviceConnection};
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoDeviceConnection, CiscoXrDevice};
-use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
 
 #[async_trait]

@@ -74,7 +74,7 @@ impl JuniperJunosDevice {
         self.base.exit_config_mode(exit_command)
     }
 
-    pub fn commit_config(&mut self) -> Result<(), NetsshError> {
+    pub fn commit_config(&mut self) -> Result<String, NetsshError> {
         debug!(target: "JuniperJunosDevice::commit_config", "Delegating to JuniperBaseConnection::commit_config");
         self.base.commit_config()
     }
@@ -141,7 +141,7 @@ impl JuniperDeviceConnection for JuniperJunosDevice {
         self.exit_config_mode(exit_command)
     }
 
-    fn commit_config(&mut self) -> Result<(), NetsshError> {
+    fn commit_config(&mut self) -> Result<String, NetsshError> {
         self.commit_config()
     }
 

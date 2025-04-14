@@ -60,7 +60,7 @@ pub trait JuniperDeviceConnection: DefaultConfigSetMethods {
     fn exit_config_mode(&mut self, exit_command: Option<&str>) -> Result<(), NetsshError>;
 
     /// Save configuration
-    fn commit_config(&mut self) -> Result<(), NetsshError>;
+    fn commit_config(&mut self) -> Result<String, NetsshError>;
 
     /// Send command to device
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError>;

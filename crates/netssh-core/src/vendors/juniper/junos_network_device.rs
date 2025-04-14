@@ -47,7 +47,8 @@ impl NetworkDeviceConnection for JuniperJunosDevice {
     }
 
     fn save_configuration(&mut self) -> Result<(), NetsshError> {
-        <Self as JuniperDeviceConnection>::commit_config(self)
+        let _ = <Self as JuniperDeviceConnection>::commit_config(self)?;
+        Ok(())
     }
 
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
@@ -101,31 +102,36 @@ impl NetworkDeviceConnection for JuniperJunosDevice {
     fn send_config_set(
         &mut self,
         config_commands: Vec<String>,
-        exit_config_mode: Option<bool>,
+        _exit_config_mode: Option<bool>,
         read_timeout: Option<f64>,
         strip_prompt: Option<bool>,
         strip_command: Option<bool>,
-        config_mode_command: Option<&str>,
+        _config_mode_command: Option<&str>,
         cmd_verify: Option<bool>,
-        enter_config_mode: Option<bool>,
+        _enter_config_mode: Option<bool>,
         error_pattern: Option<&str>,
         terminator: Option<&str>,
         bypass_commands: Option<&str>,
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
-        self.default_send_config_set(
+        let result = self.default_send_config_set(
             config_commands,
-            exit_config_mode,
+            Some(false),
             read_timeout,
             strip_prompt,
             strip_command,
-            config_mode_command,
+            Some("configure"),
             cmd_verify,
-            enter_config_mode,
+            Some(true),
             error_pattern,
             terminator,
             bypass_commands,
             fast_cli,
-        )
+        )?;
+
+        let commit_output = <Self as JuniperDeviceConnection>::commit_config(self)?;
+        self.exit_config_mode(None)?;
+
+        Ok(format!("{}\n{}", result, commit_output))
     }
 }

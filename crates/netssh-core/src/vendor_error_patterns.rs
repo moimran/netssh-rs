@@ -2,7 +2,7 @@ use crate::device_connection::DeviceType;
 use crate::error::NetsshError;
 use lazy_static::lazy_static;
 use regex::Regex;
-use tracing::{debug, trace};
+use tracing::debug;
 
 lazy_static! {
     // Cisco IOS error patterns

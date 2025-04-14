@@ -350,7 +350,7 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         Ok(())
     }
 
-    fn commit_config(&mut self) -> Result<(), NetsshError> {
+    fn commit_config(&mut self) -> Result<String, NetsshError> {
         debug!(target: "JuniperBaseConnection::commit_config", "Committing configuration");
 
         // Check if in config mode
@@ -363,7 +363,7 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         self.connection.write_channel("commit\n")?;
 
         // Wait for completion
-        let output = self.connection.read_until_pattern("#", None, None)?;
+        let output = self.connection.read_until_pattern(&self.prompt, None, None)?;
 
         if output.contains("error") || output.contains("failed") {
             warn!(target: "JuniperBaseConnection::commit_config", "Error committing configuration: {}", output);
@@ -374,7 +374,7 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         }
 
         debug!(target: "JuniperBaseConnection::commit_config", "Configuration committed successfully");
-        Ok(())
+        Ok(output)
     }
 
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
@@ -383,10 +383,9 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         // Send command
         self.connection.write_channel(&format!("{}\n", command))?;
 
-        // Wait for command echo and prompt
-        let pattern = if self.in_config_mode { "#" } else { "[>#%]" };
-
-        let output = self.connection.read_until_pattern(pattern, None, None)?;
+        let output = self
+            .connection
+            .read_until_pattern(&self.prompt, None, None)?;
 
         self.connection.session_log.write(&output)?;
 
