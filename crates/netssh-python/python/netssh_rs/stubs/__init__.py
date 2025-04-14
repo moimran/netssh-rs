@@ -9,6 +9,7 @@ from netssh_rs.stubs.netssh_rs import (
     PyParallelExecutionManager,
     PyCommandResult,
     PyBatchCommandResults,
+    PyParallelExecutionConfig,
     initialize_logging
 )
 
@@ -18,5 +19,6 @@ __all__ = [
     "PyParallelExecutionManager",
     "PyCommandResult",
     "PyBatchCommandResults",
+    "PyParallelExecutionConfig",
     "initialize_logging"
 ] 

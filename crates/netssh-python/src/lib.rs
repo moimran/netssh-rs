@@ -78,10 +78,16 @@ fn netssh_rs(_py: Python, m: &PyModule) -> PyResult<()> {
 
 /// Initialize logging
 #[pyfunction]
-#[pyo3(signature = (debug=false, console=false))]
-#[pyo3(text_signature = "(debug=False, console=False)")]
-fn initialize_logging(debug: bool, console: bool) -> PyResult<()> {
-    netssh_core::logging::init_logging(debug, console).map_err(netssh_error_to_pyerr_simple)
+#[pyo3(signature = (level="info", log_to_file=false, log_file_path=None, log_format=None))]
+#[pyo3(text_signature = "(level='info', log_to_file=False, log_file_path=None, log_format=None)")]
+fn initialize_logging(
+    level: &str,
+    log_to_file: bool,
+    log_file_path: Option<&str>,
+    log_format: Option<&str>,
+) -> PyResult<()> {
+    netssh_core::init_logging(level, log_to_file, log_file_path, log_format)
+        .map_err(netssh_error_to_pyerr_simple)
 }
 
 /// Python wrapper for DeviceConfig

@@ -14,7 +14,7 @@ pip install netssh_rs
 import netssh_rs
 
 # Initialize logging
-netssh_rs.initialize_logging(debug=True, console=True)
+netssh_rs.initialize_logging(level="debug", log_to_file=True, log_file_path="logs/netssh-rs.log")
 
 # Create a device configuration
 config = netssh_rs.PyDeviceConfig(

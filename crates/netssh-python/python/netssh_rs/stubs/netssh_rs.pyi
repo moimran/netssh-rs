@@ -1135,8 +1135,8 @@ class PyParallelExecutionManager:
         
         # Create device configurations
         configs = [
-            PyDeviceConfig(hostname="router1", username="admin", password="pass"),
-            PyDeviceConfig(hostname="router2", username="admin", password="pass")
+            PyDeviceConfig(device_type="cisco_ios", host="router1", username="admin", password="pass"),
+            PyDeviceConfig(device_type="cisco_ios", host="router2", username="admin", password="pass")
         ]
         
         # Execute the same commands on all devices
@@ -1147,10 +1147,10 @@ class PyParallelExecutionManager:
         
         # Execute device-specific commands
         device_commands = {
-            "router1": ["show version", "show ip route"],
-            "router2": ["show version", "show interfaces"]
+            config1: ["show version", "show ip route"],
+            config2: ["show version", "show interfaces"]
         }
-        results = manager.execute_device_specific_commands(configs, device_commands)
+        results = manager.execute_commands(device_commands)
         
         # Process results
         print(f"Success: {results.success_count}/{results.command_count}")
@@ -1158,12 +1158,89 @@ class PyParallelExecutionManager:
         ```
     """
 
-    def __init__(self, config: Optional[PyParallelExecutionConfig] = None) -> None:
+    def __init__(
+        self, 
+        max_concurrency: Optional[int] = None,
+        command_timeout_seconds: Optional[int] = None,
+        connection_timeout_seconds: Optional[int] = None,
+        failure_strategy: Optional[str] = None,
+        reuse_connections: Optional[bool] = None
+    ) -> None:
         """
         Initialize a new parallel execution manager.
 
         Args:
-            config: Configuration for parallel execution behavior
+            max_concurrency: Maximum number of devices to connect to simultaneously
+            command_timeout_seconds: Maximum time allowed for a single command to complete (in seconds)
+            connection_timeout_seconds: Maximum time allowed for establishing a connection (in seconds, deprecated)
+            failure_strategy: How to handle failures ('continue_on_device', 'skip_device', 'abort_batch')
+            reuse_connections: Whether to reuse connections for multiple commands
+        """
+        ...
+
+    def set_max_concurrency(self, max_concurrency: int) -> None:
+        """
+        Set the maximum concurrency for parallel device connections.
+        
+        Args:
+            max_concurrency: Maximum number of devices to connect to simultaneously
+        """
+        ...
+
+    def set_command_timeout(self, timeout_seconds: int) -> None:
+        """
+        Set the command timeout in seconds.
+        
+        Args:
+            timeout_seconds: Maximum time allowed for a command to complete
+        """
+        ...
+
+    def set_connection_timeout(self, timeout_seconds: int) -> None:
+        """
+        Set the connection timeout in seconds (deprecated).
+        
+        Args:
+            timeout_seconds: Connection timeout (no longer used)
+        """
+        ...
+
+    def set_failure_strategy(self, strategy: str) -> None:
+        """
+        Set the failure handling strategy.
+        
+        Args:
+            strategy: Strategy for handling command failures 
+                     ('continue_on_device', 'skip_device', 'abort_batch')
+        """
+        ...
+
+    def set_reuse_connections(self, reuse: bool) -> None:
+        """
+        Set whether to reuse connections for multiple commands.
+        
+        Args:
+            reuse: Whether to reuse existing connections
+        """
+        ...
+
+    def execute_command_on_all(
+        self,
+        configs: List[PyDeviceConfig],
+        command: str
+    ) -> PyBatchCommandResults:
+        """
+        Execute a single command on multiple devices in parallel.
+
+        Args:
+            configs: List of device configurations to connect to
+            command: The command to execute on each device
+
+        Returns:
+            Batch command results containing all execution results
+
+        Raises:
+            Exception: If there are issues creating devices or during execution
         """
         ...
 
@@ -1173,7 +1250,7 @@ class PyParallelExecutionManager:
         commands: List[str]
     ) -> PyBatchCommandResults:
         """
-        Execute the same commands on multiple devices in parallel.
+        Execute multiple commands on all devices in parallel.
 
         Args:
             device_configs: List of device configurations to connect to
@@ -1187,19 +1264,17 @@ class PyParallelExecutionManager:
         """
         ...
 
-    def execute_device_specific_commands(
+    def execute_commands(
         self, 
-        device_configs: List[PyDeviceConfig], 
-        device_commands: Dict[str, List[str]]
+        device_commands: Dict[PyDeviceConfig, List[str]]
     ) -> PyBatchCommandResults:
         """
-        Execute different commands on different devices in parallel.
+        Execute device-specific commands in parallel.
 
-        The commands are specified per device based on the device's hostname.
+        Each device config maps to a list of commands to execute on that device.
 
         Args:
-            device_configs: List of device configurations to connect to
-            device_commands: Dictionary mapping device hostnames to command lists
+            device_commands: Dictionary mapping device configs to command lists
 
         Returns:
             Batch command results containing all execution results
@@ -1208,27 +1283,28 @@ class PyParallelExecutionManager:
             Exception: If there are issues creating devices or during execution
         """
         ...
-
-    def execute_with_existing_devices(
-        self, 
-        devices: List[PyNetworkDevice], 
-        commands: List[str]
-    ) -> PyBatchCommandResults:
+        
+    def cleanup(self) -> None:
         """
-        Execute commands using pre-initialized network device objects.
-
-        Useful when you've already established connections and want to reuse them.
-
-        Args:
-            devices: List of connected network device objects
-            commands: List of commands to execute on each device
-
-        Returns:
-            Batch command results containing all execution results
-
-        Raises:
-            Exception: If there are issues during execution
+        Close all open connections.
+        
+        This method should be called when you're done with the manager to 
+        release all resources. If using the context manager, this is called
+        automatically.
         """
+        ...
+        
+    def __enter__(self) -> "PyParallelExecutionManager":
+        """Context manager entry."""
+        ...
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]
+    ) -> bool:
+        """Context manager exit."""
         ...
 
 class NetworkError(Exception):

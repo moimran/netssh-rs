@@ -19,6 +19,14 @@ try:
         PyBatchCommandResults,
         initialize_logging
     )
+    
+    # Provide backwards compatibility aliases
+    DeviceConfig = PyDeviceConfig
+    NetworkDevice = PyNetworkDevice
+    ParallelExecutionManager = PyParallelExecutionManager
+    CommandResult = PyCommandResult
+    BatchCommandResults = PyBatchCommandResults
+    
 except ImportError as e:
     raise ImportError(f"Error importing netssh_rs Rust module: {e}. Make sure the library is properly installed.") from e
 
@@ -35,6 +43,12 @@ try:
         "PyCommandResult",
         "PyBatchCommandResults",
         "initialize_logging",
+        # Aliases for backward compatibility
+        "DeviceConfig",
+        "NetworkDevice",
+        "ParallelExecutionManager",
+        "CommandResult",
+        "BatchCommandResults",
         # TextFSM exports
         "parse_output",
         "parse_output_to_json",
@@ -49,5 +63,11 @@ except ImportError as e:
         "PyParallelExecutionManager",
         "PyCommandResult",
         "PyBatchCommandResults",
-        "initialize_logging"
+        "initialize_logging",
+        # Aliases for backward compatibility
+        "DeviceConfig",
+        "NetworkDevice",
+        "ParallelExecutionManager",
+        "CommandResult",
+        "BatchCommandResults"
     ]

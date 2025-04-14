@@ -56,7 +56,7 @@ pub use buffer_pool::{BorrowedBuffer, BufferPool};
 pub use command_result::{BatchCommandResults, CommandResult, CommandStatus};
 pub use config::{NetsshConfig, NetsshConfigBuilder};
 pub use error::NetsshError;
-pub use logging::init_logging as initialize_logging;
+pub use logging::init_logging;
 pub use parallel_execution::{FailureStrategy, ParallelExecutionConfig, ParallelExecutionManager};
 pub use semaphore::{SemaphoreError, SemaphorePermit, TimeoutSemaphore};
 pub use settings::{

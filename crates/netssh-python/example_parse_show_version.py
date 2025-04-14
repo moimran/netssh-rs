@@ -29,7 +29,7 @@ try:
         NetworkOutputParser
     )
     # Initialize netssh_rs logging
-    initialize_logging()
+    initialize_logging(level="debug")
 except ImportError as e:
     print(f"Error importing from netssh_rs: {e}")
     print("Make sure the package is properly installed.")

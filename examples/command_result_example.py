@@ -25,7 +25,7 @@ except ImportError:
 
 # Initialize logging
 from netssh_rs import initialize_logging
-initialize_logging(debug=True, console=True)
+initialize_logging(level="debug", log_to_file=False)
 
 
 def single_device_example():
