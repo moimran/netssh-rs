@@ -413,6 +413,28 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
             output
         };
 
+        // Strip the prompt from the end of the output
+        let result = if result.trim().ends_with(&format!(">{}", ""))
+            || result.trim().ends_with(&format!("#{}", ""))
+        {
+            // Find the last occurrence of the prompt and remove it
+            if let Some(last_prompt_pos) = result.rfind(&self.prompt) {
+                result[..last_prompt_pos].trim().to_string()
+            } else {
+                // If we can't find the exact prompt, try a more generic approach
+                let mut cleaned_result = result.trim().to_string();
+                if let Some(idx) = cleaned_result.rfind('>') {
+                    // Check if this looks like a prompt (typically short and at the end)
+                    if cleaned_result.len() - idx < 30 {
+                        cleaned_result = cleaned_result[..idx].trim().to_string();
+                    }
+                }
+                cleaned_result
+            }
+        } else {
+            result
+        };
+
         // Explicitly check for Juniper-specific error patterns
         if let Some(error) =
             vendor_error_patterns::check_for_errors(&result, &DeviceType::JuniperJunos)
