@@ -25,7 +25,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "textfsm>=1.1.0",
+    # No external dependencies required - TextFSM is included in the package
 ]
 
 [project.urls]
@@ -34,12 +34,18 @@ Repository = "https://github.com/yourusername/netssh-rs"
 [tool.maturin]
 python-source = "python"
 module-name = "netssh_rs.netssh_rs"
+# Include all necessary files
 include = [
-    "textfsm/**/*", 
-    "python/netssh_rs/py.typed", 
-    "python/netssh_rs/stubs/**/*.pyi",
-    "python/netssh_rs/__init__.py"
+    # Include the TextFSM module files and templates
+    "python/netssh_rs/textfsm/*.py",
+    "python/netssh_rs/textfsm/py.typed",
+    "python/netssh_rs/textfsm/templates/**/*",
+    # Include the type stubs
+    "python/netssh_rs/py.typed",
+    "python/netssh_rs/stubs/**/*.pyi"
 ]
+# Include the netssh_rs package
+python-packages = ["netssh_rs"]
 features = ["pyo3/extension-module"]
 
 [tool.mypy]

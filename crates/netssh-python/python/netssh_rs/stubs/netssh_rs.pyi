@@ -9,6 +9,7 @@ The main components include:
 - Network device connection and command execution (PyNetworkDevice)
 - Command results and output handling (PyCommandResult, PyBatchCommandResults)
 - Parallel execution across multiple devices (PyParallelExecutionManager)
+- TextFSM parsing for structured command output (NetworkOutputParser)
 
 These type stubs are for IDE integration and type checking and are not used at runtime.
 """
@@ -29,6 +30,100 @@ CommandResult = PyCommandResult
 BatchCommandResults = PyBatchCommandResults
 ParallelExecutionManager = PyParallelExecutionManager
 ParallelExecutionConfig = PyParallelExecutionConfig
+
+# TextFSM Parser support
+class NetworkOutputParser:
+    """
+    Class for parsing network device command outputs using TextFSM templates.
+    
+    This parser uses TextFSM templates to convert unstructured command output 
+    into structured data formats.
+    """
+    
+    template_dir: str
+    
+    def __init__(self, template_dir: Optional[str] = None) -> None:
+        """
+        Initialize the parser with a template directory.
+        
+        Args:
+            template_dir: Optional path to template directory. If not provided,
+                         uses the default template directory.
+        """
+        ...
+    
+    def find_template(self, platform: str, command: str) -> Optional[str]:
+        """
+        Find the appropriate template for a given platform and command.
+        
+        Args:
+            platform: Device platform (e.g., cisco_ios)
+            command: Command string (e.g., show version)
+            
+        Returns:
+            Path to template file or None if not found
+        """
+        ...
+    
+    def parse_output(self, platform: str, command: str, data: str) -> Optional[List[Dict[str, str]]]:
+        """
+        Parse command output using TextFSM.
+        
+        Args:
+            platform: Device platform (e.g., cisco_ios)
+            command: Command string (e.g., show version)
+            data: Command output as string
+        
+        Returns:
+            List of dictionaries containing parsed data, or None if parsing fails
+        """
+        ...
+    
+    def parse_to_json(self, platform: str, command: str, data: str) -> Optional[str]:
+        """
+        Parse command output and return as JSON string.
+        
+        Args:
+            platform: Device platform (e.g., cisco_ios)
+            command: Command string (e.g., show version)
+            data: Command output as string
+            
+        Returns:
+            JSON string of parsed data, or None if parsing fails
+        """
+        ...
+
+def parse_output(platform: str, command: str, data: str) -> Optional[List[Dict[str, str]]]:
+    """
+    Parse command output using TextFSM.
+    
+    Helper function that creates a NetworkOutputParser instance and calls parse_output.
+    
+    Args:
+        platform: Device platform (e.g., cisco_ios)
+        command: Command string (e.g., show version)
+        data: Command output as string
+        
+    Returns:
+        List of dictionaries containing parsed data, or None if parsing fails
+    """
+    ...
+
+def parse_output_to_json(platform: str, command: str, data: str) -> Optional[str]:
+    """
+    Parse command output and return as JSON string.
+    
+    Helper function that creates a NetworkOutputParser instance and calls parse_to_json.
+    
+    Args:
+        platform: Device platform (e.g., cisco_ios)
+        command: Command string (e.g., show version)
+        data: Command output as string
+        
+    Returns:
+        JSON string of parsed data, or None if parsing fails
+    """
+    ...
 
 # Specific device creation helpers
 def create_cisco_ios_device(

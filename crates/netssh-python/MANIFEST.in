@@ -1,3 +1,5 @@
-include netssh_rs/py.typed
-include netssh_rs/*.pyi
-recursive-include textfsm *
+include python/netssh_rs/py.typed
+include python/netssh_rs/stubs/*.pyi
+include python/netssh_rs/textfsm/py.typed
+include python/netssh_rs/textfsm/*.py
+recursive-include python/netssh_rs/textfsm/templates *

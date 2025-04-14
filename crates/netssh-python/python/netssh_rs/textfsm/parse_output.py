@@ -16,11 +16,11 @@ from typing import List, Dict, Any, Optional, Union
 # Setup logging
 logger = logging.getLogger(__name__)
 
-# Path to templates
-TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "textfsm/templates")
+# Path to templates - adjust for the new location in the package
+TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
 
 # Import TextFSM
-from .parse import TextFSM
+from netssh_rs.textfsm.parse import TextFSM
 
 class NetworkOutputParser:
     """Class for parsing network device command outputs using TextFSM templates."""
@@ -29,7 +29,7 @@ class NetworkOutputParser:
         """
         Initialize the parser with a template directory.
     
-    Args:
+        Args:
             template_dir: Optional path to template directory. If not provided,
                           uses the default template directory.
         """
@@ -43,8 +43,8 @@ class NetworkOutputParser:
             return self._platform_templates
             
         index_file = os.path.join(self.template_dir, "index")
-    if not os.path.isfile(index_file):
-        logger.error(f"Index file not found at {index_file}")
+        if not os.path.isfile(index_file):
+            logger.error(f"Index file not found at {index_file}")
             self._index_loaded = True
             return {}
             
@@ -115,7 +115,7 @@ class NetworkOutputParser:
                         row = next(csv.reader([line]))
                         
                         if len(row) <= max(template_col, platform_col, command_col):
-                        continue
+                            continue
                         
                         template_file = row[template_col].strip()
                         platform = row[platform_col].strip().lower()
@@ -135,7 +135,7 @@ class NetworkOutputParser:
                         })
                     except Exception as e:
                         logger.debug(f"Error parsing line '{line}': {str(e)}")
-                                    continue
+                        continue
                                     
         except Exception as e:
             logger.error(f"Error loading template index: {str(e)}")
@@ -167,11 +167,13 @@ class NetworkOutputParser:
         
         # First try exact match
         for entry in templates[platform]:
-            if command == entry['command']:
+            # 'show interfaces' against 'show lldp neighbors' do regex match
+            if re.match(entry['command'], command):
                 template_path = os.path.join(self.template_dir, entry['template'])
+                logger.debug(f"Found exact match template: {template_path}")
                 if os.path.isfile(template_path):
                     logger.debug(f"Found exact match template: {template_path}")
-                                return template_path
+                    return template_path
                                 
         # Then try substring match
         for entry in templates[platform]:
@@ -179,52 +181,41 @@ class NetworkOutputParser:
                 template_path = os.path.join(self.template_dir, entry['template'])
                 if os.path.isfile(template_path):
                     logger.debug(f"Found substring match template: {template_path}")
-                                return template_path
+                    return template_path
                                 
         logger.warning(f"No template found for '{platform}' command '{command}'")
         return None
     
     def parse_output(self, platform, command, data):
-    """
-    Parse command output using TextFSM.
-    
-    Args:
+        """
+        Parse command output using TextFSM.
+        
+        Args:
             platform: Device platform (e.g., cisco_ios)
             command: Command string (e.g., show version)
             data: Command output as string
         
-    Returns:
+        Returns:
             List of dictionaries containing parsed data, or None if parsing fails
-    """
+        """
         if not data:
-        logger.warning("Empty output provided for parsing")
-        return None
+            logger.warning("Empty output provided for parsing")
+            return None
             
         template_path = self.find_template(platform, command)
         if not template_path:
             logger.warning(f"No template found for {platform}, {command}")
             return None
     
-    try:
-        logger.debug(f"Parsing output using template: {template_path}")
-        with open(template_path, 'r') as template_file:
+        try:
+            logger.debug(f"Parsing output using template: {template_path}")
+            with open(template_path, 'r') as template_file:
                 fsm = TextFSM(template_file)
                 parsed_data = fsm.ParseTextToDicts(data)
-                print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
-                print(parsed_data)
-                print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
-                # Convert to list of dictionaries
-                result = []
-                for record in parsed_data:
-                    record_dict = {}
-                    for i, header in enumerate(fsm.header):
-                        record_dict[header] = record[i]
-                    result.append(record_dict)
-                
-                return result
-    except Exception as e:
-        logger.error(f"Error parsing output: {str(e)}")
-        return None
+                return parsed_data
+        except Exception as e:
+            logger.error(f"Error parsing output: {str(e)}")
+            return None
 
     def parse_to_json(self, platform, command, data):
         """
