@@ -44,10 +44,19 @@ lazy_static! {
 
     // Juniper Junos error patterns
     pub static ref JUNIPER_JUNOS_ERRORS: Vec<Regex> = vec![
-        Regex::new(r"(?:error|warning): ").unwrap(),
+        Regex::new(r"(?:error|warning):").unwrap(),
         Regex::new(r"syntax error").unwrap(),
+        Regex::new(r"syntax error, expecting").unwrap(),
         Regex::new(r"unknown command").unwrap(),
         Regex::new(r"invalid (?:command|input)").unwrap(),
+        Regex::new(r"commit failed").unwrap(),
+        Regex::new(r"configuration check-out failed").unwrap(),
+        Regex::new(r"error:").unwrap(),
+        Regex::new(r"\^\s*\r?\n").unwrap(),
+        Regex::new(r"command is not valid").unwrap(),
+        Regex::new(r"is ambiguous").unwrap(),
+        Regex::new(r"is not").unwrap(),
+        Regex::new(r"\^\s*\r?\nsyntax error, expecting <command>").unwrap(),
     ];
 }
 
@@ -65,16 +74,28 @@ pub fn get_error_patterns(device_type: &DeviceType) -> &'static Vec<Regex> {
 
 /// Checks if the output matches any error pattern for the specified device type
 pub fn check_for_errors(output: &str, device_type: &DeviceType) -> Option<String> {
-    let patterns = get_error_patterns(device_type);
+    debug!("========================================================================================================================================================");
+    debug!(
+        "Checking for errors in output for device type: {:?}",
+        device_type
+    );
+    debug!("Output to check: {}", output);
 
-    for pattern in patterns {
+    let patterns = get_error_patterns(device_type);
+    debug!("Number of error patterns to check: {}", patterns.len());
+
+    for (i, pattern) in patterns.iter().enumerate() {
+        debug!("Checking pattern {}: {:?}", i, pattern);
         if let Some(captures) = pattern.captures(output) {
             if let Some(matched) = captures.get(0) {
-                return Some(matched.as_str().to_string());
+                let error = matched.as_str().to_string();
+                debug!("Found error pattern match: {}", error);
+                return Some(error);
             }
         }
     }
 
+    debug!("No error patterns found in output");
     None
 }
 

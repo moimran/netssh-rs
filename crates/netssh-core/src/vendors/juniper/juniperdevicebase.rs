@@ -1,6 +1,8 @@
 use crate::base_connection::BaseConnection;
 use crate::channel::SSHChannel;
+use crate::device_connection::DeviceType;
 use crate::error::NetsshError;
+use crate::vendor_error_patterns;
 use crate::vendors::common::DefaultConfigSetMethods;
 use crate::vendors::juniper::{JuniperDeviceConfig, JuniperDeviceConnection};
 use async_trait::async_trait;
@@ -24,15 +26,21 @@ pub struct JuniperBaseConnection {
 
 impl JuniperBaseConnection {
     pub fn new(config: JuniperDeviceConfig) -> Result<Self, NetsshError> {
+        let mut connection = BaseConnection::new()?;
+        connection.set_device_type(DeviceType::JuniperJunos);
+
         Ok(Self {
-            connection: BaseConnection::new()?,
+            connection,
             config,
             prompt: String::new(),
             in_config_mode: false,
         })
     }
 
-    pub fn with_connection(connection: BaseConnection, config: JuniperDeviceConfig) -> Self {
+    pub fn with_connection(mut connection: BaseConnection, config: JuniperDeviceConfig) -> Self {
+        // Ensure the connection has the correct device type
+        connection.set_device_type(DeviceType::JuniperJunos);
+
         Self {
             connection,
             config,
@@ -363,14 +371,21 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         self.connection.write_channel("commit\n")?;
 
         // Wait for completion
-        let output = self.connection.read_until_pattern(&self.prompt, None, None)?;
+        let output = self
+            .connection
+            .read_until_pattern(&self.prompt, None, None)?;
 
+        // Simple error check based on known patterns
         if output.contains("error") || output.contains("failed") {
-            warn!(target: "JuniperBaseConnection::commit_config", "Error committing configuration: {}", output);
-            return Err(NetsshError::CommandError(format!(
-                "Failed to commit configuration: {}",
-                output
-            )));
+            // Filter out known success messages
+            if !output.contains("commit complete") && !output.contains("configuration not changed")
+            {
+                warn!(target: "JuniperBaseConnection::commit_config", "Error committing configuration: {}", output);
+                return Err(NetsshError::CommandError(format!(
+                    "Failed to commit configuration: {}",
+                    output
+                )));
+            }
         }
 
         debug!(target: "JuniperBaseConnection::commit_config", "Configuration committed successfully");
@@ -397,6 +412,17 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         } else {
             output
         };
+
+        // Explicitly check for Juniper-specific error patterns
+        if let Some(error) =
+            vendor_error_patterns::check_for_errors(&result, &DeviceType::JuniperJunos)
+        {
+            debug!(target: "JuniperBaseConnection::send_command", "Error detected in output: {}", error);
+            return Err(NetsshError::CommandError(format!(
+                "Error in command '{}': {}",
+                command, error
+            )));
+        }
 
         debug!(target: "JuniperBaseConnection::send_command", "Command output received, length: {}", result.len());
         Ok(result)

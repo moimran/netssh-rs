@@ -1,4 +1,5 @@
 use crate::base_connection::BaseConnection;
+use crate::device_connection::DeviceType;
 use crate::error::NetsshError;
 use crate::vendors::common::DefaultConfigSetMethods;
 use crate::vendors::juniper::{
@@ -13,12 +14,18 @@ pub struct JuniperJunosDevice {
 
 impl JuniperJunosDevice {
     pub fn new(config: JuniperDeviceConfig) -> Result<Self, NetsshError> {
-        Ok(Self {
-            base: JuniperBaseConnection::new(config)?,
-        })
+        let mut base = JuniperBaseConnection::new(config)?;
+
+        // Explicitly set the device type
+        base.connection.set_device_type(DeviceType::JuniperJunos);
+
+        Ok(Self { base })
     }
 
-    pub fn with_connection(connection: BaseConnection, config: JuniperDeviceConfig) -> Self {
+    pub fn with_connection(mut connection: BaseConnection, config: JuniperDeviceConfig) -> Self {
+        // Explicitly set the device type
+        connection.set_device_type(DeviceType::JuniperJunos);
+
         Self {
             base: JuniperBaseConnection::with_connection(connection, config),
         }

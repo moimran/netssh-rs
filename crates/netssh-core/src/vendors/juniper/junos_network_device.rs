@@ -1,5 +1,6 @@
-use crate::device_connection::{DeviceInfo, NetworkDeviceConnection};
+use crate::device_connection::{DeviceInfo, DeviceType, NetworkDeviceConnection};
 use crate::error::NetsshError;
+use crate::vendor_error_patterns;
 use crate::vendors::common::DefaultConfigSetMethods;
 use crate::vendors::juniper::{JuniperDeviceConnection, JuniperJunosDevice};
 use async_trait::async_trait;
@@ -114,6 +115,7 @@ impl NetworkDeviceConnection for JuniperJunosDevice {
         bypass_commands: Option<&str>,
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
+        // Get the configuration output
         let result = self.default_send_config_set(
             config_commands,
             Some(false),
@@ -129,9 +131,13 @@ impl NetworkDeviceConnection for JuniperJunosDevice {
             fast_cli,
         )?;
 
+        // Commit the configuration
         let commit_output = <Self as JuniperDeviceConnection>::commit_config(self)?;
+
+        // Exit config mode
         self.exit_config_mode(None)?;
 
+        // Combine the outputs
         Ok(format!("{}\n{}", result, commit_output))
     }
 }
