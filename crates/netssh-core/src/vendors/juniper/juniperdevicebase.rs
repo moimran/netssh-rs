@@ -381,10 +381,10 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
             if !output.contains("commit complete") && !output.contains("configuration not changed")
             {
                 warn!(target: "JuniperBaseConnection::commit_config", "Error committing configuration: {}", output);
-                return Err(NetsshError::CommandError(format!(
-                    "Failed to commit configuration: {}",
-                    output
-                )));
+                return Err(NetsshError::command_error_with_output(
+                    format!("Failed to commit configuration"),
+                    output,
+                ));
             }
         }
 
@@ -418,10 +418,10 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
             vendor_error_patterns::check_for_errors(&result, &DeviceType::JuniperJunos)
         {
             debug!(target: "JuniperBaseConnection::send_command", "Error detected in output: {}", error);
-            return Err(NetsshError::CommandError(format!(
-                "Error in command '{}': {}",
-                command, error
-            )));
+            return Err(NetsshError::command_error_with_output(
+                format!("Error in command '{}': {}", command, error),
+                result,
+            ));
         }
 
         debug!(target: "JuniperBaseConnection::send_command", "Command output received, length: {}", result.len());

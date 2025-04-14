@@ -83,7 +83,7 @@ impl JuniperJunosDevice {
 
     pub fn commit_config(&mut self) -> Result<String, NetsshError> {
         debug!(target: "JuniperJunosDevice::commit_config", "Delegating to JuniperBaseConnection::commit_config");
-        self.base.commit_config()
+        return self.base.commit_config()
     }
 
     pub fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
@@ -149,7 +149,7 @@ impl JuniperDeviceConnection for JuniperJunosDevice {
     }
 
     fn commit_config(&mut self) -> Result<String, NetsshError> {
-        self.commit_config()
+        return self.commit_config()
     }
 
     fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {

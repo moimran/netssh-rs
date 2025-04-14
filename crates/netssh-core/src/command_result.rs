@@ -1,7 +1,7 @@
+use crate::error::NetsshError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::error::NetsshError;
 
 /// Represents the execution status of a command
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -172,6 +172,20 @@ impl CommandResult {
                 status: CommandStatus::Failed,
                 error: Some(msg.clone()),
             },
+            NetsshError::CommandErrorWithOutput {
+                error_msg,
+                output: cmd_output,
+            } => Self {
+                device_id,
+                device_type,
+                command,
+                output: Some(cmd_output.clone()),
+                start_time,
+                end_time,
+                duration_ms,
+                status: CommandStatus::Failed,
+                error: Some(error_msg.clone()),
+            },
             // All other errors get mapped to Failed status
             _ => Self {
                 device_id,
@@ -196,8 +210,17 @@ impl CommandResult {
         start_time: DateTime<Utc>,
     ) -> Self {
         match result {
-            Ok(output) => Self::success(device_id, device_type, command, output, start_time, Utc::now()),
-            Err(error) => Self::from_error(device_id, device_type, command, error, start_time, None),
+            Ok(output) => Self::success(
+                device_id,
+                device_type,
+                command,
+                output,
+                start_time,
+                Utc::now(),
+            ),
+            Err(error) => {
+                Self::from_error(device_id, device_type, command, error, start_time, None)
+            }
         }
     }
 }

@@ -978,9 +978,10 @@ impl BaseConnection {
 
                         debug!(target: "BaseConnection::send_command", "Command complete, response length: {}", sanitized_output.len());
                         // Check for device-specific error patterns
-                        if let Err(err) =
-                            vendor_error_patterns::check_command_output(&sanitized_output, &self.device_type)
-                        {
+                        if let Err(err) = vendor_error_patterns::check_command_output(
+                            &sanitized_output,
+                            &self.device_type,
+                        ) {
                             debug!("Command produced error pattern: {}", err);
                             return Err(err);
                         }
@@ -1091,6 +1092,8 @@ impl BaseConnection {
         debug!(target: "BaseConnection::send_commands", "Sending {} commands in batch", commands.len());
 
         let mut responses = Vec::with_capacity(commands.len());
+        let mut encountered_error = false;
+        let mut error_message = String::new();
 
         // For single commands, use the standard method
         if commands.len() == 1 {
@@ -1100,21 +1103,51 @@ impl BaseConnection {
             return Ok(responses);
         }
 
-        // For multiple commands, optimize by sending them all at once
-        // with minimal delay between them
+        // For multiple commands, iterate through them
         for command in commands {
-            debug!(target: "BaseConnection::send_commands", "Writing command: {}", command);
-            self.write_channel(&format!("{}\n", command))?;
+            match self.send_command(command, None, None, None, None, None, None, None) {
+                Ok(response) => {
+                    responses.push(response);
+                }
+                Err(e) => {
+                    // Log the error but continue to send all commands
+                    debug!(target: "BaseConnection::send_commands", "Command '{}' failed: {}", command, e);
 
-            // Use a shorter delay between commands in batch mode
-            thread::sleep(Duration::from_millis(50));
+                    // Store the error message to return later
+                    if !encountered_error {
+                        error_message = format!("Command '{}' failed: {}", command, e);
+                        encountered_error = true;
+                    }
 
-            // Read until prompt after each command to capture its response
-            let response = self.read_until_prompt(None, None, None)?;
-            responses.push(response);
+                    // Add empty response to maintain order
+                    responses.push(String::new());
+                }
+            }
         }
 
-        debug!(target: "BaseConnection::send_commands", "Batch command execution complete");
+        // Return error if any command failed, but include all responses
+        if encountered_error {
+            debug!(target: "BaseConnection::send_commands", "Batch command execution failed: {}", error_message);
+            return Err(NetsshError::CommandError(format!(
+                "{}\nResponses collected: {}",
+                error_message,
+                responses
+                    .iter()
+                    .enumerate()
+                    .map(|(i, r)| format!(
+                        "Command {}: {}",
+                        i,
+                        if r.is_empty() {
+                            "<empty>"
+                        } else {
+                            "<received>"
+                        }
+                    ))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )));
+        }
+
         Ok(responses)
     }
 
@@ -1785,19 +1818,10 @@ impl BaseConnection {
 
         // Normalize command and write to channel
         let cmd = format!("{}\n", config_command.trim());
-        self.write_channel(&cmd)?;
-
-        // Make sure to read until command echo
         let mut output = String::new();
-        // match self.read_until_pattern(&regex::escape(config_command.trim()), None, None) {
-        //     Ok(data) => {
-        //         output.push_str(&data);
-        //     }
-        //     Err(e) => {
-        //         warn!(target: "BaseConnection::config_mode", "Command echo verification failed: {}", e);
-        //         // Continue despite failure
-        //     }
-        // }
+
+        self.write_channel(&cmd)?;
+        
 
         debug!(target: "BaseConnection::config_mode", "Output after command echo verification: bytes {}", output.len());
 
@@ -1865,15 +1889,6 @@ impl BaseConnection {
 
         // Make sure to read until command echo
         let mut output = String::new();
-        // match self.read_until_pattern(&regex::escape(exit_config.trim()), None, None) {
-        //     Ok(data) => {
-        //         output.push_str(&data);
-        //     }
-        //     Err(e) => {
-        //         warn!(target: "BaseConnection::exit_config_mode", "Command echo verification failed: {}", e);
-        //         // Continue despite failure
-        //     }
-        // }
 
         // Read until pattern or prompt
         if let Some(pat) = pattern {
@@ -2015,22 +2030,20 @@ impl BaseConnection {
         if output.contains(pattern) {
             debug!(target: "BaseConnection::enable", "Password prompt detected, sending secret");
             if !secret.is_empty() {
-            // Send the secret
-            let secret_str = format!("{}\n", secret);
-            self.write_channel(&secret_str)?;
+                // Send the secret
+                let secret_str = format!("{}\n", secret);
+                self.write_channel(&secret_str)?;
 
-            // Read the response
-            match self.read_until_prompt(None, None, None) {
-                Ok(data) => {
-                    output.push_str(&data);
-                }
-                Err(e) => {
-                    return Err(e);
+                // Read the response
+                match self.read_until_prompt(None, None, None) {
+                    Ok(data) => {
+                        output.push_str(&data);
+                    }
+                    Err(e) => {
+                        return Err(e);
                     }
                 }
-            } 
-            else 
-            {
+            } else {
                 return Err(NetsshError::AuthenticationError(
                     "Enable password required but not provided".to_string(),
                 ));
@@ -2811,10 +2824,65 @@ impl BaseConnection {
                         return Err(NetsshError::ConfigError(msg));
                     }
                 }
+
+                // Check for device-specific error patterns
+                if let Err(err) =
+                    vendor_error_patterns::check_command_output(&output, &self.device_type)
+                {
+                    debug!(target: "BaseConnection::send_config_set_extended", "Command produced error pattern: {}", err);
+                    // Save the error to return it later after exit_config_mode
+                    // Don't return immediately
+                    let config_err = err;
+
+                    // If exit_config_mode is requested, do it before returning the error
+                    if exit_config_mode {
+                        match self.exit_config_mode(None, None) {
+                            Ok(exit_output) => {
+                                output.push_str(&exit_output);
+
+                                // Create a new error that includes both the original error and the exit output
+                                return match config_err {
+                                    NetsshError::CommandErrorWithOutput {
+                                        error_msg,
+                                        output: err_output,
+                                    } => {
+                                        // Just append exit output without the label
+                                        let combined_output =
+                                            format!("{}{}", err_output, exit_output);
+                                        Err(NetsshError::command_error_with_output(
+                                            error_msg,
+                                            combined_output,
+                                        ))
+                                    }
+                                    _ => {
+                                        // For any other error type, just add the original error and include the exit output
+                                        let error_text = config_err.to_string();
+                                        Err(NetsshError::command_error_with_output(
+                                            error_text,
+                                            exit_output,
+                                        ))
+                                    }
+                                };
+                            }
+                            Err(exit_err) => {
+                                // Log that exit_config_mode also failed
+                                debug!(target: "BaseConnection::send_config_set_extended", "exit_config_mode also failed: {}", exit_err);
+
+                                // Return the original error, but don't include the exit error in the message
+                                // Most users won't care about the internal exit_config_mode failure
+                                return Err(config_err);
+                            }
+                        }
+                    } else {
+                        // If exit_config_mode wasn't requested, just return the original error
+                        debug!(target: "BaseConnection::send_config_set_extended", "exit_config_mode not requested, returning original error");
+                        return Err(config_err);
+                    }
+                }
             }
         }
 
-        // Exit config mode if requested
+        // Exit config mode if requested (will only reach here if no errors occurred)
         if exit_config_mode {
             let exit_output = self.exit_config_mode(None, None)?;
             output.push_str(&exit_output);

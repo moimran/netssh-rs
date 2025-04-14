@@ -18,6 +18,9 @@ pub enum NetsshError {
     #[error("Command error: {0}")]
     CommandError(String),
 
+    #[error("Command error: {error_msg}\nCommand output: {output}")]
+    CommandErrorWithOutput { error_msg: String, output: String },
+
     #[error("Read error: {0}")]
     ReadError(String),
 
@@ -144,5 +147,15 @@ impl NetsshError {
 
     pub fn command_error(error_message: impl Into<String>) -> Self {
         Self::CommandError(error_message.into())
+    }
+
+    pub fn command_error_with_output(
+        error_message: impl Into<String>,
+        output: impl Into<String>,
+    ) -> Self {
+        Self::CommandErrorWithOutput {
+            error_msg: error_message.into(),
+            output: output.into(),
+        }
     }
 }

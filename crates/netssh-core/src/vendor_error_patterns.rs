@@ -31,6 +31,8 @@ lazy_static! {
         Regex::new(r"% Permission denied").unwrap(),
         Regex::new(r"% Error: ").unwrap(),
         Regex::new(r"ERROR: ").unwrap(),
+        Regex::new(r"\^\s*\r?\n% Invalid parameter detected at '\^' marker\.").unwrap(),
+        Regex::new(r"% Invalid parameter detected at '\^' marker\.").unwrap(),
     ];
 
     // Cisco ASA error patterns
@@ -106,9 +108,11 @@ pub fn check_command_output(output: &str, device_type: &DeviceType) -> Result<()
     debug!("========================================================================================================================================================");
     if let Some(error_match) = check_for_errors(output, device_type) {
         debug!("Found error pattern in command output: {}", error_match);
-        Err(NetsshError::command_error(error_match))
+        Err(NetsshError::command_error_with_output(
+            error_match,
+            output.to_string(),
+        ))
     } else {
-        debug!("No error patterns found in command output");
         Ok(())
     }
 }

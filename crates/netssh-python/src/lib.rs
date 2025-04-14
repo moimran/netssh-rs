@@ -27,9 +27,14 @@ impl PyConnectionError {
     }
 }
 
-// Function to convert NetsshError to PyErr
-fn netssh_error_to_pyerr(err: NetsshError) -> PyErr {
-    match err {
+// Function to convert NetsshError to PyErr and extract command output if available
+fn netssh_error_to_pyerr(err: NetsshError) -> (PyErr, Option<String>) {
+    let output = match &err {
+        NetsshError::CommandErrorWithOutput { output, .. } => Some(output.clone()),
+        _ => None,
+    };
+
+    let py_err = match err {
         NetsshError::ConnectionError(msg) => {
             PyException::new_err(format!("Connection error: {}", msg))
         }
@@ -37,9 +42,19 @@ fn netssh_error_to_pyerr(err: NetsshError) -> PyErr {
             PyException::new_err(format!("Authentication error: {}", msg))
         }
         NetsshError::CommandError(msg) => PyValueError::new_err(format!("Command error: {}", msg)),
+        NetsshError::CommandErrorWithOutput { error_msg, .. } => {
+            PyValueError::new_err(format!("Command error: {}", error_msg))
+        }
         // Add other error variants as needed
         _ => PyRuntimeError::new_err(format!("Netssh error: {}", err)),
-    }
+    };
+
+    (py_err, output)
+}
+
+// Helper function that only returns the PyErr without the output
+fn netssh_error_to_pyerr_simple(err: NetsshError) -> PyErr {
+    netssh_error_to_pyerr(err).0
 }
 
 /// Python module for netssh-rs
@@ -66,7 +81,7 @@ fn netssh_rs(_py: Python, m: &PyModule) -> PyResult<()> {
 #[pyo3(signature = (debug=false, console=false))]
 #[pyo3(text_signature = "(debug=False, console=False)")]
 fn initialize_logging(debug: bool, console: bool) -> PyResult<()> {
-    netssh_core::logging::init_logging(debug, console).map_err(netssh_error_to_pyerr)
+    netssh_core::logging::init_logging(debug, console).map_err(netssh_error_to_pyerr_simple)
 }
 
 /// Python wrapper for DeviceConfig
@@ -180,7 +195,8 @@ impl PyNetworkDevice {
     #[pyo3(text_signature = "(config)")]
     fn create(config: &PyDeviceConfig) -> PyResult<Self> {
         let rust_config = py_config_to_rust_config(config);
-        let device = DeviceFactory::create_device(&rust_config).map_err(netssh_error_to_pyerr)?;
+        let device =
+            DeviceFactory::create_device(&rust_config).map_err(netssh_error_to_pyerr_simple)?;
 
         Ok(Self { device })
     }
@@ -199,7 +215,7 @@ impl PyNetworkDevice {
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn connect(&mut self) -> PyResult<()> {
-        self.device.connect().map_err(netssh_error_to_pyerr)
+        self.device.connect().map_err(netssh_error_to_pyerr_simple)
     }
 
     /// Close the connection to the device
@@ -209,7 +225,7 @@ impl PyNetworkDevice {
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn close(&mut self) -> PyResult<()> {
-        self.device.close().map_err(netssh_error_to_pyerr)
+        self.device.close().map_err(netssh_error_to_pyerr_simple)
     }
 
     /// Check if the device is in configuration mode
@@ -221,7 +237,7 @@ impl PyNetworkDevice {
     fn check_config_mode(&mut self) -> PyResult<bool> {
         self.device
             .check_config_mode()
-            .map_err(netssh_error_to_pyerr)
+            .map_err(netssh_error_to_pyerr_simple)
     }
 
     /// Enter configuration mode
@@ -235,10 +251,7 @@ impl PyNetworkDevice {
     #[pyo3(text_signature = "(config_command=None)")]
     fn enter_config_mode(&mut self, config_command: Option<&str>) -> PyResult<PyCommandResult> {
         let start_time = Utc::now();
-        let result = self
-            .device
-            .enter_config_mode(config_command)
-            .map_err(netssh_error_to_pyerr);
+        let result = self.device.enter_config_mode(config_command);
         let end_time = Utc::now();
 
         match result {
@@ -260,14 +273,23 @@ impl PyNetworkDevice {
                 let device_type = self.device.get_device_type().to_string();
                 let cmd = config_command.unwrap_or("configure terminal").to_string();
 
+                // Extract any output from the error and get the PyErr
+                let (py_err, output_opt) = netssh_error_to_pyerr(err);
+
+                // Extract error message from PyErr
+                let error_text = py_err.to_string();
+
+                // Use output from error if available
+                let output = output_opt.unwrap_or_else(String::new);
+
                 Ok(PyCommandResult::from(CommandResult::failure(
                     get_device_hostname(&self.device),
                     device_type,
                     cmd,
-                    String::new(),
+                    output,
                     start_time,
                     end_time,
-                    format!("{}", err),
+                    error_text,
                 )))
             }
         }
@@ -284,10 +306,7 @@ impl PyNetworkDevice {
     #[pyo3(text_signature = "(exit_command=None)")]
     fn exit_config_mode(&mut self, exit_command: Option<&str>) -> PyResult<PyCommandResult> {
         let start_time = Utc::now();
-        let result = self
-            .device
-            .exit_config_mode(exit_command)
-            .map_err(netssh_error_to_pyerr);
+        let result = self.device.exit_config_mode(exit_command);
         let end_time = Utc::now();
 
         match result {
@@ -309,14 +328,23 @@ impl PyNetworkDevice {
                 let device_type = self.device.get_device_type().to_string();
                 let cmd = exit_command.unwrap_or("exit").to_string();
 
+                // Extract any output from the error and get the PyErr
+                let (py_err, output_opt) = netssh_error_to_pyerr(err);
+
+                // Extract error message from PyErr
+                let error_text = py_err.to_string();
+
+                // Use output from error if available
+                let output = output_opt.unwrap_or_else(String::new);
+
                 Ok(PyCommandResult::from(CommandResult::failure(
                     get_device_hostname(&self.device),
                     device_type,
                     cmd,
-                    String::new(),
+                    output,
                     start_time,
                     end_time,
-                    format!("{}", err),
+                    error_text,
                 )))
             }
         }
@@ -331,7 +359,7 @@ impl PyNetworkDevice {
     fn session_preparation(&mut self) -> PyResult<()> {
         self.device
             .session_preparation()
-            .map_err(netssh_error_to_pyerr)
+            .map_err(netssh_error_to_pyerr_simple)
     }
 
     /// Configure terminal settings
@@ -343,7 +371,7 @@ impl PyNetworkDevice {
     fn terminal_settings(&mut self) -> PyResult<()> {
         self.device
             .terminal_settings()
-            .map_err(netssh_error_to_pyerr)
+            .map_err(netssh_error_to_pyerr_simple)
     }
 
     /// Set terminal width
@@ -358,7 +386,7 @@ impl PyNetworkDevice {
     fn set_terminal_width(&mut self, width: u32) -> PyResult<()> {
         self.device
             .set_terminal_width(width)
-            .map_err(netssh_error_to_pyerr)
+            .map_err(netssh_error_to_pyerr_simple)
     }
 
     /// Disable paging on the device
@@ -368,7 +396,9 @@ impl PyNetworkDevice {
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn disable_paging(&mut self) -> PyResult<()> {
-        self.device.disable_paging().map_err(netssh_error_to_pyerr)
+        self.device
+            .disable_paging()
+            .map_err(netssh_error_to_pyerr_simple)
     }
 
     /// Set the base prompt
@@ -378,7 +408,9 @@ impl PyNetworkDevice {
     #[pyo3(signature = ())]
     #[pyo3(text_signature = "()")]
     fn set_base_prompt(&mut self) -> PyResult<String> {
-        self.device.set_base_prompt().map_err(netssh_error_to_pyerr)
+        self.device
+            .set_base_prompt()
+            .map_err(netssh_error_to_pyerr_simple)
     }
 
     /// Save the device configuration
@@ -389,10 +421,7 @@ impl PyNetworkDevice {
     #[pyo3(text_signature = "()")]
     fn save_configuration(&mut self) -> PyResult<PyCommandResult> {
         let start_time = Utc::now();
-        let result = self
-            .device
-            .save_configuration()
-            .map_err(netssh_error_to_pyerr);
+        let result = self.device.save_configuration();
         let end_time = Utc::now();
 
         match result {
@@ -414,14 +443,23 @@ impl PyNetworkDevice {
                 let device_type = self.device.get_device_type().to_string();
                 let cmd = "save configuration".to_string();
 
+                // Extract any output from the error and get the PyErr
+                let (py_err, output_opt) = netssh_error_to_pyerr(err);
+
+                // Extract error message from PyErr
+                let error_text = py_err.to_string();
+
+                // Use output from error if available
+                let output = output_opt.unwrap_or_else(String::new);
+
                 Ok(PyCommandResult::from(CommandResult::failure(
                     get_device_hostname(&self.device),
                     device_type,
                     cmd,
-                    String::new(),
+                    output,
                     start_time,
                     end_time,
-                    format!("{}", err),
+                    error_text,
                 )))
             }
         }
@@ -438,10 +476,7 @@ impl PyNetworkDevice {
     #[pyo3(text_signature = "(command)")]
     fn send_command(&mut self, command: &str) -> PyResult<PyCommandResult> {
         let start_time = Utc::now();
-        let result = self
-            .device
-            .send_command(command)
-            .map_err(netssh_error_to_pyerr);
+        let result = self.device.send_command(command);
         let end_time = Utc::now();
 
         match result {
@@ -460,14 +495,23 @@ impl PyNetworkDevice {
             Err(err) => {
                 let device_type = self.device.get_device_type().to_string();
 
+                // Extract any output from the error and get the PyErr
+                let (py_err, output_opt) = netssh_error_to_pyerr(err);
+
+                // Extract error message from PyErr
+                let error_text = py_err.to_string();
+
+                // Use output from error if available
+                let output = output_opt.unwrap_or_else(String::new);
+
                 Ok(PyCommandResult::from(CommandResult::failure(
                     get_device_hostname(&self.device),
                     device_type,
                     command.to_string(),
-                    String::new(),
+                    output,
                     start_time,
                     end_time,
-                    format!("{}", err),
+                    error_text,
                 )))
             }
         }
@@ -558,23 +602,20 @@ impl PyNetworkDevice {
             .collect::<Result<Vec<String>, _>>()?;
 
         let start_time = Utc::now();
-        let result = self
-            .device
-            .send_config_set(
-                commands,
-                exit_config_mode,
-                read_timeout,
-                strip_prompt,
-                strip_command,
-                config_mode_command,
-                cmd_verify,
-                enter_config_mode,
-                error_pattern,
-                terminator,
-                bypass_commands,
-                fast_cli,
-            )
-            .map_err(netssh_error_to_pyerr);
+        let result = self.device.send_config_set(
+            commands,
+            exit_config_mode,
+            read_timeout,
+            strip_prompt,
+            strip_command,
+            config_mode_command,
+            cmd_verify,
+            enter_config_mode,
+            error_pattern,
+            terminator,
+            bypass_commands,
+            fast_cli,
+        );
         let end_time = Utc::now();
 
         match result {
@@ -595,14 +636,23 @@ impl PyNetworkDevice {
                 let device_type = self.device.get_device_type().to_string();
                 let cmd = "config set".to_string();
 
+                // Extract any output from the error and get the PyErr
+                let (py_err, output_opt) = netssh_error_to_pyerr(err);
+
+                // Extract error message from PyErr
+                let error_text = py_err.to_string();
+
+                // Use output from error if available
+                let output = output_opt.unwrap_or_else(String::new);
+
                 Ok(PyCommandResult::from(CommandResult::failure(
                     get_device_hostname(&self.device),
                     device_type,
                     cmd,
-                    String::new(),
+                    output,
                     start_time,
                     end_time,
-                    format!("{}", err),
+                    error_text,
                 )))
             }
         }
@@ -1082,7 +1132,8 @@ impl PyParallelExecutionManager {
 
             // Execute the future in a tokio runtime
             let rt = tokio::runtime::Runtime::new().unwrap();
-            let results = rt.block_on(async { future.await.map_err(netssh_error_to_pyerr) })?;
+            let results =
+                rt.block_on(async { future.await.map_err(netssh_error_to_pyerr_simple) })?;
 
             // Return the results wrapped in a PyBatchCommandResults
             Ok(PyBatchCommandResults { results })
@@ -1110,7 +1161,8 @@ impl PyParallelExecutionManager {
 
             // Execute the future in a tokio runtime
             let rt = tokio::runtime::Runtime::new().unwrap();
-            let results = rt.block_on(async { future.await.map_err(netssh_error_to_pyerr) })?;
+            let results =
+                rt.block_on(async { future.await.map_err(netssh_error_to_pyerr_simple) })?;
 
             // Return the results wrapped in a PyBatchCommandResults
             Ok(PyBatchCommandResults { results })
@@ -1168,7 +1220,8 @@ impl PyParallelExecutionManager {
 
             // Execute the future in a tokio runtime
             let rt = tokio::runtime::Runtime::new().unwrap();
-            let results = rt.block_on(async { future.await.map_err(netssh_error_to_pyerr) })?;
+            let results =
+                rt.block_on(async { future.await.map_err(netssh_error_to_pyerr_simple) })?;
 
             // Return the results wrapped in a PyBatchCommandResults
             Ok(PyBatchCommandResults { results })

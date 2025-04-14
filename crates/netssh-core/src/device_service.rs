@@ -125,9 +125,7 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
         self.device.send_command(command)
     }
 
-    /// Execute a command and return a CommandResult object
-    ///
-    /// This method executes a command and converts the result to a CommandResult,
+    /// Execute a command on the device and return a structured result,
     /// including checking for device-specific error patterns in the output.
     pub fn execute_command_with_result(&mut self, command: &str) -> CommandResult {
         info!("Executing command with result: {}", command);
@@ -155,7 +153,7 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
                         device_id,
                         device_type,
                         command.to_string(),
-                        NetsshError::command_error(error_message),
+                        NetsshError::command_error_with_output(error_message, output.clone()),
                         start_time,
                         Some(output.clone()),
                     );
