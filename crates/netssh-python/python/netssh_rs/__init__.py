@@ -11,6 +11,7 @@ import logging
 from typing import Dict, List, Optional, Union, Any
 
 try:
+    # Import the Rust backend with Py-prefixed names
     from netssh_rs.netssh_rs import (
         PyDeviceConfig,
         PyNetworkDevice,
@@ -20,7 +21,7 @@ try:
         initialize_logging
     )
     
-    # Provide backwards compatibility aliases
+    # Provide clean aliases without the Py prefix
     DeviceConfig = PyDeviceConfig
     NetworkDevice = PyNetworkDevice
     ParallelExecutionManager = PyParallelExecutionManager
@@ -37,18 +38,13 @@ try:
     
     # Make TextFSM utilities available directly from the netssh_rs package
     __all__ = [
-        "PyDeviceConfig",
-        "PyNetworkDevice",
-        "PyParallelExecutionManager",
-        "PyCommandResult",
-        "PyBatchCommandResults",
-        "initialize_logging",
-        # Aliases for backward compatibility
+        # Export only the clean non-Py-prefixed versions
         "DeviceConfig",
         "NetworkDevice",
         "ParallelExecutionManager",
         "CommandResult",
         "BatchCommandResults",
+        "initialize_logging",
         # TextFSM exports
         "parse_output",
         "parse_output_to_json",
@@ -58,16 +54,11 @@ except ImportError as e:
     logging.warning(f"TextFSM module import error: {e}. TextFSM parsing functions will not be available.")
     # If TextFSM is not available, only expose the core functionality
     __all__ = [
-        "PyDeviceConfig",
-        "PyNetworkDevice",
-        "PyParallelExecutionManager",
-        "PyCommandResult",
-        "PyBatchCommandResults",
-        "initialize_logging",
-        # Aliases for backward compatibility
+        # Export only the clean non-Py-prefixed versions
         "DeviceConfig",
         "NetworkDevice",
         "ParallelExecutionManager",
         "CommandResult",
-        "BatchCommandResults"
+        "BatchCommandResults",
+        "initialize_logging"
     ]

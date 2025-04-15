@@ -2,7 +2,6 @@ use crate::base_connection::BaseConnection;
 use crate::channel::SSHChannel;
 use crate::device_connection::DeviceType;
 use crate::error::NetsshError;
-use crate::vendor_error_patterns;
 use crate::vendors::common::DefaultConfigSetMethods;
 use crate::vendors::juniper::{JuniperDeviceConfig, JuniperDeviceConnection};
 use async_trait::async_trait;
@@ -405,10 +404,17 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
     ) -> Result<String, NetsshError> {
         debug!(target: "JuniperBaseConnection::send_command", "Sending command: {}", command);
 
+        // Use self.prompt as expect_string if it's not empty, otherwise use the provided expect_string
+        let effective_expect_string = if !self.prompt.is_empty() {
+            Some(self.prompt.as_str())
+        } else {
+            expect_string
+        };
+
         // Call an inherent method or directly forward to connection to avoid recursion
         self.connection.send_command(
             command,
-            expect_string,
+            effective_expect_string,
             read_timeout,
             auto_find_prompt,
             strip_prompt,

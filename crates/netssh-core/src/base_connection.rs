@@ -870,11 +870,11 @@ impl BaseConnection {
 
         // Default values
         let read_timeout = read_timeout.unwrap_or(10.0);
-        let auto_find_prompt = auto_find_prompt.unwrap_or(true);
+        let auto_find_prompt = auto_find_prompt.unwrap_or(false);
         let strip_prompt = strip_prompt.unwrap_or(true);
         let strip_command = strip_command.unwrap_or(true);
         let normalize = normalize.unwrap_or(true);
-        let cmd_verify = cmd_verify.unwrap_or(true);
+        let cmd_verify = cmd_verify.unwrap_or(false);
 
         debug!(
             target: "BaseConnection::send_command","========================================="
