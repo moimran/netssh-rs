@@ -279,9 +279,28 @@ impl CiscoDeviceConnection for CiscoAsaDevice {
         Ok(output)
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
         debug!(target: "CiscoAsaDevice::send_command", "Delegating to CiscoBaseConnection::send_command");
-        self.base.send_command(command)
+        self.base.send_command(
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
     }
 
     fn change_context(&mut self, context_name: &str) -> Result<(), NetsshError> {
@@ -304,6 +323,19 @@ impl CiscoDeviceConnection for CiscoAsaDevice {
         bypass_commands: Option<&str>,
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
-        self.base.connection.send_config_set(config_commands, exit_config_mode, read_timeout, strip_prompt, strip_command, config_mode_command, cmd_verify, enter_config_mode, error_pattern, terminator, bypass_commands, fast_cli)
+        self.base.connection.send_config_set(
+            config_commands,
+            exit_config_mode,
+            read_timeout,
+            strip_prompt,
+            strip_command,
+            config_mode_command,
+            cmd_verify,
+            enter_config_mode,
+            error_pattern,
+            terminator,
+            bypass_commands,
+            fast_cli,
+        )
     }
 }

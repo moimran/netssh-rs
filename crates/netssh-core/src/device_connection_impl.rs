@@ -48,8 +48,27 @@ impl NetworkDeviceConnection for Box<dyn NetworkDeviceConnection> {
         (**self).save_configuration()
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        (**self).send_command(command)
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        (**self).send_command(
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
     }
 
     fn get_device_type(&self) -> &str {
@@ -142,8 +161,27 @@ impl NetworkDeviceConnection for Box<dyn NetworkDeviceConnection + Send> {
         (**self).save_configuration()
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        (**self).send_command(command)
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        (**self).send_command(
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
     }
 
     fn get_device_type(&self) -> &str {

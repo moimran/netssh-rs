@@ -471,28 +471,57 @@ impl PyNetworkDevice {
         }
     }
 
-    /// Send a command to the device
+    /// Send a command to the device and return the output
     ///
     /// Args:
     ///     command (str): The command to execute on the device
+    ///     expect_string (str, optional): Pattern to search for in output
+    ///     read_timeout (float, optional): How long to wait for output in seconds (default: 10.0)
+    ///     auto_find_prompt (bool, optional): Whether to automatically find prompt (default: True)
+    ///     strip_prompt (bool, optional): Whether to strip prompt from output (default: True)
+    ///     strip_command (bool, optional): Whether to strip command from output (default: True)
+    ///     normalize (bool, optional): Whether to normalize line feeds (default: True)
+    ///     cmd_verify (bool, optional): Whether to verify command echoing (default: True)
     ///
     /// Returns:
     ///     CommandResult: Result of the command execution containing output, timing information, and status
-    #[pyo3(signature = (command))]
-    #[pyo3(text_signature = "(command)")]
-    fn send_command(&mut self, command: &str) -> PyResult<PyCommandResult> {
+    #[pyo3(signature = (command, expect_string=None, read_timeout=None, auto_find_prompt=None, strip_prompt=None, strip_command=None, normalize=None, cmd_verify=None))]
+    #[pyo3(
+        text_signature = "(command, expect_string=None, read_timeout=None, auto_find_prompt=None, strip_prompt=None, strip_command=None, normalize=None, cmd_verify=None)"
+    )]
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> PyResult<PyCommandResult> {
         let start_time = Utc::now();
-        let result = self.device.send_command(command);
+        let result = self.device.send_command(
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        );
         let end_time = Utc::now();
 
         match result {
             Ok(output) => {
                 let device_type = self.device.get_device_type().to_string();
+                let cmd = command.to_string();
 
                 Ok(PyCommandResult::from(CommandResult::success(
                     get_device_hostname(&self.device),
                     device_type,
-                    command.to_string(),
+                    cmd,
                     output.to_string(),
                     start_time,
                     end_time,
@@ -500,6 +529,7 @@ impl PyNetworkDevice {
             }
             Err(err) => {
                 let device_type = self.device.get_device_type().to_string();
+                let cmd = command.to_string();
 
                 // Extract any output from the error and get the PyErr
                 let (py_err, output_opt) = netssh_error_to_pyerr(err);
@@ -513,7 +543,7 @@ impl PyNetworkDevice {
                 Ok(PyCommandResult::from(CommandResult::failure(
                     get_device_hostname(&self.device),
                     device_type,
-                    command.to_string(),
+                    cmd,
                     output,
                     start_time,
                     end_time,
@@ -521,6 +551,21 @@ impl PyNetworkDevice {
                 )))
             }
         }
+    }
+
+    /// Send a command to the device and return the output (simple version)
+    ///
+    /// This is a simplified version that uses all default parameters for backward compatibility.
+    ///
+    /// Args:
+    ///     command (str): The command to execute on the device
+    ///
+    /// Returns:
+    ///     CommandResult: Result of the command execution
+    #[pyo3(signature = (command))]
+    #[pyo3(text_signature = "(command)")]
+    fn send_command_simple(&mut self, command: &str) -> PyResult<PyCommandResult> {
+        self.send_command(command, None, None, None, None, None, None, None)
     }
 
     /// Get the device type

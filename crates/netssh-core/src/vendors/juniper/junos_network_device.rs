@@ -51,8 +51,28 @@ impl NetworkDeviceConnection for JuniperJunosDevice {
         Ok(())
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        <Self as JuniperDeviceConnection>::send_command(self, command)
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        <Self as JuniperDeviceConnection>::send_command(
+            self,
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
     }
 
     fn get_device_type(&self) -> &str {
@@ -65,7 +85,17 @@ impl NetworkDeviceConnection for JuniperJunosDevice {
         <Self as NetworkDeviceConnection>::enter_config_mode(self, None)?;
 
         for cmd in commands {
-            let result = <Self as NetworkDeviceConnection>::send_command(self, cmd)?;
+            let result = <Self as NetworkDeviceConnection>::send_command(
+                self, 
+                cmd,
+                None, // expect_string
+                None, // read_timeout
+                None, // auto_find_prompt
+                None, // strip_prompt
+                None, // strip_command
+                None, // normalize
+                None, // cmd_verify
+            )?;
             results.push(result);
         }
 
@@ -75,7 +105,17 @@ impl NetworkDeviceConnection for JuniperJunosDevice {
     }
 
     fn get_device_info(&mut self) -> Result<DeviceInfo, NetsshError> {
-        let output = <Self as NetworkDeviceConnection>::send_command(self, "show version")?;
+        let output = <Self as NetworkDeviceConnection>::send_command(
+            self,
+            "show version",
+            None, // expect_string
+            None, // read_timeout
+            None, // auto_find_prompt
+            None, // strip_prompt
+            None, // strip_command
+            None, // normalize
+            None, // cmd_verify
+        )?;
 
         let mut info = DeviceInfo {
             device_type: "juniper_junos".to_string(),
@@ -160,7 +200,16 @@ impl NetworkDeviceConnection for JuniperJunosDevice {
                         had_error = true;
 
                         // Try to rollback since commit failed
-                        match self.send_command("rollback 0") {
+                        match self.send_command(
+                            "rollback 0",
+                            None, // expect_string
+                            None, // read_timeout
+                            None, // auto_find_prompt
+                            None, // strip_prompt
+                            None, // strip_command
+                            None, // normalize
+                            None, // cmd_verify
+                        ) {
                             Ok(rollback_output) => {
                                 debug!(target: "JuniperJunosDevice::send_config_set", "Rollback after failed commit: {}", rollback_output);
                                 // output_buffer.push_str("\n");
@@ -190,7 +239,16 @@ impl NetworkDeviceConnection for JuniperJunosDevice {
 
                 // If commands failed, rollback configuration
                 debug!(target: "JuniperJunosDevice::send_config_set", "Error occurred, performing rollback: {}", err);
-                match self.send_command("rollback 0") {
+                match self.send_command(
+                    "rollback 0",
+                    None, // expect_string
+                    None, // read_timeout
+                    None, // auto_find_prompt
+                    None, // strip_prompt
+                    None, // strip_command
+                    None, // normalize
+                    None, // cmd_verify
+                ) {
                     Ok(rollback_output) => {
                         debug!(target: "JuniperJunosDevice::send_config_set", "Rollback successful: {}", rollback_output);
                         output_buffer.push_str("\n");

@@ -392,61 +392,29 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         Ok(output)
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
         debug!(target: "JuniperBaseConnection::send_command", "Sending command: {}", command);
 
-        // Send command
-        self.connection.write_channel(&format!("{}\n", command))?;
-
-        let output = self
-            .connection
-            .read_until_pattern(&self.prompt, None, None)?;
-
-        self.connection.session_log.write(&output)?;
-
-        // Remove command echo from output
-        let lines: Vec<&str> = output.lines().collect();
-        let result = if lines.len() > 1 {
-            // Skip the first line (command echo) and join the rest
-            lines[1..].join("\n")
-        } else {
-            output
-        };
-
-        // Strip the prompt from the end of the output
-        let result = if result.trim().ends_with(&format!(">{}", ""))
-            || result.trim().ends_with(&format!("#{}", ""))
-        {
-            // Find the last occurrence of the prompt and remove it
-            if let Some(last_prompt_pos) = result.rfind(&self.prompt) {
-                result[..last_prompt_pos].trim().to_string()
-            } else {
-                // If we can't find the exact prompt, try a more generic approach
-                let mut cleaned_result = result.trim().to_string();
-                if let Some(idx) = cleaned_result.rfind('>') {
-                    // Check if this looks like a prompt (typically short and at the end)
-                    if cleaned_result.len() - idx < 30 {
-                        cleaned_result = cleaned_result[..idx].trim().to_string();
-                    }
-                }
-                cleaned_result
-            }
-        } else {
-            result
-        };
-
-        // Explicitly check for Juniper-specific error patterns
-        if let Some(error) =
-            vendor_error_patterns::check_for_errors(&result, &DeviceType::JuniperJunos)
-        {
-            debug!(target: "JuniperBaseConnection::send_command", "Error detected in output: {}", error);
-            return Err(NetsshError::command_error_with_output(
-                format!("Error in command '{}': {}", command, error),
-                result,
-            ));
-        }
-
-        debug!(target: "JuniperBaseConnection::send_command", "Command output received, length: {}", result.len());
-        Ok(result)
+        // Call an inherent method or directly forward to connection to avoid recursion
+        self.connection.send_command(
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
     }
 }

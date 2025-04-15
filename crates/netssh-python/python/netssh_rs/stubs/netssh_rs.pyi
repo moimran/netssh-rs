@@ -698,7 +698,17 @@ class PyNetworkDevice:
         """
         ...
 
-    def send_command(self, command: str) -> PyCommandResult:
+    def send_command(
+        self, 
+        command: str,
+        expect_string: Optional[str] = None,
+        read_timeout: Optional[float] = None,
+        auto_find_prompt: Optional[bool] = None,
+        strip_prompt: Optional[bool] = None,
+        strip_command: Optional[bool] = None,
+        normalize: Optional[bool] = None,
+        cmd_verify: Optional[bool] = None
+    ) -> PyCommandResult:
         """
         Send a command to the device and return the result.
 
@@ -707,6 +717,13 @@ class PyNetworkDevice:
 
         Args:
             command: The command string to execute on the device
+            expect_string: Optional pattern to search for in the output
+            read_timeout: Optional timeout in seconds for reading output
+            auto_find_prompt: Optional flag to automatically find prompt
+            strip_prompt: Optional flag to strip prompt from output
+            strip_command: Optional flag to strip command from output
+            normalize: Optional flag to normalize line feeds
+            cmd_verify: Optional flag to verify command echoing
 
         Returns:
             PyCommandResult: Command result containing output and status information
@@ -816,6 +833,68 @@ class PyNetworkDevice:
                 read_timeout=30.0
             )
             ```
+        """
+        ...
+
+    def execute_command(
+        self,
+        command: str,
+        expect_string: Optional[str] = None,
+        read_timeout: Optional[float] = None,
+        auto_find_prompt: Optional[bool] = None,
+        strip_prompt: Optional[bool] = None,
+        strip_command: Optional[bool] = None,
+        normalize: Optional[bool] = None,
+        cmd_verify: Optional[bool] = None
+    ) -> str:
+        """
+        Execute a command and return the raw result
+
+        Args:
+            command: The command to execute
+            expect_string: Optional pattern to search for in the output
+            read_timeout: Optional timeout in seconds for reading output
+            auto_find_prompt: Optional flag to automatically find prompt
+            strip_prompt: Optional flag to strip prompt from output
+            strip_command: Optional flag to strip command from output
+            normalize: Optional flag to normalize line feeds
+            cmd_verify: Optional flag to verify command echoing
+
+        Returns:
+            str: The command output as a string
+
+        Raises:
+            RuntimeError: If command execution fails or times out
+        """
+        ...
+
+    def execute_command_with_result(
+        self,
+        command: str,
+        expect_string: Optional[str] = None,
+        read_timeout: Optional[float] = None,
+        auto_find_prompt: Optional[bool] = None,
+        strip_prompt: Optional[bool] = None,
+        strip_command: Optional[bool] = None,
+        normalize: Optional[bool] = None,
+        cmd_verify: Optional[bool] = None
+    ) -> CommandResult:
+        """
+        Execute a command on the device and return a structured result,
+        including checking for device-specific error patterns in the output.
+
+        Args:
+            command: The command to execute
+            expect_string: Optional pattern to search for in the output
+            read_timeout: Optional timeout in seconds for reading output
+            auto_find_prompt: Optional flag to automatically find prompt
+            strip_prompt: Optional flag to strip prompt from output
+            strip_command: Optional flag to strip command from output
+            normalize: Optional flag to normalize line feeds
+            cmd_verify: Optional flag to verify command echoing
+
+        Returns:
+            CommandResult: Result containing the command output and status
         """
         ...
 

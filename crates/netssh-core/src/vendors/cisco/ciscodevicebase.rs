@@ -346,22 +346,27 @@ impl CiscoBaseConnection {
         Ok(output)
     }
 
-    pub fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        debug!(target: "CiscoBaseConnection::send_command", "Sending command: {}", command);
-
-        let output = self.connection.send_command(
+    pub fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        self.connection.send_command(
             command,
-            None,
-            None,
-            Some(true),
-            Some(true),
-            Some(true),
-            Some(true),
-            Some(true),
-        )?;
-
-        debug!(target: "CiscoBaseConnection::send_command", "Command output received, length: {}", output.len());
-        Ok(output)
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
     }
 }
 
@@ -408,8 +413,27 @@ impl CiscoDeviceConnection for CiscoBaseConnection {
         self.save_config()
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        self.send_command(command)
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        self.send_command(
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
     }
 
     fn send_config_set(

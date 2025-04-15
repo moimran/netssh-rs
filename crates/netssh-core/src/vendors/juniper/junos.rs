@@ -83,12 +83,30 @@ impl JuniperJunosDevice {
 
     pub fn commit_config(&mut self) -> Result<String, NetsshError> {
         debug!(target: "JuniperJunosDevice::commit_config", "Delegating to JuniperBaseConnection::commit_config");
-        return self.base.commit_config()
+        return self.base.commit_config();
     }
 
-    pub fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        debug!(target: "JuniperJunosDevice::send_command", "Delegating to JuniperBaseConnection::send_command");
-        self.base.send_command(command)
+    pub fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        self.base.connection.send_command(
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
     }
 
     pub fn terminal_settings(&mut self) -> Result<(), NetsshError> {
@@ -99,12 +117,30 @@ impl JuniperJunosDevice {
     // JunOS-specific methods
     pub fn show_version(&mut self) -> Result<String, NetsshError> {
         debug!(target: "JuniperJunosDevice::show_version", "Getting JunOS version");
-        self.send_command("show version")
+        self.send_command(
+            "show version",
+            None, // expect_string
+            None, // read_timeout
+            None, // auto_find_prompt
+            None, // strip_prompt
+            None, // strip_command
+            None, // normalize
+            None, // cmd_verify
+        )
     }
 
     pub fn show_interfaces(&mut self) -> Result<String, NetsshError> {
         debug!(target: "JuniperJunosDevice::show_interfaces", "Getting JunOS interfaces");
-        self.send_command("show interfaces terse")
+        self.send_command(
+            "show interfaces terse",
+            None, // expect_string
+            None, // read_timeout
+            None, // auto_find_prompt
+            None, // strip_prompt
+            None, // strip_command
+            None, // normalize
+            None, // cmd_verify
+        )
     }
 }
 
@@ -149,10 +185,30 @@ impl JuniperDeviceConnection for JuniperJunosDevice {
     }
 
     fn commit_config(&mut self) -> Result<String, NetsshError> {
-        return self.commit_config()
+        return self.commit_config();
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        self.send_command(command)
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        // Call the base connection's send_command method directly
+        self.base.connection.send_command(
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
     }
 }

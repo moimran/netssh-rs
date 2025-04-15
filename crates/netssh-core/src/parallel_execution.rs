@@ -234,7 +234,15 @@ impl ParallelExecutionManager {
 
                             // Execute the command with timeout
                             let result = tokio::time::timeout(timeout_duration, async {
-                                connection.send_command(&cmd)
+                                connection.send_command(
+                                    &cmd, None, // expect_string
+                                    None, // read_timeout
+                                    None, // auto_find_prompt
+                                    None, // strip_prompt
+                                    None, // strip_command
+                                    None, // normalize
+                                    None, // cmd_verify
+                                )
                             })
                             .await;
 

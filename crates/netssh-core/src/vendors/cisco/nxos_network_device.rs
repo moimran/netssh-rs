@@ -48,8 +48,28 @@ impl NetworkDeviceConnection for CiscoNxosDevice {
         <Self as CiscoDeviceConnection>::save_config(self).map(|_| ())
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        <Self as CiscoDeviceConnection>::send_command(self, command)
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        <Self as CiscoDeviceConnection>::send_command(
+            self,
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
     }
 
     fn session_preparation(&mut self) -> Result<(), NetsshError> {
@@ -61,7 +81,6 @@ impl NetworkDeviceConnection for CiscoNxosDevice {
     }
 
     fn send_config_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError> {
-        // Implementation for sending config commands to Cisco NXOS
         let mut results = Vec::new();
 
         // Enter config mode using explicit trait method
@@ -69,7 +88,17 @@ impl NetworkDeviceConnection for CiscoNxosDevice {
 
         // Send each command using explicit trait method
         for cmd in commands {
-            let result = <Self as NetworkDeviceConnection>::send_command(self, cmd)?;
+            let result = <Self as NetworkDeviceConnection>::send_command(
+                self, 
+                cmd,
+                None, // expect_string
+                None, // read_timeout
+                None, // auto_find_prompt
+                None, // strip_prompt
+                None, // strip_command
+                None, // normalize
+                None  // cmd_verify
+            )?;
             results.push(result);
         }
 
@@ -80,7 +109,17 @@ impl NetworkDeviceConnection for CiscoNxosDevice {
     }
 
     fn get_device_info(&mut self) -> Result<DeviceInfo, NetsshError> {
-        let output = <Self as NetworkDeviceConnection>::send_command(self, "show version")?;
+        let output = <Self as NetworkDeviceConnection>::send_command(
+            self, 
+            "show version",
+            None, // expect_string
+            None, // read_timeout
+            None, // auto_find_prompt
+            None, // strip_prompt
+            None, // strip_command
+            None, // normalize
+            None  // cmd_verify
+        )?;
 
         let mut info = DeviceInfo {
             device_type: "cisco_nxos".to_string(),

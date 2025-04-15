@@ -97,7 +97,30 @@ pub trait NetworkDeviceConnection: Send {
     fn close(&mut self) -> Result<(), NetsshError>;
 
     /// Send a command to the device and return the output
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError>;
+    ///
+    /// This method sends a command to the device and returns the output.
+    /// It includes optional parameters to customize command behavior.
+    ///
+    /// # Arguments
+    /// * `command` - The command string to send to the device
+    /// * `expect_string` - Optional pattern to search for in the output
+    /// * `read_timeout` - Optional timeout in seconds for reading output
+    /// * `auto_find_prompt` - Optional flag to automatically find prompt
+    /// * `strip_prompt` - Optional flag to strip prompt from output
+    /// * `strip_command` - Optional flag to strip command from output
+    /// * `normalize` - Optional flag to normalize line feeds
+    /// * `cmd_verify` - Optional flag to verify command echoing
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError>;
 
     /// Send multiple configuration commands to the device
     fn send_config_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError>;

@@ -1097,15 +1097,31 @@ impl BaseConnection {
 
         // For single commands, use the standard method
         if commands.len() == 1 {
-            let response =
-                self.send_command(commands[0], None, None, None, None, None, None, None)?;
+            let response = self.send_command(
+                commands[0],
+                None, // expect_string
+                None, // read_timeout
+                None, // auto_find_prompt
+                None, // strip_prompt
+                None, // strip_command
+                None, // normalize
+                None, // cmd_verify
+            )?;
             responses.push(response);
             return Ok(responses);
         }
 
         // For multiple commands, iterate through them
         for command in commands {
-            match self.send_command(command, None, None, None, None, None, None, None) {
+            match self.send_command(
+                command, None, // expect_string
+                None, // read_timeout
+                None, // auto_find_prompt
+                None, // strip_prompt
+                None, // strip_command
+                None, // normalize
+                None, // cmd_verify
+            ) {
                 Ok(response) => {
                     responses.push(response);
                 }
@@ -1821,7 +1837,6 @@ impl BaseConnection {
         let mut output = String::new();
 
         self.write_channel(&cmd)?;
-        
 
         debug!(target: "BaseConnection::config_mode", "Output after command echo verification: bytes {}", output.len());
 

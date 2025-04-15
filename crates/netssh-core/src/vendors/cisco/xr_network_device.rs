@@ -51,8 +51,28 @@ impl NetworkDeviceConnection for CiscoXrDevice {
         <Self as CiscoDeviceConnection>::save_config(self).map(|_| ())
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
-        <Self as CiscoDeviceConnection>::send_command(self, command)
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        <Self as CiscoDeviceConnection>::send_command(
+            self,
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
     }
 
     fn get_device_type(&self) -> &str {
@@ -68,7 +88,15 @@ impl NetworkDeviceConnection for CiscoXrDevice {
 
         // Send each command using explicit trait method
         for cmd in commands {
-            let result = <Self as NetworkDeviceConnection>::send_command(self, cmd)?;
+            let result = <Self as NetworkDeviceConnection>::send_command(
+                self, cmd, None, // expect_string
+                None, // read_timeout
+                None, // auto_find_prompt
+                None, // strip_prompt
+                None, // strip_command
+                None, // normalize
+                None, // cmd_verify
+            )?;
             results.push(result);
         }
 
@@ -80,7 +108,17 @@ impl NetworkDeviceConnection for CiscoXrDevice {
 
     fn get_device_info(&mut self) -> Result<DeviceInfo, NetsshError> {
         // Get device information using show version with explicit trait method
-        let output = <Self as NetworkDeviceConnection>::send_command(self, "show version")?;
+        let output = <Self as NetworkDeviceConnection>::send_command(
+            self,
+            "show version",
+            None, // expect_string
+            None, // read_timeout
+            None, // auto_find_prompt
+            None, // strip_prompt
+            None, // strip_command
+            None, // normalize
+            None, // cmd_verify
+        )?;
 
         // Parse the output to extract device information
         let mut info = DeviceInfo {

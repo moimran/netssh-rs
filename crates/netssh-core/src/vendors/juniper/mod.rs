@@ -63,5 +63,15 @@ pub trait JuniperDeviceConnection: DefaultConfigSetMethods {
     fn commit_config(&mut self) -> Result<String, NetsshError>;
 
     /// Send command to device
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError>;
+    fn send_command(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError>;
 }
