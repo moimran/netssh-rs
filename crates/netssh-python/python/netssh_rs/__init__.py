@@ -18,7 +18,8 @@ try:
         PyParallelExecutionManager,
         PyCommandResult,
         PyBatchCommandResults,
-        initialize_logging
+        initialize_logging,
+        set_default_session_logging
     )
     
     # Provide clean aliases without the Py prefix
@@ -45,6 +46,7 @@ try:
         "CommandResult",
         "BatchCommandResults",
         "initialize_logging",
+        "set_default_session_logging",
         # TextFSM exports
         "parse_output",
         "parse_output_to_json",
@@ -60,5 +62,6 @@ except ImportError as e:
         "ParallelExecutionManager",
         "CommandResult",
         "BatchCommandResults",
-        "initialize_logging"
+        "initialize_logging",
+        "set_default_session_logging"
     ]

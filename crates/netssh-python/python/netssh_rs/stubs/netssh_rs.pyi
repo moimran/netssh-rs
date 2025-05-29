@@ -296,6 +296,37 @@ def initialize_logging(
     """
     ...
 
+def set_default_session_logging(
+    enable: bool = False,
+    log_path: Optional[str] = None
+) -> None:
+    """
+    Set default session logging behavior globally.
+
+    This function configures whether session logging is enabled by default
+    and where the logs are stored when no specific path is provided.
+    This setting applies to all device connections that don't explicitly
+    specify a session_log parameter.
+
+    Args:
+        enable: Whether to enable session logging by default. Default is False.
+        log_path: The directory path where session logs will be stored.
+                 If None, the existing path setting will be maintained.
+
+    Examples:
+        ```python
+        # Disable session logging by default (the default behavior)
+        set_default_session_logging(enable=False)
+        
+        # Enable session logging by default, using the default path
+        set_default_session_logging(enable=True)
+        
+        # Enable session logging and set a custom log directory
+        set_default_session_logging(enable=True, log_path="/var/log/netssh-sessions")
+        ```
+    """
+    ...
+
 class PyDeviceConfig:
     """
     Configuration for a network device connection.

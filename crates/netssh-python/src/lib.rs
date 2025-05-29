@@ -72,8 +72,28 @@ fn netssh_rs(_py: Python, m: &PyModule) -> PyResult<()> {
 
     // Add functions
     m.add_function(wrap_pyfunction!(initialize_logging, m)?)?;
+    m.add_function(wrap_pyfunction!(set_default_session_logging, m)?)?;
 
     Ok(())
+}
+
+/// Set default session logging behavior
+///
+/// This function configures whether session logging is enabled by default
+/// and where the logs are stored when no specific path is provided.
+#[pyfunction]
+#[pyo3(signature = (enable=false, log_path=None))]
+#[pyo3(text_signature = "(enable=False, log_path=None)")]
+fn set_default_session_logging(enable: bool, log_path: Option<&str>) -> PyResult<()> {
+    // Update the global settings
+    netssh_core::settings::Settings::update(|settings| {
+        settings.logging.enable_session_log = enable;
+
+        if let Some(path) = log_path {
+            settings.logging.session_log_path = path.to_string();
+        }
+    })
+    .map_err(|e| PyRuntimeError::new_err(format!("Failed to update settings: {}", e)))
 }
 
 /// Initialize logging

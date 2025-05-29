@@ -477,13 +477,32 @@ def initialize_logging(
     log_format: Optional[str] = None
 ) -> None:
     """
-    Initialize logging for the library.
+    Initialize logging for the netssh-rs library.
     
     Args:
-        level: Log level (debug, info, warn, error)
+        level: Log level (error, warn, info, debug, trace)
         log_to_file: Whether to log to a file
-        log_file_path: Path to log file
-        log_format: Log format string
+        log_file_path: Path to log file (if log_to_file is True)
+        log_format: Custom log format string
+    """
+    ...
+
+def set_default_session_logging(
+    enable: bool = False,
+    log_path: Optional[str] = None
+) -> None:
+    """
+    Set default session logging behavior globally.
+
+    This function configures whether session logging is enabled by default
+    and where the logs are stored when no specific path is provided.
+    This setting applies to all device connections that don't explicitly
+    specify a session_log parameter.
+
+    Args:
+        enable: Whether to enable session logging by default. Default is False.
+        log_path: The directory path where session logs will be stored.
+                 If None, the existing path setting will be maintained.
     """
     ...
 

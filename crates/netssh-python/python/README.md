@@ -16,6 +16,11 @@ import netssh_rs
 # Initialize logging
 netssh_rs.initialize_logging(level="debug", log_to_file=True, log_file_path="logs/netssh-rs.log")
 
+# Configure default session logging behavior (optional)
+netssh_rs.set_default_session_logging(enable=False)  # Disable by default (this is the default)
+# OR
+netssh_rs.set_default_session_logging(enable=True, log_path="logs/sessions")  # Enable with custom path
+
 # Create a device configuration
 config = netssh_rs.PyDeviceConfig(
     device_type="cisco_ios",
@@ -25,7 +30,7 @@ config = netssh_rs.PyDeviceConfig(
     port=22,
     timeout_seconds=60,
     secret="enable_secret",
-    session_log="logs/device_session.log"
+    session_log="logs/device_session.log"  # Override default session logging for this device
 )
 
 # Create and connect to a device
