@@ -2,6 +2,7 @@ use crate::error::NetsshError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use indexmap::IndexMap;
 
 /// Represents the execution status of a command
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -14,6 +15,55 @@ pub enum CommandStatus {
     Timeout,
     /// Command execution was skipped (e.g., due to previous command failure)
     Skipped,
+}
+
+/// Represents the status of TextFSM parsing
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ParseStatus {
+    /// Parsing was not attempted
+    NotAttempted,
+    /// Parsing succeeded
+    Success,
+    /// Parsing failed, raw output available
+    Failed,
+    /// No template found for platform/command
+    NoTemplate,
+}
+
+/// Options for TextFSM parsing
+#[derive(Debug, Clone)]
+pub struct ParseOptions {
+    /// Whether parsing is enabled
+    pub enabled: bool,
+    /// Optional custom template directory path
+    pub template_dir: Option<String>,
+}
+
+impl Default for ParseOptions {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            template_dir: None,
+        }
+    }
+}
+
+impl ParseOptions {
+    /// Create new ParseOptions with parsing enabled
+    pub fn enabled() -> Self {
+        Self {
+            enabled: true,
+            template_dir: None,
+        }
+    }
+
+    /// Create new ParseOptions with parsing enabled and custom template directory
+    pub fn with_template_dir<S: Into<String>>(template_dir: S) -> Self {
+        Self {
+            enabled: true,
+            template_dir: Some(template_dir.into()),
+        }
+    }
 }
 
 /// Holds the result of executing a command on a device
@@ -37,6 +87,12 @@ pub struct CommandResult {
     pub status: CommandStatus,
     /// Error message if command failed
     pub error: Option<String>,
+    /// Status of TextFSM parsing
+    pub parse_status: ParseStatus,
+    /// Parsed data from TextFSM (if parsing was successful)
+    pub parsed_data: Option<Vec<IndexMap<String, serde_json::Value>>>,
+    /// Error message if parsing failed
+    pub parse_error: Option<String>,
 }
 
 impl CommandResult {
@@ -62,6 +118,9 @@ impl CommandResult {
             duration_ms,
             status: CommandStatus::Success,
             error: None,
+            parse_status: ParseStatus::NotAttempted,
+            parsed_data: None,
+            parse_error: None,
         }
     }
 
@@ -88,6 +147,9 @@ impl CommandResult {
             duration_ms,
             status: CommandStatus::Failed,
             error: Some(error),
+            parse_status: ParseStatus::NotAttempted,
+            parsed_data: None,
+            parse_error: None,
         }
     }
 
@@ -115,6 +177,9 @@ impl CommandResult {
                 "Command execution timed out after {} ms",
                 duration_ms
             )),
+            parse_status: ParseStatus::NotAttempted,
+            parsed_data: None,
+            parse_error: None,
         }
     }
 
@@ -132,6 +197,9 @@ impl CommandResult {
             duration_ms: 0,
             status: CommandStatus::Skipped,
             error: None,
+            parse_status: ParseStatus::NotAttempted,
+            parsed_data: None,
+            parse_error: None,
         }
     }
 
@@ -160,6 +228,9 @@ impl CommandResult {
                 duration_ms,
                 status: CommandStatus::Timeout,
                 error: Some(format!("{}", error)),
+                parse_status: ParseStatus::NotAttempted,
+                parsed_data: None,
+                parse_error: None,
             },
             NetsshError::CommandError(msg) => Self {
                 device_id,
@@ -171,6 +242,9 @@ impl CommandResult {
                 duration_ms,
                 status: CommandStatus::Failed,
                 error: Some(msg.clone()),
+                parse_status: ParseStatus::NotAttempted,
+                parsed_data: None,
+                parse_error: None,
             },
             NetsshError::CommandErrorWithOutput {
                 error_msg,
@@ -185,6 +259,9 @@ impl CommandResult {
                 duration_ms,
                 status: CommandStatus::Failed,
                 error: Some(error_msg.clone()),
+                parse_status: ParseStatus::NotAttempted,
+                parsed_data: None,
+                parse_error: None,
             },
             // All other errors get mapped to Failed status
             _ => Self {
@@ -197,6 +274,9 @@ impl CommandResult {
                 duration_ms,
                 status: CommandStatus::Failed,
                 error: Some(format!("{}", error)),
+                parse_status: ParseStatus::NotAttempted,
+                parsed_data: None,
+                parse_error: None,
             },
         }
     }
@@ -222,6 +302,107 @@ impl CommandResult {
                 Self::from_error(device_id, device_type, command, error, start_time, None)
             }
         }
+    }
+
+    /// Create a CommandResult with successful parsing
+    pub fn success_with_parsing(
+        device_id: String,
+        device_type: String,
+        command: String,
+        output: String,
+        parsed_data: Vec<IndexMap<String, serde_json::Value>>,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+    ) -> Self {
+        let duration = end_time.signed_duration_since(start_time);
+        let duration_ms = duration.num_milliseconds() as u64;
+
+        Self {
+            device_id,
+            device_type,
+            command,
+            output: Some(output),
+            start_time,
+            end_time,
+            duration_ms,
+            status: CommandStatus::Success,
+            error: None,
+            parse_status: ParseStatus::Success,
+            parsed_data: Some(parsed_data),
+            parse_error: None,
+        }
+    }
+
+    /// Create a CommandResult with failed parsing (but successful command execution)
+    pub fn success_with_parse_failure(
+        device_id: String,
+        device_type: String,
+        command: String,
+        output: String,
+        parse_error: String,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+    ) -> Self {
+        let duration = end_time.signed_duration_since(start_time);
+        let duration_ms = duration.num_milliseconds() as u64;
+
+        Self {
+            device_id,
+            device_type,
+            command,
+            output: Some(output),
+            start_time,
+            end_time,
+            duration_ms,
+            status: CommandStatus::Success,
+            error: None,
+            parse_status: ParseStatus::Failed,
+            parsed_data: None,
+            parse_error: Some(parse_error),
+        }
+    }
+
+    /// Create a CommandResult when no template was found for parsing
+    pub fn success_with_no_template(
+        device_id: String,
+        device_type: String,
+        command: String,
+        output: String,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+    ) -> Self {
+        let duration = end_time.signed_duration_since(start_time);
+        let duration_ms = duration.num_milliseconds() as u64;
+
+        Self {
+            device_id,
+            device_type,
+            command,
+            output: Some(output),
+            start_time,
+            end_time,
+            duration_ms,
+            status: CommandStatus::Success,
+            error: None,
+            parse_status: ParseStatus::NoTemplate,
+            parsed_data: None,
+            parse_error: None,
+        }
+    }
+
+    /// Check if parsing was successful
+    pub fn is_parsed(&self) -> bool {
+        self.parse_status == ParseStatus::Success
+    }
+
+    /// Check if parsing was attempted
+    pub fn parse_attempted(&self) -> bool {
+        self.parse_status != ParseStatus::NotAttempted
+    }
+
+    /// Get parsed data as JSON string
+    pub fn parsed_data_as_json(&self) -> Option<Result<String, serde_json::Error>> {
+        self.parsed_data.as_ref().map(|data| serde_json::to_string_pretty(data))
     }
 }
 

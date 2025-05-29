@@ -24,6 +24,9 @@ parking_lot.workspace = true
 rpassword.workspace = true
 # Add rand for jitter in backoff algorithm
 rand.workspace = true
+# TextFSM parsing integration
+cmdparser = { path = "../netssh-textfsm" }
+indexmap = { version = "2.0", features = ["serde"] }
 
 [features]
 default = []

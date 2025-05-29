@@ -1,10 +1,12 @@
-use crate::command_result::CommandResult;
+use crate::command_result::{CommandResult, ParseOptions};
 use crate::device_connection::{DeviceInfo, DeviceType, NetworkDeviceConnection};
 use crate::error::NetsshError;
 use crate::vendor_error_patterns;
 use chrono::Utc;
 use std::str::FromStr;
 use tracing::{debug, info, instrument, trace, warn};
+use cmdparser::{NetworkOutputParser, ParseOutputResult};
+use indexmap::IndexMap;
 
 /// Basic interface information
 #[derive(Debug, Clone)]
@@ -152,7 +154,12 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
     /// Execute a command on the device and return a structured result,
     /// including checking for device-specific error patterns in the output.
     pub fn execute_command_with_result(&mut self, command: &str) -> CommandResult {
-        info!("Executing command with result: {}", command);
+        self.execute_command_with_parsing(command, &ParseOptions::default())
+    }
+
+    /// Execute a command on the device with optional TextFSM parsing
+    pub fn execute_command_with_parsing(&mut self, command: &str, parse_options: &ParseOptions) -> CommandResult {
+        info!("Executing command with parsing: {} (parsing enabled: {})", command, parse_options.enabled);
         let start_time = Utc::now();
         let device_type = self.device.get_device_type().to_string();
         let device_id = match &self.device.get_device_info() {
@@ -193,14 +200,82 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
             }
         }
 
-        // Convert the result to a CommandResult
-        CommandResult::from_result(
-            device_id,
-            device_type,
-            command.to_string(),
-            result,
-            start_time,
-        )
+        // Handle the command result with optional parsing
+        match result {
+            Ok(output) => {
+                let end_time = Utc::now();
+
+                // If parsing is not enabled, return success without parsing
+                if !parse_options.enabled {
+                    return CommandResult::success(
+                        device_id,
+                        device_type,
+                        command.to_string(),
+                        output,
+                        start_time,
+                        end_time,
+                    );
+                }
+
+                // Attempt TextFSM parsing
+                match self.parse_command_output(&device_type, command, &output, parse_options) {
+                    Ok(Some(parsed_data)) => {
+                        info!("Successfully parsed command output with {} records", parsed_data.len());
+                        CommandResult::success_with_parsing(
+                            device_id,
+                            device_type,
+                            command.to_string(),
+                            output,
+                            parsed_data,
+                            start_time,
+                            end_time,
+                        )
+                    }
+                    Ok(None) => {
+                        info!("No template found for parsing {} command on {}", command, device_type);
+                        CommandResult::success_with_no_template(
+                            device_id,
+                            device_type,
+                            command.to_string(),
+                            output,
+                            start_time,
+                            end_time,
+                        )
+                    }
+                    Err(parse_error) => {
+                        warn!("Failed to parse command output: {}", parse_error);
+                        CommandResult::success_with_parse_failure(
+                            device_id,
+                            device_type,
+                            command.to_string(),
+                            output,
+                            parse_error.to_string(),
+                            start_time,
+                            end_time,
+                        )
+                    }
+                }
+            }
+            Err(error) => {
+                CommandResult::from_error(device_id, device_type, command.to_string(), error, start_time, None)
+            }
+        }
+    }
+
+    /// Parse command output using TextFSM
+    fn parse_command_output(
+        &self,
+        platform: &str,
+        command: &str,
+        output: &str,
+        parse_options: &ParseOptions,
+    ) -> ParseOutputResult<Option<Vec<IndexMap<String, serde_json::Value>>>> {
+        // Create parser with optional custom template directory
+        let template_dir = parse_options.template_dir.as_ref().map(|s| std::path::PathBuf::from(s));
+        let mut parser = NetworkOutputParser::new(template_dir);
+
+        // Attempt to parse the output
+        parser.parse_output(platform, command, output)
     }
 }
 
