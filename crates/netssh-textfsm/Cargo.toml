@@ -1,0 +1,22 @@
+[package]
+name = "cmdparser"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "parse_interface"
+path = "src/main.rs"
+
+[dependencies]
+regex = "1.10"
+fancy-regex = "0.14"
+lazy_static = "1.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = { version = "4.0", features = ["derive"] }
+thiserror = "1.0"
+indexmap = { version = "2.0", features = ["serde"] }
+
+[dev-dependencies]
+walkdir = "2.4"
+colored = "2.0"

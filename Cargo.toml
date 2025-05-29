@@ -3,6 +3,7 @@ members = [
     "crates/netssh-core",
     "crates/netssh-python",
     "crates/netssh-api",
+    "crates/netssh-textfsm",
 ]
 resolver = "2"
 

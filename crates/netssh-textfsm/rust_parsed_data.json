@@ -1,0 +1,606 @@
+[
+  {
+    "NEIGHBOR": "192.168.100.1",
+    "REMOTE_AS": "65001",
+    "LOCAL_AS": "65001",
+    "TYPE": "internal",
+    "DESCRIPTION": "RouteReflector_1",
+    "REMOTE_ROUTER_ID": "192.168.100.1",
+    "CLUSTER_ID": "",
+    "STATE": "Established",
+    "UPTIME": "2w3d",
+    "NSR_STATE": "Ready",
+    "HOLDTIME": "90",
+    "KEEPALIVE": "30",
+    "NSR": "enabled",
+    "GR": "",
+    "AFI": [
+      "IPv4 Unicast"
+    ],
+    "VERSION": [
+      "56362493"
+    ],
+    "ROUTE_REFLECTOR_ROLE": [],
+    "POLICY_INCOMING": [],
+    "POLICY_OUTGOING": [],
+    "PREFIXES_IN": [
+      "847583"
+    ],
+    "PREFIXES_IN_BEST": [
+      "794705"
+    ],
+    "PREFIXES_OUT": [
+      "170"
+    ],
+    "PREFIXES_OUT_SUPPRESSED": [
+      "0"
+    ],
+    "PREFIXES_OUT_WITHDRAWN": [
+      "19"
+    ],
+    "MAX_PREFIXES": [
+      "1048576"
+    ],
+    "MAX_PREFIXES_WARN_PERCENT": [
+      "75"
+    ],
+    "DEFAULT_ORIGINATE": [],
+    "LAST_ACK_VERSION": [
+      "56362493"
+    ],
+    "LAST_SYNCED_ACK_VERSION": [
+      "56362493"
+    ],
+    "CONNECTIONS_ESTABLISHED": "2",
+    "CONNECTIONS_DROPPED": "1",
+    "LOCAL_ADDRESS": "10.0.0.1",
+    "LOCAL_PORT": "179",
+    "REMOTE_ADDRESS": "192.168.100.1",
+    "REMOTE_PORT": "13617",
+    "LAST_RESET": "2w3d",
+    "LAST_RESET_REASON": "Peer closing down the session",
+    "LAST_NOTIFICATION_SENT": "",
+    "ERROR_CODE": "",
+    "LAST_NOTIFICATION_RECEIVED": "",
+    "PEER_ERROR_CODE": "",
+    "PEER_RESET_REASON": "Remote closed the session (No error)",
+    "MAX_HOPS": ""
+  },
+  {
+    "NEIGHBOR": "192.168.100.2",
+    "REMOTE_AS": "65001",
+    "LOCAL_AS": "65001",
+    "TYPE": "internal",
+    "DESCRIPTION": "RouteReflector_2",
+    "REMOTE_ROUTER_ID": "192.168.100.2",
+    "CLUSTER_ID": "",
+    "STATE": "Established",
+    "UPTIME": "2w3d",
+    "NSR_STATE": "Ready",
+    "HOLDTIME": "90",
+    "KEEPALIVE": "30",
+    "NSR": "enabled",
+    "GR": "",
+    "AFI": [
+      "IPv4 Unicast"
+    ],
+    "VERSION": [
+      "56362493"
+    ],
+    "ROUTE_REFLECTOR_ROLE": [],
+    "POLICY_INCOMING": [],
+    "POLICY_OUTGOING": [],
+    "PREFIXES_IN": [
+      "847585"
+    ],
+    "PREFIXES_IN_BEST": [
+      "52523"
+    ],
+    "PREFIXES_OUT": [
+      "170"
+    ],
+    "PREFIXES_OUT_SUPPRESSED": [
+      "0"
+    ],
+    "PREFIXES_OUT_WITHDRAWN": [
+      "19"
+    ],
+    "MAX_PREFIXES": [
+      "1048576"
+    ],
+    "MAX_PREFIXES_WARN_PERCENT": [
+      "75"
+    ],
+    "DEFAULT_ORIGINATE": [],
+    "LAST_ACK_VERSION": [
+      "56362493"
+    ],
+    "LAST_SYNCED_ACK_VERSION": [
+      "56362493"
+    ],
+    "CONNECTIONS_ESTABLISHED": "2",
+    "CONNECTIONS_DROPPED": "1",
+    "LOCAL_ADDRESS": "10.0.0.1",
+    "LOCAL_PORT": "179",
+    "REMOTE_ADDRESS": "192.168.100.2",
+    "REMOTE_PORT": "15445",
+    "LAST_RESET": "2w3d",
+    "LAST_RESET_REASON": "Peer closing down the session",
+    "LAST_NOTIFICATION_SENT": "",
+    "ERROR_CODE": "",
+    "LAST_NOTIFICATION_RECEIVED": "",
+    "PEER_ERROR_CODE": "",
+    "PEER_RESET_REASON": "Remote closed the session (No error)",
+    "MAX_HOPS": ""
+  },
+  {
+    "NEIGHBOR": "192.168.0.1",
+    "REMOTE_AS": "65001",
+    "LOCAL_AS": "65001",
+    "TYPE": "internal",
+    "DESCRIPTION": "VPN_RouteReflector_1",
+    "REMOTE_ROUTER_ID": "192.168.0.1",
+    "CLUSTER_ID": "",
+    "STATE": "Established",
+    "UPTIME": "2w4d",
+    "NSR_STATE": "Ready",
+    "HOLDTIME": "90",
+    "KEEPALIVE": "30",
+    "NSR": "enabled",
+    "GR": "",
+    "AFI": [
+      "VPNv4 Unicast",
+      "VPNv6 Unicast",
+      "IPv4 MDT"
+    ],
+    "VERSION": [
+      "1735091",
+      "1",
+      "77"
+    ],
+    "ROUTE_REFLECTOR_ROLE": [],
+    "POLICY_INCOMING": [],
+    "POLICY_OUTGOING": [],
+    "PREFIXES_IN": [
+      "4713",
+      "0",
+      "0"
+    ],
+    "PREFIXES_IN_BEST": [
+      "4443",
+      "0",
+      "0"
+    ],
+    "PREFIXES_OUT": [
+      "889",
+      "0",
+      "0"
+    ],
+    "PREFIXES_OUT_SUPPRESSED": [
+      "0",
+      "0",
+      "0"
+    ],
+    "PREFIXES_OUT_WITHDRAWN": [
+      "6",
+      "0",
+      "0"
+    ],
+    "MAX_PREFIXES": [
+      "2097152",
+      "1048576",
+      "131072"
+    ],
+    "MAX_PREFIXES_WARN_PERCENT": [
+      "75",
+      "75",
+      "75"
+    ],
+    "DEFAULT_ORIGINATE": [],
+    "LAST_ACK_VERSION": [
+      "1735091",
+      "1",
+      "77"
+    ],
+    "LAST_SYNCED_ACK_VERSION": [
+      "1735091",
+      "1",
+      "77"
+    ],
+    "CONNECTIONS_ESTABLISHED": "3",
+    "CONNECTIONS_DROPPED": "2",
+    "LOCAL_ADDRESS": "10.0.0.1",
+    "LOCAL_PORT": "45510",
+    "REMOTE_ADDRESS": "192.168.0.1",
+    "REMOTE_PORT": "179",
+    "LAST_RESET": "2w4d",
+    "LAST_RESET_REASON": "BGP Notification received: peer unconfigured",
+    "LAST_NOTIFICATION_SENT": "3w2d",
+    "ERROR_CODE": "peer in wrong AS",
+    "LAST_NOTIFICATION_RECEIVED": "2w4d",
+    "PEER_ERROR_CODE": "peer unconfigured",
+    "PEER_RESET_REASON": "",
+    "MAX_HOPS": ""
+  },
+  {
+    "NEIGHBOR": "192.168.0.2",
+    "REMOTE_AS": "65001",
+    "LOCAL_AS": "65001",
+    "TYPE": "internal",
+    "DESCRIPTION": "VPN_RouteReflector_2",
+    "REMOTE_ROUTER_ID": "192.168.0.2",
+    "CLUSTER_ID": "",
+    "STATE": "Established",
+    "UPTIME": "3w2d",
+    "NSR_STATE": "Ready",
+    "HOLDTIME": "90",
+    "KEEPALIVE": "30",
+    "NSR": "enabled",
+    "GR": "",
+    "AFI": [
+      "VPNv4 Unicast",
+      "VPNv6 Unicast",
+      "IPv4 MDT"
+    ],
+    "VERSION": [
+      "1735091",
+      "1",
+      "77"
+    ],
+    "ROUTE_REFLECTOR_ROLE": [],
+    "POLICY_INCOMING": [],
+    "POLICY_OUTGOING": [],
+    "PREFIXES_IN": [
+      "4710",
+      "0",
+      "0"
+    ],
+    "PREFIXES_IN_BEST": [
+      "66",
+      "0",
+      "0"
+    ],
+    "PREFIXES_OUT": [
+      "5803",
+      "0",
+      "0"
+    ],
+    "PREFIXES_OUT_SUPPRESSED": [
+      "0",
+      "0",
+      "0"
+    ],
+    "PREFIXES_OUT_WITHDRAWN": [
+      "9",
+      "0",
+      "0"
+    ],
+    "MAX_PREFIXES": [
+      "2097152",
+      "1048576",
+      "131072"
+    ],
+    "MAX_PREFIXES_WARN_PERCENT": [
+      "75",
+      "75",
+      "75"
+    ],
+    "DEFAULT_ORIGINATE": [],
+    "LAST_ACK_VERSION": [
+      "1735091",
+      "1",
+      "77"
+    ],
+    "LAST_SYNCED_ACK_VERSION": [
+      "1735091",
+      "1",
+      "77"
+    ],
+    "CONNECTIONS_ESTABLISHED": "1",
+    "CONNECTIONS_DROPPED": "0",
+    "LOCAL_ADDRESS": "10.0.0.1",
+    "LOCAL_PORT": "35134",
+    "REMOTE_ADDRESS": "192.168.0.2",
+    "REMOTE_PORT": "179",
+    "LAST_RESET": "3w2d",
+    "LAST_RESET_REASON": "BGP Notification sent: peer in wrong AS",
+    "LAST_NOTIFICATION_SENT": "3w2d",
+    "ERROR_CODE": "peer in wrong AS",
+    "LAST_NOTIFICATION_RECEIVED": "",
+    "PEER_ERROR_CODE": "",
+    "PEER_RESET_REASON": "",
+    "MAX_HOPS": ""
+  },
+  {
+    "NEIGHBOR": "10.0.0.42",
+    "REMOTE_AS": "65001",
+    "LOCAL_AS": "65001",
+    "TYPE": "internal",
+    "DESCRIPTION": "iBGP_Neighbor",
+    "REMOTE_ROUTER_ID": "0.0.0.0",
+    "CLUSTER_ID": "10.0.0.1",
+    "STATE": "OpenSent",
+    "UPTIME": "",
+    "NSR_STATE": "None",
+    "HOLDTIME": "180",
+    "KEEPALIVE": "60",
+    "NSR": "enabled",
+    "GR": "",
+    "AFI": [
+      "IPv4 Unicast",
+      "IPv6 Unicast"
+    ],
+    "VERSION": [
+      "0",
+      "0"
+    ],
+    "ROUTE_REFLECTOR_ROLE": [
+      "Client",
+      "Client"
+    ],
+    "POLICY_INCOMING": [
+      "DENY-ALL",
+      "DENY-ALL"
+    ],
+    "POLICY_OUTGOING": [
+      "PASS-ALL",
+      "PASS-ALL"
+    ],
+    "PREFIXES_IN": [
+      "0",
+      "0"
+    ],
+    "PREFIXES_IN_BEST": [
+      "0",
+      "0"
+    ],
+    "PREFIXES_OUT": [
+      "0",
+      "0"
+    ],
+    "PREFIXES_OUT_SUPPRESSED": [
+      "0",
+      "0"
+    ],
+    "PREFIXES_OUT_WITHDRAWN": [
+      "0",
+      "0"
+    ],
+    "MAX_PREFIXES": [
+      "1048576",
+      "524288"
+    ],
+    "MAX_PREFIXES_WARN_PERCENT": [
+      "75",
+      "75"
+    ],
+    "DEFAULT_ORIGINATE": [],
+    "LAST_ACK_VERSION": [
+      "0",
+      "0"
+    ],
+    "LAST_SYNCED_ACK_VERSION": [
+      "0",
+      "0"
+    ],
+    "CONNECTIONS_ESTABLISHED": "1",
+    "CONNECTIONS_DROPPED": "1",
+    "LOCAL_ADDRESS": "10.0.0.1",
+    "LOCAL_PORT": "59248",
+    "REMOTE_ADDRESS": "10.0.0.42",
+    "REMOTE_PORT": "179",
+    "LAST_RESET": "00:00:52",
+    "LAST_RESET_REASON": "Peer closing down the session",
+    "LAST_NOTIFICATION_SENT": "2w3d",
+    "ERROR_CODE": "hold time expired",
+    "LAST_NOTIFICATION_RECEIVED": "",
+    "PEER_ERROR_CODE": "",
+    "PEER_RESET_REASON": "Remote closed the session (Connection timed out)",
+    "MAX_HOPS": ""
+  },
+  {
+    "NEIGHBOR": "10.0.0.124",
+    "REMOTE_AS": "65012",
+    "LOCAL_AS": "65001",
+    "TYPE": "external",
+    "DESCRIPTION": "",
+    "REMOTE_ROUTER_ID": "10.1.2.3",
+    "CLUSTER_ID": "",
+    "STATE": "Established",
+    "UPTIME": "3w1d",
+    "NSR_STATE": "Ready",
+    "HOLDTIME": "180",
+    "KEEPALIVE": "60",
+    "NSR": "enabled",
+    "GR": "",
+    "AFI": [
+      "IPv4 Unicast"
+    ],
+    "VERSION": [
+      "56362493"
+    ],
+    "ROUTE_REFLECTOR_ROLE": [],
+    "POLICY_INCOMING": [
+      "eBGP-IN"
+    ],
+    "POLICY_OUTGOING": [
+      "DENY-ALL"
+    ],
+    "PREFIXES_IN": [
+      "5836"
+    ],
+    "PREFIXES_IN_BEST": [
+      "5836"
+    ],
+    "PREFIXES_OUT": [
+      "0"
+    ],
+    "PREFIXES_OUT_SUPPRESSED": [
+      "0"
+    ],
+    "PREFIXES_OUT_WITHDRAWN": [
+      "0"
+    ],
+    "MAX_PREFIXES": [
+      "1048576"
+    ],
+    "MAX_PREFIXES_WARN_PERCENT": [
+      "75"
+    ],
+    "DEFAULT_ORIGINATE": [],
+    "LAST_ACK_VERSION": [
+      "56362493"
+    ],
+    "LAST_SYNCED_ACK_VERSION": [
+      "56362493"
+    ],
+    "CONNECTIONS_ESTABLISHED": "1",
+    "CONNECTIONS_DROPPED": "0",
+    "LOCAL_ADDRESS": "10.0.0.1",
+    "LOCAL_PORT": "37554",
+    "REMOTE_ADDRESS": "10.0.0.124",
+    "REMOTE_PORT": "179",
+    "LAST_RESET": "3w1d",
+    "LAST_RESET_REASON": "User clear requested (CEASE notification sent - administrative reset)",
+    "LAST_NOTIFICATION_SENT": "3w1d",
+    "ERROR_CODE": "administrative reset",
+    "LAST_NOTIFICATION_RECEIVED": "",
+    "PEER_ERROR_CODE": "",
+    "PEER_RESET_REASON": "",
+    "MAX_HOPS": "20"
+  },
+  {
+    "NEIGHBOR": "1:1:1::1",
+    "REMOTE_AS": "65001",
+    "LOCAL_AS": "65001",
+    "TYPE": "internal",
+    "DESCRIPTION": "rs01.lsan01-ca",
+    "REMOTE_ROUTER_ID": "192.168.100.1",
+    "CLUSTER_ID": "",
+    "STATE": "Established",
+    "UPTIME": "2w3d",
+    "NSR_STATE": "Ready",
+    "HOLDTIME": "90",
+    "KEEPALIVE": "30",
+    "NSR": "enabled",
+    "GR": "",
+    "AFI": [
+      "IPv6 Unicast"
+    ],
+    "VERSION": [
+      "18781601"
+    ],
+    "ROUTE_REFLECTOR_ROLE": [],
+    "POLICY_INCOMING": [],
+    "POLICY_OUTGOING": [],
+    "PREFIXES_IN": [
+      "59216"
+    ],
+    "PREFIXES_IN_BEST": [
+      "35229"
+    ],
+    "PREFIXES_OUT": [
+      "1"
+    ],
+    "PREFIXES_OUT_SUPPRESSED": [
+      "0"
+    ],
+    "PREFIXES_OUT_WITHDRAWN": [
+      "0"
+    ],
+    "MAX_PREFIXES": [
+      "524288"
+    ],
+    "MAX_PREFIXES_WARN_PERCENT": [
+      "75"
+    ],
+    "DEFAULT_ORIGINATE": [],
+    "LAST_ACK_VERSION": [
+      "18781601"
+    ],
+    "LAST_SYNCED_ACK_VERSION": [
+      "18781601"
+    ],
+    "CONNECTIONS_ESTABLISHED": "2",
+    "CONNECTIONS_DROPPED": "1",
+    "LOCAL_ADDRESS": "100::42",
+    "LOCAL_PORT": "179",
+    "REMOTE_ADDRESS": "1:1:1::1",
+    "REMOTE_PORT": "13730",
+    "LAST_RESET": "2w3d",
+    "LAST_RESET_REASON": "Peer closing down the session",
+    "LAST_NOTIFICATION_SENT": "",
+    "ERROR_CODE": "",
+    "LAST_NOTIFICATION_RECEIVED": "",
+    "PEER_ERROR_CODE": "",
+    "PEER_RESET_REASON": "Remote closed the session (No error)",
+    "MAX_HOPS": ""
+  },
+  {
+    "NEIGHBOR": "1:1:34::242",
+    "REMOTE_AS": "65001",
+    "LOCAL_AS": "65001",
+    "TYPE": "internal",
+    "DESCRIPTION": "RouteReflector_2",
+    "REMOTE_ROUTER_ID": "192.168.100.2",
+    "CLUSTER_ID": "",
+    "STATE": "Established",
+    "UPTIME": "2w3d",
+    "NSR_STATE": "Ready",
+    "HOLDTIME": "90",
+    "KEEPALIVE": "30",
+    "NSR": "enabled",
+    "GR": "",
+    "AFI": [
+      "IPv6 Unicast"
+    ],
+    "VERSION": [
+      "18781601"
+    ],
+    "ROUTE_REFLECTOR_ROLE": [],
+    "POLICY_INCOMING": [],
+    "POLICY_OUTGOING": [],
+    "PREFIXES_IN": [
+      "59216"
+    ],
+    "PREFIXES_IN_BEST": [
+      "23987"
+    ],
+    "PREFIXES_OUT": [
+      "1"
+    ],
+    "PREFIXES_OUT_SUPPRESSED": [
+      "0"
+    ],
+    "PREFIXES_OUT_WITHDRAWN": [
+      "0"
+    ],
+    "MAX_PREFIXES": [
+      "524288"
+    ],
+    "MAX_PREFIXES_WARN_PERCENT": [
+      "75"
+    ],
+    "DEFAULT_ORIGINATE": [],
+    "LAST_ACK_VERSION": [
+      "18781601"
+    ],
+    "LAST_SYNCED_ACK_VERSION": [
+      "18781601"
+    ],
+    "CONNECTIONS_ESTABLISHED": "2",
+    "CONNECTIONS_DROPPED": "1",
+    "LOCAL_ADDRESS": "100::42",
+    "LOCAL_PORT": "179",
+    "REMOTE_ADDRESS": "1:1:34::242",
+    "REMOTE_PORT": "44455",
+    "LAST_RESET": "2w3d",
+    "LAST_RESET_REASON": "Peer closing down the session",
+    "LAST_NOTIFICATION_SENT": "",
+    "ERROR_CODE": "",
+    "LAST_NOTIFICATION_RECEIVED": "",
+    "PEER_ERROR_CODE": "",
+    "PEER_RESET_REASON": "Remote closed the session (No error)",
+    "MAX_HOPS": ""
+  }
+]
