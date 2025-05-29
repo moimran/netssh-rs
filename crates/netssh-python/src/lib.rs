@@ -1,5 +1,5 @@
 use chrono::Utc;
-use netssh_core::command_result::{BatchCommandResults, CommandResult};
+use netssh_core::command_result::{BatchCommandResults, CommandResult, ParseOptions};
 use netssh_core::device_connection::{DeviceConfig, NetworkDeviceConnection};
 use netssh_core::device_factory::DeviceFactory;
 use netssh_core::error::NetsshError;
@@ -57,6 +57,55 @@ fn netssh_error_to_pyerr_simple(err: NetsshError) -> PyErr {
     netssh_error_to_pyerr(err).0
 }
 
+/// Python wrapper for ParseOptions
+#[pyclass]
+#[derive(Clone)]
+struct PyParseOptions {
+    #[pyo3(get, set)]
+    enabled: bool,
+    #[pyo3(get, set)]
+    template_dir: Option<String>,
+}
+
+#[pymethods]
+impl PyParseOptions {
+    #[new]
+    #[pyo3(signature = (enabled=false, template_dir=None))]
+    fn new(enabled: bool, template_dir: Option<String>) -> Self {
+        Self {
+            enabled,
+            template_dir,
+        }
+    }
+
+    /// Create ParseOptions with parsing enabled
+    #[staticmethod]
+    fn enabled() -> Self {
+        Self {
+            enabled: true,
+            template_dir: None,
+        }
+    }
+
+    /// Create ParseOptions with custom template directory
+    #[staticmethod]
+    fn with_template_dir(template_dir: String) -> Self {
+        Self {
+            enabled: true,
+            template_dir: Some(template_dir),
+        }
+    }
+}
+
+impl From<PyParseOptions> for ParseOptions {
+    fn from(py_options: PyParseOptions) -> Self {
+        Self {
+            enabled: py_options.enabled,
+            template_dir: py_options.template_dir,
+        }
+    }
+}
+
 /// Python module for netssh-rs
 #[pymodule]
 fn netssh_rs(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -69,6 +118,7 @@ fn netssh_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyCommandResult>()?;
     m.add_class::<PyBatchCommandResults>()?;
     m.add_class::<PyParallelExecutionManager>()?;
+    m.add_class::<PyParseOptions>()?;
 
     // Add functions
     m.add_function(wrap_pyfunction!(initialize_logging, m)?)?;
@@ -743,6 +793,9 @@ impl PyNetworkDevice {
 /// - duration_ms: How long the command took to execute in milliseconds
 /// - status: The execution status (Success, Failed, Timeout, Skipped)
 /// - error: Error message if the command failed
+/// - parse_status: The status of TextFSM parsing (NotAttempted, Success, Failed, NoTemplate)
+/// - parsed_data: Structured data from TextFSM parsing (if successful)
+/// - parse_error: Error message if parsing failed
 #[pyclass]
 #[derive(Clone)]
 struct PyCommandResult {
@@ -764,10 +817,20 @@ struct PyCommandResult {
     status: String,
     #[pyo3(get)]
     error: Option<String>,
+    #[pyo3(get)]
+    parse_status: String,
+    #[pyo3(get)]
+    parsed_data: Option<String>,
+    #[pyo3(get)]
+    parse_error: Option<String>,
 }
 
 impl From<CommandResult> for PyCommandResult {
     fn from(result: CommandResult) -> Self {
+        // Convert parsed data to JSON string if available
+        let parsed_data_json = result.parsed_data_as_json()
+            .and_then(|json_result| json_result.ok());
+
         Self {
             device_id: result.device_id,
             device_type: result.device_type,
@@ -778,6 +841,9 @@ impl From<CommandResult> for PyCommandResult {
             duration_ms: result.duration_ms,
             status: format!("{:?}", result.status),
             error: result.error,
+            parse_status: format!("{:?}", result.parse_status),
+            parsed_data: parsed_data_json,
+            parse_error: result.parse_error,
         }
     }
 }
@@ -806,6 +872,9 @@ impl PyCommandResult {
         dict.set_item("duration_ms", &self.duration_ms)?;
         dict.set_item("status", &self.status)?;
         dict.set_item("error", &self.error)?;
+        dict.set_item("parse_status", &self.parse_status)?;
+        dict.set_item("parsed_data", &self.parsed_data)?;
+        dict.set_item("parse_error", &self.parse_error)?;
         Ok(dict)
     }
 
@@ -842,6 +911,30 @@ impl PyCommandResult {
     ///     bool: True if command timed out, False otherwise
     fn is_timeout(&self) -> bool {
         self.status == "Timeout"
+    }
+
+    /// Check if TextFSM parsing was successful
+    ///
+    /// Returns:
+    ///     bool: True if parsing was successful, False otherwise
+    fn is_parsed(&self) -> bool {
+        self.parse_status == "Success"
+    }
+
+    /// Check if TextFSM parsing was attempted
+    ///
+    /// Returns:
+    ///     bool: True if parsing was attempted, False otherwise
+    fn parse_attempted(&self) -> bool {
+        self.parse_status != "NotAttempted"
+    }
+
+    /// Get parsed data as JSON string
+    ///
+    /// Returns:
+    ///     str: Parsed data as JSON string, or None if not available
+    fn get_parsed_data_json(&self) -> Option<&str> {
+        self.parsed_data.as_deref()
     }
 }
 

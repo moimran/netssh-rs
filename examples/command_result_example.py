@@ -35,9 +35,10 @@ def single_device_example():
     # Create device configuration
     config = DeviceConfig(
         device_type="cisco_ios",
-        host="192.168.1.1",
+        host="192.168.1.25",
         username="admin",
-        password="password"
+        password="moimran@123",
+        secret="moimran@123"
     )
     
     try:
@@ -77,10 +78,7 @@ def single_device_example():
         config_set_result = device.send_config_set(["hostname ROUTER", "interface GigabitEthernet0/1", "description TEST"])
         print(f"Config commands sent: {config_set_result.is_success()}")
         print(f"Duration: {config_set_result.duration_ms} ms")
-        
-        # Exit config mode (returns CommandResult)
-        exit_result = device.exit_config_mode()
-        print(f"Exited config mode: {exit_result.is_success()}")
+
         
         # Close the connection
         device.close()

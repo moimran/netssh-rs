@@ -47,7 +47,7 @@ class DeviceConfig:
 
 class CommandResult:
     """Result of a command execution on a network device."""
-    
+
     device_id: str
     device_type: str
     command: str
@@ -57,19 +57,34 @@ class CommandResult:
     duration_ms: int
     status: str
     error: Optional[str]
-    
+    parse_status: str
+    parsed_data: Optional[str]
+    parse_error: Optional[str]
+
     def is_success(self) -> bool:
         """Check if command execution was successful."""
         ...
-    
+
     def is_failure(self) -> bool:
         """Check if command execution failed."""
         ...
-    
+
     def is_timeout(self) -> bool:
         """Check if command execution timed out."""
         ...
-    
+
+    def is_parsed(self) -> bool:
+        """Check if TextFSM parsing was successful."""
+        ...
+
+    def parse_attempted(self) -> bool:
+        """Check if TextFSM parsing was attempted."""
+        ...
+
+    def get_parsed_data_json(self) -> Optional[str]:
+        """Get parsed data as JSON string."""
+        ...
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert the command result to a dictionary."""
         ...
@@ -506,87 +521,28 @@ def set_default_session_logging(
     """
     ...
 
-# Define TextFSM functions directly in this file
-def parse_output(platform: str, command: str, data: str) -> List[Dict[str, str]]:
-    """
-    Parse command output using TextFSM.
-    
-    Args:
-        platform: Device platform (e.g., cisco_ios, cisco_nxos)
-        command: Command that was executed
-        data: Command output to parse
-    
-    Returns:
-        List of dictionaries, each representing a row of parsed data
-    """
-    ...
+class ParseOptions:
+    """Options for TextFSM parsing."""
 
-def parse_output_to_json(platform: str, command: str, data: str) -> str:
-    """
-    Parse command output using TextFSM and return as JSON.
-    
-    Args:
-        platform: Device platform (e.g., cisco_ios, cisco_nxos)
-        command: Command that was executed
-        data: Command output to parse
-    
-    Returns:
-        JSON string representing the parsed data
-    """
-    ...
+    enabled: bool
+    template_dir: Optional[str]
 
-class NetworkOutputParser:
-    """Class for parsing network device command outputs using TextFSM templates."""
-    
-    template_dir: str
-    
-    def __init__(self, template_dir: Optional[str] = None) -> None:
+    def __init__(self, enabled: bool = False, template_dir: Optional[str] = None) -> None:
         """
-        Initialize the parser with a template directory.
-        
+        Initialize ParseOptions.
+
         Args:
-            template_dir: Optional path to template directory. If not provided,
-                         uses the default template directory.
+            enabled: Whether parsing is enabled
+            template_dir: Optional custom template directory path
         """
         ...
-    
-    def find_template(self, platform: str, command: str) -> Optional[str]:
-        """
-        Find the appropriate template file for a platform and command.
-        
-        Args:
-            platform: Device platform (e.g., cisco_ios, cisco_nxos)
-            command: Command that was executed
-        
-        Returns:
-            Path to the template file, or None if not found
-        """
+
+    @staticmethod
+    def enabled() -> 'ParseOptions':
+        """Create ParseOptions with parsing enabled."""
         ...
-    
-    def parse_output(self, platform: str, command: str, data: str) -> List[Dict[str, str]]:
-        """
-        Parse command output using TextFSM.
-        
-        Args:
-            platform: Device platform (e.g., cisco_ios, cisco_nxos)
-            command: Command that was executed
-            data: Command output to parse
-        
-        Returns:
-            List of dictionaries, each representing a row of parsed data
-        """
+
+    @staticmethod
+    def with_template_dir(template_dir: str) -> 'ParseOptions':
+        """Create ParseOptions with custom template directory."""
         ...
-    
-    def parse_to_json(self, platform: str, command: str, data: str) -> str:
-        """
-        Parse command output using TextFSM and return as JSON.
-        
-        Args:
-            platform: Device platform (e.g., cisco_ios, cisco_nxos)
-            command: Command that was executed
-            data: Command output to parse
-        
-        Returns:
-            JSON string representing the parsed data
-        """
-        ... 
