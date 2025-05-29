@@ -3,6 +3,7 @@ members = [
     "crates/netssh-core",
     "crates/netssh-python",
     "crates/netssh-textfsm",
+    "crates/scheduler",
 ]
 resolver = "2"
 
@@ -16,47 +17,63 @@ description = "A Rust implementation of Netssh - SSH connection handler for netw
 # Common dependencies for all workspace members
 [workspace.dependencies]
 # Core dependencies
-ssh2 = "0.9.4"
+ssh2 = "0.9.5"
 log = "0.4"
-env_logger = { version = "0.10", features = ["auto-color", "humantime"] }
-async-trait = "0.1.74"
-regex = "1.10.2"
-chrono = "0.4"
+env_logger = { version = "0.11", features = ["auto-color", "humantime"] }
+async-trait = "0.1.88"
+regex = "1.11"
+chrono = { version = "0.4", features = ["serde"] }
 thiserror = "1.0"
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.45", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-lazy_static = "1.4"
+lazy_static = "1.5"
 parking_lot = "0.12"
 rpassword = "7.0"
 rand = "0.8"
 
 # Python bindings
-pyo3 = { version = "0.19", features = ["extension-module"] }
+pyo3 = { version = "0.23", features = ["extension-module"] }
 
 # Web framework
-actix-web = "4.3.1"
-actix-rt = "2.8.0"
+actix-web = "4.8"
+actix-rt = "2.10"
 
 # Authentication
-jsonwebtoken = "8.3.0"
-argon2 = "0.5.0"
+jsonwebtoken = "9.3"
+argon2 = "0.5"
 
 # API documentation
-utoipa = { version = "3.3.0", features = ["actix_extras"] }
-utoipa-swagger-ui = { version = "3.1.3", features = ["actix-web"] }
+utoipa = { version = "4.2", features = ["actix_extras"] }
+utoipa-swagger-ui = { version = "7.1", features = ["actix-web"] }
 
 # Connection pooling
-bb8 = "0.8.0"
+bb8 = "0.8"
 
 # Enhanced logging
-tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-tracing-appender = "0.2.2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt", "std"] }
+tracing-appender = "0.2"
 
 # Rate limiting
-governor = "0.5.1"
+governor = "0.6"
 
 # Testing
-mockall = "0.12.1"
-tokio-test = "0.4.3"
+mockall = "0.13"
+tokio-test = "0.4"
+
+# Scheduler-specific dependencies
+apalis = { version = "0.7", features = ["limit", "retry", "timeout", "catch-panic"] }
+apalis-sql = { version = "0.7", features = ["sqlite", "migrate"] }
+apalis-cron = "0.7"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid", "migrate"] }
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
+anyhow = "1.0"
+config = "0.14"
+chrono-tz = "0.10"
+cron = "0.13"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+dotenvy = "0.15"
+tempfile = "3.0"

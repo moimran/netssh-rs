@@ -4,7 +4,7 @@ use netssh_core::device_connection::{DeviceConfig, NetworkDeviceConnection};
 use netssh_core::device_factory::DeviceFactory;
 use netssh_core::error::NetsshError;
 use netssh_core::{FailureStrategy, ParallelExecutionConfig, ParallelExecutionManager};
-use pyo3::conversion::ToPyObject;
+
 use pyo3::exceptions::{PyException, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
@@ -108,7 +108,7 @@ impl From<PyParseOptions> for ParseOptions {
 
 /// Python module for netssh-rs
 #[pymodule]
-fn netssh_rs(_py: Python, m: &PyModule) -> PyResult<()> {
+fn netssh_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Register custom exception
     m.add_class::<PyConnectionError>()?;
 
@@ -247,7 +247,7 @@ fn py_config_to_rust_config(config: &PyDeviceConfig) -> DeviceConfig {
 ///
 /// This class represents a connection to a network device and provides
 /// methods for sending commands, managing configuration mode, and more.
-#[pyclass]
+#[pyclass(unsendable)]
 struct PyNetworkDevice {
     device: Box<dyn NetworkDeviceConnection + Send>,
 }
@@ -659,9 +659,9 @@ impl PyNetworkDevice {
     #[pyo3(signature = (*, _exc_type=None, _exc_value=None, _traceback=None))]
     fn __exit__(
         &mut self,
-        _exc_type: Option<&PyAny>,
-        _exc_value: Option<&PyAny>,
-        _traceback: Option<&PyAny>,
+        _exc_type: Option<&Bound<'_, PyAny>>,
+        _exc_value: Option<&Bound<'_, PyAny>>,
+        _traceback: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<bool> {
         self.close()?;
         Ok(false)
@@ -704,7 +704,7 @@ impl PyNetworkDevice {
     )]
     fn send_config_set(
         &mut self,
-        config_commands: &PyList,
+        config_commands: &Bound<'_, PyList>,
         exit_config_mode: Option<bool>,
         read_timeout: Option<f64>,
         strip_prompt: Option<bool>,
@@ -848,12 +848,7 @@ impl From<CommandResult> for PyCommandResult {
     }
 }
 
-impl ToPyObject for PyCommandResult {
-    fn to_object(&self, py: Python<'_>) -> PyObject {
-        // We need to create a new PyCell with our PyCommandResult instance
-        PyCell::new(py, self.clone()).unwrap().into()
-    }
-}
+
 
 #[pymethods]
 impl PyCommandResult {
@@ -861,7 +856,7 @@ impl PyCommandResult {
     ///
     /// Returns:
     ///     dict: Dictionary representation of the command result
-    fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<&'py PyDict> {
+    fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new(py);
         dict.set_item("device_id", &self.device_id)?;
         dict.set_item("device_type", &self.device_type)?;
@@ -966,7 +961,7 @@ impl PyBatchCommandResults {
         &self,
         py: Python<'py>,
         device_id: &str,
-    ) -> PyResult<Option<&'py PyList>> {
+    ) -> PyResult<Option<Bound<'py, PyList>>> {
         match self.results.get_device_results(device_id) {
             Some(device_results) => {
                 // Convert results to PyList of PyCommandResult objects
@@ -985,7 +980,7 @@ impl PyBatchCommandResults {
     ///
     /// Returns:
     ///     list[CommandResult]: A list of all CommandResult objects
-    fn get_all_results<'py>(&self, py: Python<'py>) -> PyResult<&'py PyList> {
+    fn get_all_results<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         let py_list = PyList::empty(py);
         for results in self.results.results.values() {
             for result in results {
@@ -1000,7 +995,7 @@ impl PyBatchCommandResults {
     ///
     /// Returns:
     ///     list[CommandResult]: A list of CommandResult objects with Success status
-    fn get_successful_results<'py>(&self, py: Python<'py>) -> PyResult<&'py PyList> {
+    fn get_successful_results<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         let py_list = PyList::empty(py);
         for result in self.results.successful_results() {
             let py_result = PyCommandResult::from(result.clone());
@@ -1013,7 +1008,7 @@ impl PyBatchCommandResults {
     ///
     /// Returns:
     ///     list[CommandResult]: A list of CommandResult objects with Failed status
-    fn get_failed_results<'py>(&self, py: Python<'py>) -> PyResult<&'py PyList> {
+    fn get_failed_results<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         let py_list = PyList::empty(py);
         for result in self.results.failed_results() {
             let py_result = PyCommandResult::from(result.clone());
@@ -1029,7 +1024,7 @@ impl PyBatchCommandResults {
     ///
     /// Returns:
     ///     list[CommandResult]: A list of CommandResult objects for the specified command
-    fn get_command_results<'py>(&self, py: Python<'py>, command: &str) -> PyResult<&'py PyList> {
+    fn get_command_results<'py>(&self, py: Python<'py>, command: &str) -> PyResult<Bound<'py, PyList>> {
         // Use the get_command_results method from BatchCommandResults
         let py_list = PyList::empty(py);
         for result in self.results.get_command_results(command) {
@@ -1096,7 +1091,7 @@ impl PyBatchCommandResults {
     ///
     /// Returns:
     ///     dict: A dictionary mapping devices to their command outputs
-    fn compare_outputs<'py>(&self, py: Python<'py>, command: &str) -> PyResult<&'py PyDict> {
+    fn compare_outputs<'py>(&self, py: Python<'py>, command: &str) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new(py);
 
         // Get all results for the specified command
@@ -1174,7 +1169,7 @@ impl PyBatchCommandResults {
 }
 
 /// Python wrapper for ParallelExecutionManager
-#[pyclass]
+#[pyclass(unsendable)]
 struct PyParallelExecutionManager {
     manager: ParallelExecutionManager,
 }
@@ -1283,7 +1278,7 @@ impl PyParallelExecutionManager {
     fn execute_command_on_all<'py>(
         &mut self,
         py: Python<'py>,
-        configs: &PyList,
+        configs: &Bound<'_, PyList>,
         command: &str,
     ) -> PyResult<PyBatchCommandResults> {
         // Extract Rust configs from Python configs outside the allow_threads block
@@ -1310,7 +1305,7 @@ impl PyParallelExecutionManager {
     fn execute_commands_on_all<'py>(
         &mut self,
         py: Python<'py>,
-        configs: &PyList,
+        configs: &Bound<'_, PyList>,
         commands: Vec<String>,
     ) -> PyResult<PyBatchCommandResults> {
         // Extract Rust configs from Python configs outside the allow_threads block
@@ -1339,24 +1334,15 @@ impl PyParallelExecutionManager {
     fn execute_commands(
         &mut self,
         py: Python<'_>,
-        device_commands: &PyDict,
+        device_commands: &Bound<'_, PyDict>,
     ) -> PyResult<PyBatchCommandResults> {
         // Extract device commands map outside the allow_threads block
         let mut device_map = HashMap::new();
 
         for (k, v) in device_commands.iter() {
             // Get the PyDeviceConfig
-            let config = match k.extract::<&PyCell<PyDeviceConfig>>() {
-                Ok(cell) => {
-                    // Extract the PyDeviceConfig from the cell
-                    let config_ref = cell.try_borrow().map_err(|_| {
-                        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                            "Failed to borrow PyDeviceConfig",
-                        )
-                    })?;
-
-                    py_config_to_rust_config(&config_ref)
-                }
+            let config = match k.extract::<PyDeviceConfig>() {
+                Ok(py_config) => py_config_to_rust_config(&py_config),
                 Err(_) => {
                     return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                         "Keys must be PyDeviceConfig objects",
@@ -1410,9 +1396,9 @@ impl PyParallelExecutionManager {
     #[pyo3(signature = (*, _exc_type=None, _exc_value=None, _traceback=None))]
     fn __exit__(
         &mut self,
-        _exc_type: Option<&PyAny>,
-        _exc_value: Option<&PyAny>,
-        _traceback: Option<&PyAny>,
+        _exc_type: Option<&Bound<'_, PyAny>>,
+        _exc_value: Option<&Bound<'_, PyAny>>,
+        _traceback: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<bool> {
         self.cleanup();
         Ok(false) // Don't suppress exceptions
@@ -1420,7 +1406,7 @@ impl PyParallelExecutionManager {
 }
 
 // Helper function to extract DeviceConfig objects from a PyList
-fn extract_device_configs(configs: &PyList) -> PyResult<Vec<DeviceConfig>> {
+fn extract_device_configs(configs: &Bound<'_, PyList>) -> PyResult<Vec<DeviceConfig>> {
     let mut rust_configs = Vec::new();
 
     for item in configs.iter() {

@@ -432,7 +432,17 @@ impl NetworkDeviceConnection for MockNetworkDevice {
         Ok(())
     }
 
-    fn send_command(&mut self, command: &str) -> Result<String, NetsshError> {
+    fn send_command(
+        &mut self,
+        command: &str,
+        _expect_string: Option<&str>,
+        _read_timeout: Option<f64>,
+        _strip_prompt: Option<bool>,
+        _strip_command: Option<bool>,
+        _normalize: Option<bool>,
+        _use_textfsm: Option<bool>,
+        _use_ttp: Option<bool>,
+    ) -> Result<String, NetsshError> {
         // Get the response from the command_responses map
         let response = self
             .command_responses
@@ -447,18 +457,18 @@ impl NetworkDeviceConnection for MockNetworkDevice {
     fn send_config_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError> {
         let mut responses = Vec::new();
         for command in commands {
-            responses.push(self.send_command(command)?);
+            responses.push(self.send_command(command, None, None, None, None, None, None, None)?);
         }
         Ok(responses)
     }
 
     fn enter_config_mode(&mut self, _config_command: Option<&str>) -> Result<(), NetsshError> {
-        let _ = self.send_command("configure terminal")?;
+        let _ = self.send_command("configure terminal", None, None, None, None, None, None, None)?;
         Ok(())
     }
 
     fn exit_config_mode(&mut self, _exit_config: Option<&str>) -> Result<(), NetsshError> {
-        let _ = self.send_command("end")?;
+        let _ = self.send_command("end", None, None, None, None, None, None, None)?;
         Ok(())
     }
 
@@ -522,7 +532,7 @@ impl NetworkDeviceConnection for MockNetworkDevice {
     ) -> Result<String, NetsshError> {
         let mut output = String::new();
         for command in config_commands {
-            let response = self.send_command(&command)?;
+            let response = self.send_command(&command, None, None, None, None, None, None, None)?;
             output.push_str(&response);
             output.push('\n');
         }
