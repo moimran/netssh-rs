@@ -80,5 +80,6 @@ htmlcov/
 # Python distribution / packaging
 .Python
 logs
+.cursor
 
 
