@@ -33,4 +33,8 @@ tokio-test.workspace = true
 
 [[example]]
 name = "unified_config_demo"
-path = "examples/unified_config_demo.rs"
+path = "../../examples/shared-config/unified_config_demo.rs"
+
+[[example]]
+name = "cross_crate_integration_demo"
+path = "../../examples/shared-config/cross_crate_integration_demo.rs"

@@ -4,13 +4,26 @@ A Rust implementation of Netssh, providing SSH connection handling for network d
 
 ## Project Structure
 
-Netssh-rs is organized as a Rust workspace with three main crates:
+Netssh-rs is organized as a Rust workspace with multiple specialized crates:
 
+### Core Crates
 - **netssh-core** - Core SSH functionality for network devices
-- **netssh-python** - Python bindings for netssh-rs 
-- **netssh-api** - REST API implementation for netssh-rs
+- **netssh-python** - Python bindings for netssh-rs
+- **netssh-textfsm** - TextFSM parsing functionality for network command output
+- **scheduler** - Job scheduling system for network automation tasks
+- **shared-config** - Unified configuration management across all crates
 
-This modular structure allows you to build and use each component independently.
+### Workspace Organization
+```
+netssh-rs/
+├── crates/           # Individual crate implementations
+├── docs/             # Centralized documentation for all crates
+├── examples/         # Centralized examples organized by crate
+├── config.toml       # Unified workspace configuration
+└── README.md         # This file
+```
+
+This modular structure allows you to build and use each component independently while maintaining shared configuration and documentation.
 
 ## Features
 
@@ -154,22 +167,36 @@ with netssh_rs.PyNetworkDevice.create(config) as device:
 
 ## Running Examples
 
-The repository includes several examples that demonstrate how to use netssh-rs. You can run them using Cargo:
+The repository includes several examples organized by crate in the centralized `examples/` directory:
 
+### Shared Configuration Examples
 ```bash
-# Run the basic connection example
-cargo run --example basic_connection
+# Demonstrate unified configuration system
+cargo run --example unified_config_demo -p shared-config
 
-# Test logging functionality
-cargo run --example test_logging
+# Show cross-crate configuration integration
+cargo run --example cross_crate_integration_demo -p shared-config
+```
 
-# Connect to Cisco devices
-cargo run --example cisco_xr
-cargo run --example cisco_asa
-cargo run --example cisco_ios
+### Scheduler Examples
+```bash
+# Basic scheduler usage
+cargo run --example basic_usage -p scheduler
 
-# Start the REST API server
-cargo run -p netssh-api
+# Logging demonstration
+cargo run --example logging_demo -p scheduler
+
+# Connection reuse optimization
+cargo run --example phase1_connection_reuse -p scheduler
+
+# Web board interface
+cargo run --example with_board -p scheduler
+```
+
+### Running the Scheduler Service
+```bash
+# Start the scheduler with job processing
+cargo run -p scheduler
 ```
 
 ### Environment Variables
@@ -182,6 +209,23 @@ export DEVICE_USER=admin
 export DEVICE_PASS=password
 export DEVICE_SECRET=enable_password  # For privileged mode on some devices
 ```
+
+## Documentation
+
+Comprehensive documentation for each crate is available in the `docs/` directory:
+
+- **[netssh-core](docs/netssh-core/README.md)** - Core SSH functionality and settings migration
+- **[netssh-python](docs/netssh-python/README.md)** - Python bindings and TextFSM examples
+- **[netssh-textfsm](docs/netssh-textfsm/README.md)** - TextFSM parsing functionality
+- **[scheduler](docs/scheduler/README.md)** - Job scheduling system and architecture
+- **[shared-config](docs/shared-config/README.md)** - Unified configuration system
+- **[Project Documentation](docs/project/)** - General project context and organization
+
+### Key Documentation
+- [Workspace Reorganization](docs/project/workspace_reorganization.md) - Details about the new project structure
+- [Settings Migration Guide](docs/netssh-core/netssh_settings_migration.md) - Migration from individual to unified configuration
+- [Thread Safety Migration](docs/netssh-core/thread_safety_migration_notes.md) - PyO3 compatibility and thread safety
+- [SSH Connection Scaling](docs/scheduler/ssh_connection_scaling_architecture.md) - Performance optimization strategies
 
 ## Contributing
 

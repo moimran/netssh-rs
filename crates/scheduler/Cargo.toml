@@ -66,16 +66,16 @@ tokio-test.workspace = true
 
 [[example]]
 name = "basic_usage"
-path = "examples/basic_usage.rs"
+path = "../../examples/scheduler/basic_usage.rs"
 
 [[example]]
 name = "with_board"
-path = "examples/with_board.rs"
+path = "../../examples/scheduler/with_board.rs"
 
 [[example]]
 name = "logging_demo"
-path = "examples/logging_demo.rs"
+path = "../../examples/scheduler/logging_demo.rs"
 
 [[example]]
 name = "phase1_connection_reuse"
-path = "examples/phase1_connection_reuse.rs"
+path = "../../examples/scheduler/phase1_connection_reuse.rs"
