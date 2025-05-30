@@ -27,6 +27,8 @@ rand.workspace = true
 # TextFSM parsing integration
 cmdparser = { path = "../netssh-textfsm" }
 indexmap = { version = "2.0", features = ["serde"] }
+# Shared configuration
+shared-config = { path = "../shared-config" }
 
 [features]
 default = []

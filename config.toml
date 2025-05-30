@@ -1,0 +1,113 @@
+# Unified Configuration for netssh-rs Workspace
+# This file contains configuration for all crates in the workspace
+
+# Global settings that apply to all crates
+[global]
+log_level = "info"
+environment = "development"  # Options: "development", "staging", "production"
+default_timeout_seconds = 30
+
+# Scheduler Configuration
+[scheduler]
+enabled = true
+
+[scheduler.database]
+url = "sqlite:scheduler.db"
+max_connections = 10
+
+[scheduler.server]
+host = "127.0.0.1"
+port = 8080
+
+[scheduler.worker]
+concurrency = 4
+timeout_seconds = 300
+connection_reuse = true
+max_idle_time_seconds = 300
+max_connections_per_worker = 10
+failure_strategy = "continue"  # Options: "continue", "abort_first", "abort_after_n"
+failure_strategy_n = 3  # Only used when failure_strategy = "abort_after_n"
+
+[scheduler.board]
+enabled = true
+ui_path = "/board"
+api_prefix = "/board/api"
+auth_enabled = false
+
+[scheduler.logging]
+level = "info"
+# file = "scheduler.log"  # Uncomment to enable file logging
+# format = "json"  # Use "json" for structured logging, "text" for human-readable (default)
+# rotation = "daily"  # File rotation: "daily", "hourly", "never" (default: daily)
+
+[scheduler.scheduler]
+enabled = true
+poll_interval_seconds = 30
+timezone = "UTC"
+max_concurrent_jobs = 10
+
+# netssh-core Configuration
+[netssh]
+default_ssh_timeout = 30
+default_command_timeout = 60
+default_port = 22
+buffer_size = 16384
+max_retries = 3
+connection_pool_size = 50
+
+[netssh.logging]
+session_logging = false
+command_logging = true
+performance_logging = true
+debug_mode = false
+
+[netssh.security]
+strict_host_key_checking = true
+known_hosts_file = "~/.ssh/known_hosts"
+max_auth_attempts = 3
+
+# TextFSM Configuration (for netssh-textfsm crate)
+[textfsm]
+template_cache_size = 1000
+parsing_timeout_seconds = 10
+template_directories = ["templates/", "/usr/share/textfsm/"]
+enable_caching = true
+
+# Python Integration Configuration (for netssh-python crate)
+[python]
+enabled = true
+max_workers = 4
+timeout_seconds = 300
+virtual_env_path = ""  # Optional: path to Python virtual environment
+
+# API Configuration (for future netssh-api crate)
+[api]
+enabled = false
+host = "127.0.0.1"
+port = 3000
+rate_limit_requests_per_minute = 1000
+cors_enabled = true
+cors_origins = ["*"]
+auth_required = false
+
+[api.logging]
+access_log = true
+error_log = true
+performance_log = true
+
+# Development and Testing Configuration
+[development]
+mock_ssh_connections = false
+test_data_directory = "test_data/"
+enable_debug_endpoints = true
+
+[testing]
+parallel_test_execution = true
+test_timeout_seconds = 60
+cleanup_test_data = true
+
+# Production-specific settings
+[production]
+strict_error_handling = true
+performance_monitoring = true
+health_check_interval_seconds = 30

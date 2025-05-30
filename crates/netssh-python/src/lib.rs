@@ -4,6 +4,7 @@ use netssh_core::device_connection::{DeviceConfig, NetworkDeviceConnection};
 use netssh_core::device_factory::DeviceFactory;
 use netssh_core::error::NetsshError;
 use netssh_core::{FailureStrategy, ParallelExecutionConfig, ParallelExecutionManager};
+use shared_config::WorkspaceConfig;
 
 use pyo3::exceptions::{PyException, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -106,6 +107,175 @@ impl From<PyParseOptions> for ParseOptions {
     }
 }
 
+/// Python wrapper for WorkspaceConfig
+///
+/// This class provides access to the unified workspace configuration
+/// that contains settings for all netssh-rs crates.
+#[pyclass]
+struct PyWorkspaceConfig {
+    config: WorkspaceConfig,
+}
+
+#[pymethods]
+impl PyWorkspaceConfig {
+    /// Load configuration from environment variables and config files
+    #[staticmethod]
+    fn load() -> PyResult<Self> {
+        let config = WorkspaceConfig::load()
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to load config: {}", e)))?;
+        Ok(Self { config })
+    }
+
+    /// Create a default configuration
+    #[staticmethod]
+    fn default() -> PyResult<Self> {
+        // Try to load config, fall back to creating a minimal default if that fails
+        let config = WorkspaceConfig::load().unwrap_or_else(|_| {
+            // Create a minimal default configuration
+            shared_config::WorkspaceConfig {
+                global: shared_config::GlobalConfig {
+                    log_level: "info".to_string(),
+                    environment: "development".to_string(),
+                    default_timeout_seconds: 30,
+                },
+                scheduler: shared_config::SchedulerConfig {
+                    enabled: false,
+                    database: shared_config::DatabaseConfig {
+                        url: "sqlite::memory:".to_string(),
+                        max_connections: 1,
+                    },
+                    server: shared_config::ServerConfig {
+                        host: "127.0.0.1".to_string(),
+                        port: 8080,
+                    },
+                    worker: shared_config::WorkerConfig {
+                        concurrency: 1,
+                        timeout_seconds: 300,
+                        connection_reuse: false,
+                        max_idle_time_seconds: 300,
+                        max_connections_per_worker: 1,
+                        failure_strategy: shared_config::FailureStrategy::ContinueOnFailure,
+                        failure_strategy_n: 3,
+                    },
+                    board: shared_config::BoardConfig {
+                        enabled: false,
+                        ui_path: "/board".to_string(),
+                        api_prefix: "/board/api".to_string(),
+                        auth_enabled: false,
+                    },
+                    logging: shared_config::LoggingConfig {
+                        level: "info".to_string(),
+                        file: None,
+                        format: None,
+                        rotation: None,
+                    },
+                    scheduler: shared_config::SchedulerServiceConfig {
+                        enabled: false,
+                        poll_interval_seconds: 30,
+                        timezone: None,
+                        max_concurrent_jobs: 1,
+                    },
+                },
+                netssh: shared_config::NetsshConfig {
+                    default_ssh_timeout: 30,
+                    default_command_timeout: 60,
+                    default_port: 22,
+                    buffer_size: 16384,
+                    max_retries: 3,
+                    connection_pool_size: 1,
+                    logging: shared_config::NetsshLoggingConfig {
+                        session_logging: false,
+                        command_logging: false,
+                        performance_logging: false,
+                        debug_mode: false,
+                    },
+                    security: shared_config::SecurityConfig {
+                        strict_host_key_checking: false,
+                        known_hosts_file: "~/.ssh/known_hosts".to_string(),
+                        max_auth_attempts: 3,
+                    },
+                },
+                textfsm: shared_config::TextFsmConfig {
+                    template_cache_size: 1000,
+                    parsing_timeout_seconds: 10,
+                    template_directories: vec!["templates/".to_string()],
+                    enable_caching: true,
+                },
+            }
+        });
+
+        Ok(Self { config })
+    }
+
+    /// Get the global configuration section
+    #[getter]
+    fn global_config(&self) -> PyResult<String> {
+        serde_json::to_string_pretty(&self.config.global)
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to serialize global config: {}", e)))
+    }
+
+    /// Get the netssh configuration section
+    #[getter]
+    fn netssh_config(&self) -> PyResult<String> {
+        serde_json::to_string_pretty(&self.config.netssh)
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to serialize netssh config: {}", e)))
+    }
+
+    /// Get the textfsm configuration section
+    #[getter]
+    fn textfsm_config(&self) -> PyResult<String> {
+        serde_json::to_string_pretty(&self.config.textfsm)
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to serialize textfsm config: {}", e)))
+    }
+
+    /// Get the scheduler configuration section
+    #[getter]
+    fn scheduler_config(&self) -> PyResult<String> {
+        serde_json::to_string_pretty(&self.config.scheduler)
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to serialize scheduler config: {}", e)))
+    }
+
+    /// Get the entire configuration as JSON
+    fn to_json(&self) -> PyResult<String> {
+        serde_json::to_string_pretty(&self.config)
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to serialize config: {}", e)))
+    }
+
+    /// Get a specific configuration value by path (e.g., "netssh.default_ssh_timeout")
+    fn get_value(&self, path: &str) -> PyResult<String> {
+        // Simple path-based access to configuration values
+        let parts: Vec<&str> = path.split('.').collect();
+
+        match parts.as_slice() {
+            ["global", "log_level"] => Ok(self.config.global.log_level.clone()),
+            ["global", "environment"] => Ok(self.config.global.environment.clone()),
+            ["netssh", "default_ssh_timeout"] => Ok(self.config.netssh.default_ssh_timeout.to_string()),
+            ["netssh", "default_command_timeout"] => Ok(self.config.netssh.default_command_timeout.to_string()),
+            ["netssh", "default_port"] => Ok(self.config.netssh.default_port.to_string()),
+            ["netssh", "buffer_size"] => Ok(self.config.netssh.buffer_size.to_string()),
+            ["netssh", "max_retries"] => Ok(self.config.netssh.max_retries.to_string()),
+            ["netssh", "connection_pool_size"] => Ok(self.config.netssh.connection_pool_size.to_string()),
+            ["textfsm", "template_cache_size"] => Ok(self.config.textfsm.template_cache_size.to_string()),
+            ["textfsm", "parsing_timeout_seconds"] => Ok(self.config.textfsm.parsing_timeout_seconds.to_string()),
+            ["textfsm", "enable_caching"] => Ok(self.config.textfsm.enable_caching.to_string()),
+            _ => Err(PyValueError::new_err(format!("Unknown configuration path: {}", path))),
+        }
+    }
+
+    /// Get template directories from TextFSM configuration
+    #[getter]
+    fn template_directories(&self) -> Vec<String> {
+        self.config.textfsm.template_directories.clone()
+    }
+
+    /// String representation of the configuration
+    fn __str__(&self) -> String {
+        format!("WorkspaceConfig(environment={}, log_level={})",
+                self.config.global.environment,
+                self.config.global.log_level)
+    }
+}
+
 /// Python module for netssh-rs
 #[pymodule]
 fn netssh_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -119,6 +289,7 @@ fn netssh_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyBatchCommandResults>()?;
     m.add_class::<PyParallelExecutionManager>()?;
     m.add_class::<PyParseOptions>()?;
+    m.add_class::<PyWorkspaceConfig>()?;
 
     // Add functions
     m.add_function(wrap_pyfunction!(initialize_logging, m)?)?;

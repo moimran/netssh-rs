@@ -17,6 +17,8 @@ pyo3.workspace = true
 tokio = { workspace = true, features = ["full", "rt"] }
 serde_json.workspace = true
 chrono.workspace = true
+# Shared configuration
+shared-config = { path = "../shared-config" }
 
 [features]
 default = ["pyo3/extension-module"] 

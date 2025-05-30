@@ -1,9 +1,16 @@
 use crate::settings::{get_ssh_timeout, SshTimeoutType};
 use std::time::Duration;
 
-/// Configuration settings for Netssh-RS connections
+// Re-export shared configuration types
+pub use shared_config::{
+    WorkspaceConfig, NetsshConfig as SharedNetsshConfig, NetsshLoggingConfig, SecurityConfig,
+    GlobalConfig, SchedulerConfig, TextFsmConfig
+};
+
+/// Advanced device configuration settings for Netssh-RS connections
+/// This provides detailed configuration options beyond the basic DeviceConfig
 #[derive(Debug, Clone)]
-pub struct NetsshConfig {
+pub struct AdvancedDeviceConfig {
     /// Hostname or IP address of target device
     pub host: String,
 
@@ -60,7 +67,7 @@ pub struct NetsshConfig {
     pub blocking_timeout: Duration,
 }
 
-impl Default for NetsshConfig {
+impl Default for AdvancedDeviceConfig {
     fn default() -> Self {
         Self {
             host: String::new(),
@@ -83,25 +90,52 @@ impl Default for NetsshConfig {
     }
 }
 
-impl NetsshConfig {
-    /// Creates a new NetsshConfig with default settings
+impl AdvancedDeviceConfig {
+    /// Creates a new AdvancedDeviceConfig with default settings
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Creates a builder for NetsshConfig to allow fluent configuration
-    pub fn builder() -> NetsshConfigBuilder {
-        NetsshConfigBuilder::default()
+    /// Creates a builder for AdvancedDeviceConfig to allow fluent configuration
+    pub fn builder() -> AdvancedDeviceConfigBuilder {
+        AdvancedDeviceConfigBuilder::default()
+    }
+
+    /// Create an AdvancedDeviceConfig from shared configuration and device-specific settings
+    pub fn from_shared_config(
+        shared_config: &SharedNetsshConfig,
+        host: String,
+        username: String,
+        _device_type: String,
+    ) -> Self {
+        Self {
+            host,
+            username,
+            password: None,
+            secret: None,
+            default_port: shared_config.default_port,
+            connection_timeout: Duration::from_secs(shared_config.default_ssh_timeout),
+            read_timeout: Duration::from_secs(shared_config.default_command_timeout),
+            write_timeout: Duration::from_secs(shared_config.default_command_timeout),
+            read_buffer_size: shared_config.buffer_size,
+            pattern_timeout: Duration::from_secs(shared_config.default_command_timeout),
+            auto_clear_buffer: true,
+            retry_count: shared_config.max_retries,
+            retry_delay: Duration::from_millis(1000),
+            enable_session_log: shared_config.logging.session_logging,
+            session_log_path: String::from("logs/session.log"),
+            blocking_timeout: get_ssh_timeout(SshTimeoutType::Blocking),
+        }
     }
 }
 
-/// Builder for NetsshConfig to allow fluent configuration
+/// Builder for AdvancedDeviceConfig to allow fluent configuration
 #[derive(Default)]
-pub struct NetsshConfigBuilder {
-    config: NetsshConfig,
+pub struct AdvancedDeviceConfigBuilder {
+    config: AdvancedDeviceConfig,
 }
 
-impl NetsshConfigBuilder {
+impl AdvancedDeviceConfigBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -181,7 +215,7 @@ impl NetsshConfigBuilder {
         self
     }
 
-    pub fn build(self) -> NetsshConfig {
+    pub fn build(self) -> AdvancedDeviceConfig {
         self.config
     }
 }

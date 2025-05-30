@@ -1,8 +1,10 @@
 pub mod textfsm;
 pub mod parse_output;
+pub mod config;
 
 pub use textfsm::*;
 pub use parse_output::*;
+pub use config::*;
 
 #[cfg(test)]
 mod tests {

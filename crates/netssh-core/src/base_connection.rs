@@ -1,5 +1,5 @@
 use crate::channel::SSHChannel;
-use crate::config::NetsshConfig;
+use crate::config::AdvancedDeviceConfig;
 use crate::device_connection::DeviceType;
 use crate::error::NetsshError;
 use crate::patterns::{ANSI_ESCAPE_PATTERN, CRLF_PATTERN};
@@ -19,7 +19,7 @@ pub struct BaseConnection {
     pub channel: SSHChannel,
     pub base_prompt: Option<String>,
     pub session_log: SessionLog,
-    pub config: NetsshConfig,
+    pub config: AdvancedDeviceConfig,
     pub disable_lf_normalization: bool,
     pub ansi_escape_codes: bool,
     pub read_timeout_override: Option<Duration>,
@@ -44,7 +44,7 @@ impl BaseConnection {
     // #[instrument(level = "debug")]
     pub fn new() -> Result<Self, NetsshError> {
         debug!("Creating new base connection");
-        let config = NetsshConfig::default();
+        let config = AdvancedDeviceConfig::default();
         let mut session_log = SessionLog::new();
 
         if config.enable_session_log {
@@ -66,7 +66,7 @@ impl BaseConnection {
     }
 
     // #[instrument(fields(config = ?std::any::type_name::<NetsshConfig>()), level = "debug")]
-    pub fn with_config(config: NetsshConfig) -> Result<Self, NetsshError> {
+    pub fn with_config(config: AdvancedDeviceConfig) -> Result<Self, NetsshError> {
         debug!("Creating base connection with custom config");
         let mut session_log = SessionLog::new();
 
