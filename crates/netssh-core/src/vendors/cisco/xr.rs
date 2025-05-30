@@ -281,7 +281,7 @@ impl CiscoDeviceConnection for CiscoXrDevice {
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
         debug!(target: "CiscoXrDevice::send_config_set", "Delegating to BaseConnection::send_config_set");
-        let output = self.base.connection.send_config_set(
+        let output = self.base.connection.send_config_set_internal(
             config_commands,
             Some(false),
             read_timeout,

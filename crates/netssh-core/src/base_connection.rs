@@ -855,7 +855,7 @@ impl BaseConnection {
         Ok(output)
     }
 
-    pub fn send_command(
+    pub fn send_command_internal(
         &mut self,
         command_string: &str,
         expect_string: Option<&str>,
@@ -1097,7 +1097,7 @@ impl BaseConnection {
 
         // For single commands, use the standard method
         if commands.len() == 1 {
-            let response = self.send_command(
+            let response = self.send_command_internal(
                 commands[0],
                 None, // expect_string
                 None, // read_timeout
@@ -1113,7 +1113,7 @@ impl BaseConnection {
 
         // For multiple commands, iterate through them
         for command in commands {
-            match self.send_command(
+            match self.send_command_internal(
                 command, None, // expect_string
                 None, // read_timeout
                 None, // auto_find_prompt
@@ -2186,35 +2186,7 @@ impl BaseConnection {
         Ok(())
     }
 
-    /// Simple wrapper for send_command with default parameters
-    ///
-    /// # Arguments
-    ///
-    /// * `command_string` - Command to send to the device
-    ///
-    /// # Returns
-    ///
-    /// Output from the command
-    // #[instrument(
-    //     skip_all,
-    //     level = "debug",
-    //     name = "BaseConnection::send_command_simple"
-    // )]
-    pub fn send_command_simple(&mut self, command_string: &str) -> Result<String, NetsshError> {
-        debug!(target: "BaseConnection::send_command_simple", "Sending command: {}", command_string);
 
-        // Call the full method with default parameters
-        self.send_command(
-            command_string,
-            None, // expect_string
-            None, // read_timeout
-            None, // auto_find_prompt
-            None, // strip_prompt
-            None, // strip_command
-            None, // normalize
-            None, // cmd_verify
-        )
-    }
 
     /// Thoroughly cleanup the session before disconnecting.
     ///
@@ -2400,7 +2372,7 @@ impl BaseConnection {
             if command_item.len() == 1 {
                 // Single item - use default expect string
                 let cmd = command_item[0];
-                let command_output = self.send_command(
+                let command_output = self.send_command_internal(
                     cmd,
                     Some(&default_expect_string),
                     read_timeout,
@@ -2420,7 +2392,7 @@ impl BaseConnection {
                     command_item[1]
                 };
 
-                let command_output = self.send_command(
+                let command_output = self.send_command_internal(
                     cmd,
                     Some(expect_string),
                     read_timeout,
@@ -2676,7 +2648,7 @@ impl BaseConnection {
     /// # Returns
     ///
     /// The combined output from all commands
-    pub fn send_config_set(
+    pub fn send_config_set_internal(
         &mut self,
         config_commands: Vec<String>,
         exit_config_mode: Option<bool>,

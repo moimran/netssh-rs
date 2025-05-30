@@ -97,7 +97,7 @@ impl JuniperJunosDevice {
         normalize: Option<bool>,
         cmd_verify: Option<bool>,
     ) -> Result<String, NetsshError> {
-        self.base.connection.send_command(
+        self.base.connection.send_command_internal(
             command,
             expect_string,
             read_timeout,
@@ -200,7 +200,7 @@ impl JuniperDeviceConnection for JuniperJunosDevice {
         cmd_verify: Option<bool>,
     ) -> Result<String, NetsshError> {
         // Call the base connection's send_command method directly
-        self.base.connection.send_command(
+        self.base.connection.send_command_internal(
             command,
             expect_string,
             read_timeout,

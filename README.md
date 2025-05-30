@@ -169,6 +169,24 @@ with netssh_rs.PyNetworkDevice.create(config) as device:
 
 The repository includes several examples organized by crate in the centralized `examples/` directory:
 
+### NetSSH Core Examples
+```bash
+# Basic device connection and command execution
+cargo run --example basic_connection -p netssh-core
+
+# Load configuration from environment variables
+cargo run --example env_config -p netssh-core
+
+# Execute multiple commands with organized output
+cargo run --example multiple_commands -p netssh-core
+
+# Comprehensive error handling patterns
+cargo run --example error_handling -p netssh-core
+
+# Gather and display device information
+cargo run --example device_info -p netssh-core
+```
+
 ### Shared Configuration Examples
 ```bash
 # Demonstrate unified configuration system
@@ -201,14 +219,22 @@ cargo run -p scheduler
 
 ### Environment Variables
 
-Most examples require setting environment variables for device credentials:
+NetSSH Core examples support environment-based configuration for testing with real devices:
 
 ```bash
+# Required for env_config example
 export DEVICE_HOST=192.168.1.1
 export DEVICE_USER=admin
 export DEVICE_PASS=password
-export DEVICE_SECRET=enable_password  # For privileged mode on some devices
+
+# Optional
+export DEVICE_TYPE=cisco_ios           # Default: cisco_ios
+export DEVICE_PORT=22                  # Default: 22
+export DEVICE_TIMEOUT=30               # Default: 30 seconds
+export DEVICE_SECRET=enable_password   # For privileged mode
 ```
+
+**Supported device types:** `cisco_ios`, `cisco_nxos`, `cisco_asa`, `cisco_xr`, `juniper_junos`
 
 ## Documentation
 

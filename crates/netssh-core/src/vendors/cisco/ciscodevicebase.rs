@@ -357,7 +357,7 @@ impl CiscoBaseConnection {
         normalize: Option<bool>,
         cmd_verify: Option<bool>,
     ) -> Result<String, NetsshError> {
-        self.connection.send_command(
+        self.connection.send_command_internal(
             command,
             expect_string,
             read_timeout,
@@ -451,7 +451,7 @@ impl CiscoDeviceConnection for CiscoBaseConnection {
         bypass_commands: Option<&str>,
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
-        self.connection.send_config_set(
+        self.connection.send_config_set_internal(
             config_commands,
             exit_config_mode,
             read_timeout,

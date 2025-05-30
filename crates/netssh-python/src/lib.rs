@@ -764,16 +764,31 @@ impl PyNetworkDevice {
         cmd_verify: Option<bool>,
     ) -> PyResult<PyCommandResult> {
         let start_time = Utc::now();
-        let result = self.device.send_command(
-            command,
-            expect_string,
-            read_timeout,
-            auto_find_prompt,
-            strip_prompt,
-            strip_command,
-            normalize,
-            cmd_verify,
-        );
+        let mut cmd_builder = self.device.send_command(command);
+
+        if let Some(timeout) = read_timeout {
+            cmd_builder = cmd_builder.timeout(timeout);
+        }
+        if let Some(strip_p) = strip_prompt {
+            cmd_builder = cmd_builder.strip_prompt(strip_p);
+        }
+        if let Some(strip_c) = strip_command {
+            cmd_builder = cmd_builder.strip_command(strip_c);
+        }
+        if let Some(norm) = normalize {
+            cmd_builder = cmd_builder.normalize(norm);
+        }
+        if let Some(verify) = cmd_verify {
+            cmd_builder = cmd_builder.cmd_verify(verify);
+        }
+        if let Some(expect) = expect_string {
+            cmd_builder = cmd_builder.expect_string(expect);
+        }
+        if let Some(auto_find) = auto_find_prompt {
+            cmd_builder = cmd_builder.auto_find_prompt(auto_find);
+        }
+
+        let result = cmd_builder.execute();
         let end_time = Utc::now();
 
         match result {
@@ -916,20 +931,43 @@ impl PyNetworkDevice {
             .collect::<Result<Vec<String>, _>>()?;
 
         let start_time = Utc::now();
-        let result = self.device.send_config_set(
-            commands,
-            exit_config_mode,
-            read_timeout,
-            strip_prompt,
-            strip_command,
-            config_mode_command,
-            cmd_verify,
-            enter_config_mode,
-            error_pattern,
-            terminator,
-            bypass_commands,
-            fast_cli,
-        );
+        let mut config_builder = self.device.send_config_set(commands);
+
+        if let Some(exit_mode) = exit_config_mode {
+            config_builder = config_builder.exit_config_mode(exit_mode);
+        }
+        if let Some(timeout) = read_timeout {
+            config_builder = config_builder.timeout(timeout);
+        }
+        if let Some(strip_p) = strip_prompt {
+            config_builder = config_builder.strip_prompt(strip_p);
+        }
+        if let Some(strip_c) = strip_command {
+            config_builder = config_builder.strip_command(strip_c);
+        }
+        if let Some(config_cmd) = config_mode_command {
+            config_builder = config_builder.config_mode_command(config_cmd);
+        }
+        if let Some(verify) = cmd_verify {
+            config_builder = config_builder.cmd_verify(verify);
+        }
+        if let Some(enter_mode) = enter_config_mode {
+            config_builder = config_builder.enter_config_mode(enter_mode);
+        }
+        if let Some(error_pat) = error_pattern {
+            config_builder = config_builder.error_pattern(error_pat);
+        }
+        if let Some(term) = terminator {
+            config_builder = config_builder.terminator(term);
+        }
+        if let Some(bypass) = bypass_commands {
+            config_builder = config_builder.bypass_commands(bypass);
+        }
+        if let Some(fast) = fast_cli {
+            config_builder = config_builder.fast_cli(fast);
+        }
+
+        let result = config_builder.execute();
         let end_time = Utc::now();
 
         match result {

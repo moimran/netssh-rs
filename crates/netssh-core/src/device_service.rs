@@ -62,15 +62,7 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
             }
         };
 
-        let output = self.device.send_command(
-            command, None, // expect_string
-            None, // read_timeout
-            None, // auto_find_prompt
-            None, // strip_prompt
-            None, // strip_command
-            None, // normalize
-            None, // cmd_verify
-        )?;
+        let output = self.device.send_command(command).execute()?;
 
         // Parse the output based on device_type
         let info = match device_type.as_str() {
@@ -113,15 +105,7 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
             }
         };
 
-        let output = self.device.send_command(
-            command, None, // expect_string
-            None, // read_timeout
-            None, // auto_find_prompt
-            None, // strip_prompt
-            None, // strip_command
-            None, // normalize
-            None, // cmd_verify
-        )?;
+        let output = self.device.send_command(command).execute()?;
 
         // Parse the output based on device_type
         let interfaces = match device_type.as_str() {
@@ -140,15 +124,7 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
     /// Execute a command and return the raw result
     pub fn execute_command(&mut self, command: &str) -> Result<String, NetsshError> {
         info!("Executing command: {}", command);
-        self.device.send_command(
-            command, None, // expect_string
-            None, // read_timeout
-            None, // auto_find_prompt
-            None, // strip_prompt
-            None, // strip_command
-            None, // normalize
-            None, // cmd_verify
-        )
+        self.device.send_command(command).execute()
     }
 
     /// Execute a command on the device and return a structured result,
@@ -168,15 +144,7 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
         };
 
         // First execute the command
-        let result = self.device.send_command(
-            command, None, // expect_string
-            None, // read_timeout
-            None, // auto_find_prompt
-            None, // strip_prompt
-            None, // strip_command
-            None, // normalize
-            None, // cmd_verify
-        );
+        let result = self.device.send_command(command).execute();
 
         // If the command succeeded, check for error patterns in the output
         if let Ok(output) = &result {

@@ -36,4 +36,30 @@ async = ["tokio/full"]
 
 [dev-dependencies]
 mockall.workspace = true
-tokio-test.workspace = true 
+tokio-test.workspace = true
+chrono = { version = "0.4", features = ["serde"] }
+
+# Examples
+[[example]]
+name = "basic_connection"
+path = "../../examples/netssh-core/basic_connection.rs"
+
+[[example]]
+name = "env_config"
+path = "../../examples/netssh-core/env_config.rs"
+
+[[example]]
+name = "multiple_commands"
+path = "../../examples/netssh-core/multiple_commands.rs"
+
+[[example]]
+name = "error_handling"
+path = "../../examples/netssh-core/error_handling.rs"
+
+[[example]]
+name = "device_info"
+path = "../../examples/netssh-core/device_info.rs"
+
+[[example]]
+name = "parsing_example"
+path = "../../examples/netssh-core/parsing_example.rs"

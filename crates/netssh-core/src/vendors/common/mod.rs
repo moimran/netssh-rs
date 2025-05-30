@@ -23,7 +23,7 @@ pub trait DefaultConfigSetMethods {
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
         // Delegate to the BaseConnection's implementation
-        self.get_base_connection().send_config_set(
+        self.get_base_connection().send_config_set_internal(
             config_commands,
             exit_config_mode,
             read_timeout,

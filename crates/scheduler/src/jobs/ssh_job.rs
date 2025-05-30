@@ -203,7 +203,7 @@ async fn execute_ssh_commands(job: &SshJobPayload) -> Result<Vec<CommandResult>>
             "Executing SSH command via netssh-core"
         );
 
-        match device.send_command(command, None, None, None, None, None, None, None) {
+        match device.send_command_internal(command, None, None, None, None, None, None, None) {
             Ok(output) => {
                 let duration = start_time.elapsed();
                 let output_length = output.len();
@@ -643,7 +643,7 @@ async fn execute_command_with_retry_sync(
     let max_retries = job.retry_count.unwrap_or(0);
 
     for attempt in 0..=max_retries {
-        match connection.send_command(command, None, None, None, None, None, None, None) {
+        match connection.send_command_internal(command, None, None, None, None, None, None, None) {
             Ok(output) => {
                 let duration = start_time.elapsed();
                 return Ok(CommandResult {

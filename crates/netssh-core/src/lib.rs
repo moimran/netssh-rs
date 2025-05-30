@@ -71,6 +71,6 @@ pub use vendors::cisco::{
 pub use vendors::juniper::{JuniperBaseConnection, JuniperDeviceConnection, JuniperJunosDevice};
 
 // Re-export new abstraction layer
-pub use device_connection::{DeviceConfig, DeviceInfo, NetworkDeviceConnection};
+pub use device_connection::{DeviceConfig, DeviceInfo, NetworkDeviceConnection, SendCommand, SendConfigSet};
 pub use device_factory::DeviceFactory;
 pub use device_service::{DeviceService, Interface};

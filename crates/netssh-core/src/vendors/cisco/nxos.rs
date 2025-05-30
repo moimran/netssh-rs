@@ -129,7 +129,7 @@ impl CiscoNxosDevice {
         } else {
             // NX-OS is very slow on save_config, ensure it waits long enough
             debug!(target: "CiscoNxosDevice::save_config", "Using long timeout for NX-OS save");
-            let cmd_output = self.base.connection.send_command(
+            let cmd_output = self.base.connection.send_command_internal(
                 cmd,
                 None,        // expect_string
                 Some(100.0), // read_timeout - NX-OS needs long timeout
@@ -326,7 +326,7 @@ impl CiscoDeviceConnection for CiscoNxosDevice {
         bypass_commands: Option<&str>,
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
-        self.base.connection.send_config_set(
+        self.base.connection.send_config_set_internal(
             config_commands,
             exit_config_mode,
             read_timeout,

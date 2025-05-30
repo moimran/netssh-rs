@@ -412,7 +412,7 @@ impl JuniperDeviceConnection for JuniperBaseConnection {
         };
 
         // Call an inherent method or directly forward to connection to avoid recursion
-        self.connection.send_command(
+        self.connection.send_command_internal(
             command,
             effective_expect_string,
             read_timeout,

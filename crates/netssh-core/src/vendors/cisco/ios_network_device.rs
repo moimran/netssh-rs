@@ -1,7 +1,6 @@
 use crate::device_connection::{DeviceInfo, NetworkDeviceConnection};
 use crate::error::NetsshError;
 use crate::vendors::cisco::{CiscoDeviceConnection, CiscoIosDevice};
-use crate::vendors::common::DefaultConfigSetMethods;
 use async_trait::async_trait;
 
 #[async_trait]
@@ -50,60 +49,16 @@ impl NetworkDeviceConnection for CiscoIosDevice {
         <Self as CiscoDeviceConnection>::save_config(self).map(|_| ())
     }
 
-    fn send_command(
-        &mut self,
-        command: &str,
-        expect_string: Option<&str>,
-        read_timeout: Option<f64>,
-        auto_find_prompt: Option<bool>,
-        strip_prompt: Option<bool>,
-        strip_command: Option<bool>,
-        normalize: Option<bool>,
-        cmd_verify: Option<bool>,
-    ) -> Result<String, NetsshError> {
-        <Self as CiscoDeviceConnection>::send_command(
-            self,
-            command,
-            expect_string,
-            read_timeout,
-            auto_find_prompt,
-            strip_prompt,
-            strip_command,
-            normalize,
-            cmd_verify,
-        )
-    }
+
 
     fn get_device_type(&self) -> &str {
         "cisco_ios"
     }
 
-    fn send_config_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError> {
-        let mut results = Vec::new();
 
-        <Self as NetworkDeviceConnection>::enter_config_mode(self, None)?;
-
-        for cmd in commands {
-            let result = <Self as NetworkDeviceConnection>::send_command(
-                self, cmd, None, // expect_string
-                None, // read_timeout
-                None, // auto_find_prompt
-                None, // strip_prompt
-                None, // strip_command
-                None, // normalize
-                None, // cmd_verify
-            )?;
-            results.push(result);
-        }
-
-        <Self as NetworkDeviceConnection>::exit_config_mode(self, None)?;
-
-        Ok(results)
-    }
 
     fn get_device_info(&mut self) -> Result<DeviceInfo, NetsshError> {
-        let output = <Self as NetworkDeviceConnection>::send_command(
-            self,
+        let output = self.send_command_internal(
             "show version",
             None, // expect_string
             None, // read_timeout
@@ -136,7 +91,30 @@ impl NetworkDeviceConnection for CiscoIosDevice {
         Ok(info)
     }
 
-    fn send_config_set(
+    fn send_command_internal(
+        &mut self,
+        command: &str,
+        expect_string: Option<&str>,
+        read_timeout: Option<f64>,
+        auto_find_prompt: Option<bool>,
+        strip_prompt: Option<bool>,
+        strip_command: Option<bool>,
+        normalize: Option<bool>,
+        cmd_verify: Option<bool>,
+    ) -> Result<String, NetsshError> {
+        self.base.connection.send_command_internal(
+            command,
+            expect_string,
+            read_timeout,
+            auto_find_prompt,
+            strip_prompt,
+            strip_command,
+            normalize,
+            cmd_verify,
+        )
+    }
+
+    fn send_config_set_internal(
         &mut self,
         config_commands: Vec<String>,
         exit_config_mode: Option<bool>,
@@ -151,7 +129,7 @@ impl NetworkDeviceConnection for CiscoIosDevice {
         bypass_commands: Option<&str>,
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
-        self.default_send_config_set(
+        self.base.connection.send_config_set_internal(
             config_commands,
             exit_config_mode,
             read_timeout,

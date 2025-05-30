@@ -742,7 +742,7 @@ impl SSHDetect {
 
         // Send the command and get the response
         debug!("Sending command: {}", cmd);
-        let response = match self.connection.send_command_simple(cmd) {
+        let response = match self.connection.send_command_internal(cmd, None, None, None, None, None, None, None) {
             Ok(resp) => resp,
             Err(e) => {
                 debug!("Error sending command: {}", e);

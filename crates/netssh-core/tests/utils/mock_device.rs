@@ -533,7 +533,7 @@ impl NetworkDeviceConnection for MockNetworkDevice {
     ) -> Result<String, NetsshError> {
         let mut output = String::new();
         for command in config_commands {
-            let response = self.send_command(&command, None, None, None, None, None, None, None)?;
+            let response = self.send_command(command).execute()?;
             output.push_str(&response);
             output.push('\n');
         }

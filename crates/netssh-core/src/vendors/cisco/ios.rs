@@ -204,7 +204,7 @@ impl CiscoDeviceConnection for CiscoIosDevice {
         bypass_commands: Option<&str>,
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
-        self.base.connection.send_config_set(
+        self.base.connection.send_config_set_internal(
             config_commands,
             exit_config_mode,
             read_timeout,

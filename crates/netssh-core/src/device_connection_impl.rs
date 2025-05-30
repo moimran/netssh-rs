@@ -48,7 +48,7 @@ impl NetworkDeviceConnection for Box<dyn NetworkDeviceConnection> {
         (**self).save_configuration()
     }
 
-    fn send_command(
+    fn send_command_internal(
         &mut self,
         command: &str,
         expect_string: Option<&str>,
@@ -59,7 +59,7 @@ impl NetworkDeviceConnection for Box<dyn NetworkDeviceConnection> {
         normalize: Option<bool>,
         cmd_verify: Option<bool>,
     ) -> Result<String, NetsshError> {
-        (**self).send_command(
+        (**self).send_command_internal(
             command,
             expect_string,
             read_timeout,
@@ -75,11 +75,9 @@ impl NetworkDeviceConnection for Box<dyn NetworkDeviceConnection> {
         (**self).get_device_type()
     }
 
-    fn send_config_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError> {
-        (**self).send_config_commands(commands)
-    }
 
-    fn send_config_set(
+
+    fn send_config_set_internal(
         &mut self,
         config_commands: Vec<String>,
         exit_config_mode: Option<bool>,
@@ -94,7 +92,7 @@ impl NetworkDeviceConnection for Box<dyn NetworkDeviceConnection> {
         bypass_commands: Option<&str>,
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
-        (**self).send_config_set(
+        (**self).send_config_set_internal(
             config_commands,
             exit_config_mode,
             read_timeout,
@@ -161,7 +159,7 @@ impl NetworkDeviceConnection for Box<dyn NetworkDeviceConnection + Send> {
         (**self).save_configuration()
     }
 
-    fn send_command(
+    fn send_command_internal(
         &mut self,
         command: &str,
         expect_string: Option<&str>,
@@ -172,7 +170,7 @@ impl NetworkDeviceConnection for Box<dyn NetworkDeviceConnection + Send> {
         normalize: Option<bool>,
         cmd_verify: Option<bool>,
     ) -> Result<String, NetsshError> {
-        (**self).send_command(
+        (**self).send_command_internal(
             command,
             expect_string,
             read_timeout,
@@ -188,11 +186,9 @@ impl NetworkDeviceConnection for Box<dyn NetworkDeviceConnection + Send> {
         (**self).get_device_type()
     }
 
-    fn send_config_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError> {
-        (**self).send_config_commands(commands)
-    }
 
-    fn send_config_set(
+
+    fn send_config_set_internal(
         &mut self,
         config_commands: Vec<String>,
         exit_config_mode: Option<bool>,
@@ -207,7 +203,7 @@ impl NetworkDeviceConnection for Box<dyn NetworkDeviceConnection + Send> {
         bypass_commands: Option<&str>,
         fast_cli: Option<bool>,
     ) -> Result<String, NetsshError> {
-        (**self).send_config_set(
+        (**self).send_config_set_internal(
             config_commands,
             exit_config_mode,
             read_timeout,
