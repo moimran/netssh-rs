@@ -83,3 +83,7 @@ logs
 .cursor
 
 
+apalis_queue.db-shm
+apalis_queue.db-wal
+apalis_queue.db
+scheduler.db

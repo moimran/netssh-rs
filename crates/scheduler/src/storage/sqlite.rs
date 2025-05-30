@@ -1,6 +1,7 @@
 use async_trait::async_trait;
-use sqlx::{Row, SqlitePool};
+use sqlx::{Row, SqlitePool, sqlite::SqliteConnectOptions};
 use std::str::FromStr;
+use std::path::Path;
 use tracing::{error, info};
 use uuid::Uuid;
 
@@ -17,14 +18,41 @@ pub struct SqliteStorage {
 
 impl SqliteStorage {
     pub async fn new(database_url: &str) -> Result<Self, StorageError> {
-        info!(database_url = %database_url, "Connecting to SQLite database");
+        info!(database_url = %database_url, "Initializing SQLite database");
 
-        let pool = SqlitePool::connect(database_url).await.map_err(|e| {
+        // Extract the database file path from the URL
+        let db_path = if database_url.starts_with("sqlite:") {
+            &database_url[7..] // Remove "sqlite:" prefix
+        } else {
+            database_url
+        };
+
+        // Create the directory if it doesn't exist
+        if let Some(parent_dir) = Path::new(db_path).parent() {
+            if !parent_dir.exists() {
+                info!(directory = %parent_dir.display(), "Creating database directory");
+                std::fs::create_dir_all(parent_dir).map_err(|e| {
+                    error!(directory = %parent_dir.display(), error = %e, "Failed to create database directory");
+                    StorageError::Migration(format!("Failed to create database directory: {}", e))
+                })?;
+            }
+        }
+
+        // Use SqliteConnectOptions to create the database if it doesn't exist
+        let connect_options = SqliteConnectOptions::from_str(database_url)
+            .map_err(|e| {
+                error!(database_url = %database_url, error = %e, "Invalid database URL");
+                StorageError::Migration(format!("Invalid database URL: {}", e))
+            })?
+            .create_if_missing(true);
+
+        info!(database_url = %database_url, "Connecting to SQLite database");
+        let pool = SqlitePool::connect_with(connect_options).await.map_err(|e| {
             error!(database_url = %database_url, error = %e, "Failed to connect to SQLite database");
             e
         })?;
 
-        info!("Creating database tables");
+        info!("Creating database tables and indexes");
         // Create tables manually to avoid migration macro issues
         Self::create_tables(&pool).await?;
 
@@ -37,6 +65,7 @@ impl SqliteStorage {
     }
 
     async fn create_tables(pool: &SqlitePool) -> Result<(), StorageError> {
+        info!("Creating jobs table");
         // Create jobs table
         sqlx::query(
             r#"
@@ -59,7 +88,117 @@ impl SqliteStorage {
             "#,
         )
         .execute(pool)
-        .await?;
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Failed to create jobs table");
+            StorageError::Migration(format!("Failed to create jobs table: {}", e))
+        })?;
+
+        info!("Creating job_results table");
+        // Create job results table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS job_results (
+                id TEXT PRIMARY KEY,
+                job_id TEXT NOT NULL,
+                command TEXT NOT NULL,
+                output TEXT,
+                error TEXT,
+                exit_code INTEGER,
+                executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                duration_ms INTEGER,
+                FOREIGN KEY (job_id) REFERENCES jobs (id) ON DELETE CASCADE
+            )
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Failed to create job_results table");
+            StorageError::Migration(format!("Failed to create job_results table: {}", e))
+        })?;
+
+        info!("Creating job_logs table");
+        // Create job logs table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS job_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id TEXT NOT NULL,
+                level TEXT NOT NULL,
+                message TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                context TEXT,
+                FOREIGN KEY (job_id) REFERENCES jobs (id) ON DELETE CASCADE
+            )
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Failed to create job_logs table");
+            StorageError::Migration(format!("Failed to create job_logs table: {}", e))
+        })?;
+
+        info!("Creating ssh_connections table");
+        // Create SSH connections table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS ssh_connections (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                host TEXT NOT NULL,
+                port INTEGER NOT NULL DEFAULT 22,
+                username TEXT NOT NULL,
+                password TEXT,
+                private_key_path TEXT,
+                device_type TEXT,
+                timeout_seconds INTEGER DEFAULT 30,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Failed to create ssh_connections table");
+            StorageError::Migration(format!("Failed to create ssh_connections table: {}", e))
+        })?;
+
+        // Create indexes for better performance
+        info!("Creating database indexes");
+        Self::create_indexes(pool).await?;
+
+        info!("All database tables and indexes created successfully");
+        Ok(())
+    }
+
+    async fn create_indexes(pool: &SqlitePool) -> Result<(), StorageError> {
+        let indexes = vec![
+            ("idx_jobs_status", "CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)"),
+            ("idx_jobs_created_at", "CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)"),
+            ("idx_jobs_scheduled_for", "CREATE INDEX IF NOT EXISTS idx_jobs_scheduled_for ON jobs(scheduled_for)"),
+            ("idx_jobs_next_run_at", "CREATE INDEX IF NOT EXISTS idx_jobs_next_run_at ON jobs(next_run_at)"),
+            ("idx_jobs_job_type", "CREATE INDEX IF NOT EXISTS idx_jobs_job_type ON jobs(job_type)"),
+            ("idx_jobs_cron_expression", "CREATE INDEX IF NOT EXISTS idx_jobs_cron_expression ON jobs(cron_expression)"),
+            ("idx_jobs_scheduler_query", "CREATE INDEX IF NOT EXISTS idx_jobs_scheduler_query ON jobs(status, next_run_at, scheduled_for)"),
+            ("idx_job_results_job_id", "CREATE INDEX IF NOT EXISTS idx_job_results_job_id ON job_results(job_id)"),
+            ("idx_job_results_executed_at", "CREATE INDEX IF NOT EXISTS idx_job_results_executed_at ON job_results(executed_at)"),
+            ("idx_job_logs_job_id", "CREATE INDEX IF NOT EXISTS idx_job_logs_job_id ON job_logs(job_id)"),
+            ("idx_job_logs_timestamp", "CREATE INDEX IF NOT EXISTS idx_job_logs_timestamp ON job_logs(timestamp)"),
+            ("idx_ssh_connections_name", "CREATE INDEX IF NOT EXISTS idx_ssh_connections_name ON ssh_connections(name)"),
+        ];
+
+        for (index_name, sql) in indexes {
+            sqlx::query(sql)
+                .execute(pool)
+                .await
+                .map_err(|e| {
+                    error!(index = %index_name, error = %e, "Failed to create index");
+                    StorageError::Migration(format!("Failed to create index {}: {}", index_name, e))
+                })?;
+        }
 
         Ok(())
     }

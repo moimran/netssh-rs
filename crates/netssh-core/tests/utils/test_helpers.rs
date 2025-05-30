@@ -8,6 +8,7 @@ use std::time::Duration;
 /// Common helper functions for tests
 
 /// Determines if tests should use mock devices based on the MOCK_TESTS environment variable
+#[allow(dead_code)] // Used in integration tests
 pub fn use_mock_devices() -> bool {
     match env::var("MOCK_TESTS") {
         Ok(val) => val == "1",
@@ -16,6 +17,7 @@ pub fn use_mock_devices() -> bool {
 }
 
 /// Gets an environment variable value with a fallback default
+#[allow(dead_code)] // Used in integration tests
 pub fn get_env_or(name: &str, default: &str) -> String {
     match env::var(name) {
         Ok(val) => val,
@@ -24,6 +26,7 @@ pub fn get_env_or(name: &str, default: &str) -> String {
 }
 
 /// Creates a device configuration for testing
+#[allow(dead_code)] // Used in integration tests
 pub fn create_device_config(device_type: &str, env_prefix: &str) -> DeviceConfig {
     let host = get_env_or(&format!("{}_HOST", env_prefix), "127.0.0.1");
     let username = get_env_or(&format!("{}_USERNAME", env_prefix), "admin");
@@ -53,6 +56,7 @@ pub fn create_device_config(device_type: &str, env_prefix: &str) -> DeviceConfig
 /// });
 /// assert!(result.is_ok());
 /// ```
+#[allow(dead_code)] // Used in integration tests
 pub fn run_real_device_test<F, T>(test_fn: F) -> Result<T, NetsshError>
 where
     F: FnOnce() -> Result<T, NetsshError>,
@@ -66,6 +70,7 @@ where
 }
 
 /// Asserts that a string contains expected content
+#[allow(dead_code)] // Used in integration tests
 pub fn assert_output_contains(output: &str, expected: &str, message: &str) {
     assert!(
         output.contains(expected),

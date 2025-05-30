@@ -8,8 +8,6 @@ use crate::utils::mock_device::{MockNetworkDevice, PromptStyle};
 #[cfg(test)]
 mod tests {
     use super::*;
-    use netssh_core::{device_connection::NetworkDeviceConnection, error::NetsshError};
-    use std::thread;
 
     fn read_until_prompt(stream: &mut TcpStream, prompt: &str) -> Result<String, std::io::Error> {
         let mut buffer = [0u8; 1024];
@@ -45,6 +43,7 @@ mod tests {
         Ok(output)
     }
 
+    #[allow(dead_code)] // Used in integration tests
     fn setup_mock_device() -> MockNetworkDevice {
         let mut device = MockNetworkDevice::new();
 

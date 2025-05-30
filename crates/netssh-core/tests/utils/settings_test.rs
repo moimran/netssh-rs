@@ -287,3 +287,20 @@ fn test_settings_update() {
     let buffer_size = get_buffer_setting(BufferSettingType::ReadBufferSize);
     assert_eq!(buffer_size, 131072);
 }
+
+#[test]
+fn test_settings_init_from_workspace_config() {
+    // Test initialization from workspace config
+    // This should work even if config.toml doesn't exist (uses defaults)
+    let result = Settings::init_from_workspace_config();
+
+    // Should succeed (may use defaults if config file not found)
+    assert!(result.is_ok(), "Failed to initialize from workspace config: {:?}", result);
+
+    // Verify we can get settings values
+    let timeout = get_network_timeout(NetworkTimeoutType::TcpConnect);
+    assert!(timeout.as_secs() > 0);
+
+    let buffer_size = get_buffer_setting(BufferSettingType::ReadBufferSize);
+    assert!(buffer_size > 0);
+}

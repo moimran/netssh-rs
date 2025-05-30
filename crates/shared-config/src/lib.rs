@@ -109,25 +109,88 @@ pub struct SchedulerServiceConfig {
     pub max_concurrent_jobs: u32,
 }
 
-/// netssh-core configuration
+/// netssh-core configuration - comprehensive settings matching the original settings.json
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetsshConfig {
-    pub default_ssh_timeout: u64,
-    pub default_command_timeout: u64,
-    pub default_port: u16,
-    pub buffer_size: usize,
-    pub max_retries: u32,
-    pub connection_pool_size: usize,
+    pub network: NetworkSettings,
+    pub ssh: SshSettings,
+    pub buffer: BufferSettings,
+    pub concurrency: ConcurrencySettings,
     pub logging: NetsshLoggingConfig,
     pub security: SecurityConfig,
 }
 
+/// Network-related timeout settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NetworkSettings {
+    /// TCP connection timeout in seconds (default: 60)
+    pub tcp_connect_timeout_secs: u64,
+    /// TCP read timeout in seconds (default: 30)
+    pub tcp_read_timeout_secs: u64,
+    /// TCP write timeout in seconds (default: 30)
+    pub tcp_write_timeout_secs: u64,
+    /// Default SSH port (default: 22)
+    pub default_ssh_port: u16,
+    /// Command response timeout in seconds (default: 30)
+    pub command_response_timeout_secs: u64,
+    /// Pattern match timeout in seconds (default: 20)
+    pub pattern_match_timeout_secs: u64,
+    /// Command execution delay in milliseconds (default: 100)
+    pub command_exec_delay_ms: u64,
+    /// Retry delay in milliseconds (default: 1000)
+    pub retry_delay_ms: u64,
+    /// Maximum retry attempts (default: 3)
+    pub max_retry_attempts: u32,
+    /// Device operation timeout in seconds (default: 120)
+    pub device_operation_timeout_secs: u64,
+}
+
+/// SSH-related settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SshSettings {
+    /// Timeout for blocking libssh2 function calls in seconds (default: 1)
+    /// Set to 0 for no timeout
+    pub blocking_timeout_secs: u64,
+    /// SSH authentication timeout in seconds (default: 30)
+    pub auth_timeout_secs: u64,
+    /// SSH keepalive interval in seconds (default: 60)
+    pub keepalive_interval_secs: u64,
+    /// SSH channel open timeout in seconds (default: 20)
+    pub channel_open_timeout_secs: u64,
+}
+
+/// Buffer-related settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BufferSettings {
+    /// Read buffer size in bytes (default: 65536)
+    pub read_buffer_size: usize,
+    /// Buffer pool size (default: 32)
+    pub buffer_pool_size: usize,
+    /// Buffer reuse threshold in bytes (default: 16384)
+    pub buffer_reuse_threshold: usize,
+    /// Whether to automatically clear buffer before commands (default: true)
+    pub auto_clear_buffer: bool,
+}
+
+/// Concurrency-related settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConcurrencySettings {
+    /// Maximum number of concurrent connections (default: 100)
+    pub max_connections: usize,
+    /// Permit acquire timeout in milliseconds (default: 5000)
+    pub permit_acquire_timeout_ms: u64,
+    /// Connection idle timeout in seconds (default: 300)
+    pub connection_idle_timeout_secs: u64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetsshLoggingConfig {
-    pub session_logging: bool,
-    pub command_logging: bool,
-    pub performance_logging: bool,
-    pub debug_mode: bool,
+    /// Whether to enable session logging (default: false)
+    pub enable_session_log: bool,
+    /// Path to the session log directory (default: "logs")
+    pub session_log_path: String,
+    /// Whether to log binary data (default: false)
+    pub log_binary_data: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -226,17 +289,39 @@ impl WorkspaceConfig {
                 },
             },
             netssh: NetsshConfig {
-                default_ssh_timeout: config.get("netssh.default_ssh_timeout").unwrap_or(30),
-                default_command_timeout: config.get("netssh.default_command_timeout").unwrap_or(60),
-                default_port: config.get("netssh.default_port").unwrap_or(22),
-                buffer_size: config.get("netssh.buffer_size").unwrap_or(16384),
-                max_retries: config.get("netssh.max_retries").unwrap_or(3),
-                connection_pool_size: config.get("netssh.connection_pool_size").unwrap_or(50),
+                network: NetworkSettings {
+                    tcp_connect_timeout_secs: config.get("netssh.network.tcp_connect_timeout_secs").unwrap_or(60),
+                    tcp_read_timeout_secs: config.get("netssh.network.tcp_read_timeout_secs").unwrap_or(30),
+                    tcp_write_timeout_secs: config.get("netssh.network.tcp_write_timeout_secs").unwrap_or(30),
+                    default_ssh_port: config.get("netssh.network.default_ssh_port").unwrap_or(22),
+                    command_response_timeout_secs: config.get("netssh.network.command_response_timeout_secs").unwrap_or(30),
+                    pattern_match_timeout_secs: config.get("netssh.network.pattern_match_timeout_secs").unwrap_or(20),
+                    command_exec_delay_ms: config.get("netssh.network.command_exec_delay_ms").unwrap_or(100),
+                    retry_delay_ms: config.get("netssh.network.retry_delay_ms").unwrap_or(1000),
+                    max_retry_attempts: config.get("netssh.network.max_retry_attempts").unwrap_or(3),
+                    device_operation_timeout_secs: config.get("netssh.network.device_operation_timeout_secs").unwrap_or(120),
+                },
+                ssh: SshSettings {
+                    blocking_timeout_secs: config.get("netssh.ssh.blocking_timeout_secs").unwrap_or(1),
+                    auth_timeout_secs: config.get("netssh.ssh.auth_timeout_secs").unwrap_or(30),
+                    keepalive_interval_secs: config.get("netssh.ssh.keepalive_interval_secs").unwrap_or(60),
+                    channel_open_timeout_secs: config.get("netssh.ssh.channel_open_timeout_secs").unwrap_or(20),
+                },
+                buffer: BufferSettings {
+                    read_buffer_size: config.get("netssh.buffer.read_buffer_size").unwrap_or(65536),
+                    buffer_pool_size: config.get("netssh.buffer.buffer_pool_size").unwrap_or(32),
+                    buffer_reuse_threshold: config.get("netssh.buffer.buffer_reuse_threshold").unwrap_or(16384),
+                    auto_clear_buffer: config.get("netssh.buffer.auto_clear_buffer").unwrap_or(true),
+                },
+                concurrency: ConcurrencySettings {
+                    max_connections: config.get("netssh.concurrency.max_connections").unwrap_or(100),
+                    permit_acquire_timeout_ms: config.get("netssh.concurrency.permit_acquire_timeout_ms").unwrap_or(5000),
+                    connection_idle_timeout_secs: config.get("netssh.concurrency.connection_idle_timeout_secs").unwrap_or(300),
+                },
                 logging: NetsshLoggingConfig {
-                    session_logging: config.get("netssh.logging.session_logging").unwrap_or(false),
-                    command_logging: config.get("netssh.logging.command_logging").unwrap_or(true),
-                    performance_logging: config.get("netssh.logging.performance_logging").unwrap_or(true),
-                    debug_mode: config.get("netssh.logging.debug_mode").unwrap_or(false),
+                    enable_session_log: config.get("netssh.logging.enable_session_log").unwrap_or(false),
+                    session_log_path: config.get("netssh.logging.session_log_path").unwrap_or_else(|_| "logs".to_string()),
+                    log_binary_data: config.get("netssh.logging.log_binary_data").unwrap_or(false),
                 },
                 security: SecurityConfig {
                     strict_host_key_checking: config.get("netssh.security.strict_host_key_checking").unwrap_or(true),

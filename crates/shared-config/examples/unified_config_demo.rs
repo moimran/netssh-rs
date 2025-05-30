@@ -28,15 +28,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Display netssh-core configuration
     println!("\n🔌 NetSSH Core Configuration:");
-    println!("   - Default SSH Timeout: {}s", config.netssh().default_ssh_timeout);
-    println!("   - Default Command Timeout: {}s", config.netssh().default_command_timeout);
-    println!("   - Default Port: {}", config.netssh().default_port);
-    println!("   - Buffer Size: {} bytes", config.netssh().buffer_size);
-    println!("   - Max Retries: {}", config.netssh().max_retries);
-    println!("   - Connection Pool Size: {}", config.netssh().connection_pool_size);
-    println!("   - Session Logging: {}", config.netssh().logging.session_logging);
-    println!("   - Command Logging: {}", config.netssh().logging.command_logging);
-    println!("   - Performance Logging: {}", config.netssh().logging.performance_logging);
+    println!("   - TCP Connect Timeout: {}s", config.netssh().network.tcp_connect_timeout_secs);
+    println!("   - Command Response Timeout: {}s", config.netssh().network.command_response_timeout_secs);
+    println!("   - Default Port: {}", config.netssh().network.default_ssh_port);
+    println!("   - Buffer Size: {} bytes", config.netssh().buffer.read_buffer_size);
+    println!("   - Max Retries: {}", config.netssh().network.max_retry_attempts);
+    println!("   - Max Connections: {}", config.netssh().concurrency.max_connections);
+    println!("   - Session Logging: {}", config.netssh().logging.enable_session_log);
+    println!("   - Session Log Path: {}", config.netssh().logging.session_log_path);
+    println!("   - Log Binary Data: {}", config.netssh().logging.log_binary_data);
 
     // Display TextFSM configuration
     println!("\n📝 TextFSM Configuration:");

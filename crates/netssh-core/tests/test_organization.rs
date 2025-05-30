@@ -2,7 +2,7 @@ mod utils;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
 
     // Import directly from the tests/utils/mock_device.rs file
     mod mock_device_mod {
@@ -10,7 +10,7 @@ mod tests {
     }
     use mock_device_mod::{MockNetworkDevice, PromptStyle};
 
-    use std::sync::{Arc, Mutex};
+
 
     // Create a mock device for testing
     fn setup_mock_device() -> MockNetworkDevice {

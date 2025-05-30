@@ -251,13 +251,16 @@ detector.disconnect()?;
 
 ## Using the Settings System
 
-The settings system allows you to customize all aspects of netssh-rs behavior through a JSON configuration file. Here's how to use it:
+The settings system allows you to customize all aspects of netssh-rs behavior through the shared workspace configuration. Here's how to use it:
 
 ```rust
-// Initialize with default settings
+// Initialize with shared workspace configuration (recommended)
+Settings::init_from_workspace_config().expect("Failed to initialize settings");
+
+// Or initialize with default settings
 Settings::init(None).expect("Failed to initialize settings");
 
-// Or initialize with a custom settings file
+// Or initialize with a custom settings file (legacy)
 Settings::init(Some("settings.json")).expect("Failed to initialize settings");
 
 // Get settings values using the helper functions

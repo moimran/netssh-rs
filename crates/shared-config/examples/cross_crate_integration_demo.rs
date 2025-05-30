@@ -34,18 +34,17 @@ fn demonstrate_netssh_core_integration(config: &WorkspaceConfig) -> Result<(), B
     let netssh_config = config.netssh();
     
     println!("   📡 SSH Connection Settings:");
-    println!("      - Default SSH Timeout: {}s", netssh_config.default_ssh_timeout);
-    println!("      - Default Command Timeout: {}s", netssh_config.default_command_timeout);
-    println!("      - Default Port: {}", netssh_config.default_port);
-    println!("      - Buffer Size: {} bytes", netssh_config.buffer_size);
-    println!("      - Max Retries: {}", netssh_config.max_retries);
-    println!("      - Connection Pool Size: {}", netssh_config.connection_pool_size);
-    
+    println!("      - TCP Connect Timeout: {}s", netssh_config.network.tcp_connect_timeout_secs);
+    println!("      - Command Response Timeout: {}s", netssh_config.network.command_response_timeout_secs);
+    println!("      - Default Port: {}", netssh_config.network.default_ssh_port);
+    println!("      - Buffer Size: {} bytes", netssh_config.buffer.read_buffer_size);
+    println!("      - Max Retries: {}", netssh_config.network.max_retry_attempts);
+    println!("      - Max Connections: {}", netssh_config.concurrency.max_connections);
+
     println!("   📊 Logging Configuration:");
-    println!("      - Session Logging: {}", netssh_config.logging.session_logging);
-    println!("      - Command Logging: {}", netssh_config.logging.command_logging);
-    println!("      - Performance Logging: {}", netssh_config.logging.performance_logging);
-    println!("      - Debug Mode: {}", netssh_config.logging.debug_mode);
+    println!("      - Session Logging: {}", netssh_config.logging.enable_session_log);
+    println!("      - Session Log Path: {}", netssh_config.logging.session_log_path);
+    println!("      - Log Binary Data: {}", netssh_config.logging.log_binary_data);
     
     println!("   🔒 Security Configuration:");
     println!("      - Strict Host Key Checking: {}", netssh_config.security.strict_host_key_checking);
@@ -54,11 +53,11 @@ fn demonstrate_netssh_core_integration(config: &WorkspaceConfig) -> Result<(), B
 
     // Show how netssh-core would use these settings
     println!("   🔧 How netssh-core uses these settings:");
-    println!("      ✅ SSH connections would use timeout: {}s", netssh_config.default_ssh_timeout);
-    println!("      ✅ Commands would use timeout: {}s", netssh_config.default_command_timeout);
-    println!("      ✅ Default port: {}", netssh_config.default_port);
-    println!("      ✅ Buffer size: {} bytes", netssh_config.buffer_size);
-    println!("      ✅ Connection pool size: {}", netssh_config.connection_pool_size);
+    println!("      ✅ SSH connections would use timeout: {}s", netssh_config.ssh.auth_timeout_secs);
+    println!("      ✅ Commands would use timeout: {}s", netssh_config.network.command_response_timeout_secs);
+    println!("      ✅ Default port: {}", netssh_config.network.default_ssh_port);
+    println!("      ✅ Buffer size: {} bytes", netssh_config.buffer.read_buffer_size);
+    println!("      ✅ Max connections: {}", netssh_config.concurrency.max_connections);
     
     Ok(())
 }
@@ -188,17 +187,39 @@ fn create_default_config() -> WorkspaceConfig {
             },
         },
         netssh: shared_config::NetsshConfig {
-            default_ssh_timeout: 30,
-            default_command_timeout: 60,
-            default_port: 22,
-            buffer_size: 16384,
-            max_retries: 3,
-            connection_pool_size: 50,
+            network: shared_config::NetworkSettings {
+                tcp_connect_timeout_secs: 60,
+                tcp_read_timeout_secs: 30,
+                tcp_write_timeout_secs: 30,
+                default_ssh_port: 22,
+                command_response_timeout_secs: 30,
+                pattern_match_timeout_secs: 20,
+                command_exec_delay_ms: 100,
+                retry_delay_ms: 1000,
+                max_retry_attempts: 3,
+                device_operation_timeout_secs: 120,
+            },
+            ssh: shared_config::SshSettings {
+                blocking_timeout_secs: 1,
+                auth_timeout_secs: 30,
+                keepalive_interval_secs: 60,
+                channel_open_timeout_secs: 20,
+            },
+            buffer: shared_config::BufferSettings {
+                read_buffer_size: 65536,
+                buffer_pool_size: 32,
+                buffer_reuse_threshold: 16384,
+                auto_clear_buffer: true,
+            },
+            concurrency: shared_config::ConcurrencySettings {
+                max_connections: 100,
+                permit_acquire_timeout_ms: 5000,
+                connection_idle_timeout_secs: 300,
+            },
             logging: shared_config::NetsshLoggingConfig {
-                session_logging: false,
-                command_logging: true,
-                performance_logging: true,
-                debug_mode: false,
+                enable_session_log: false,
+                session_log_path: "logs".to_string(),
+                log_binary_data: false,
             },
             security: shared_config::SecurityConfig {
                 strict_host_key_checking: true,

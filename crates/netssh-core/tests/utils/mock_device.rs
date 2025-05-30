@@ -1,9 +1,8 @@
 use netssh_core::{
-    device_connection::{DeviceConfig, DeviceInfo, NetworkDeviceConnection},
+    device_connection::{DeviceInfo, NetworkDeviceConnection},
     error::NetsshError,
 };
 use rand::{thread_rng, Rng};
-use ssh2::{Channel, Session};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -34,6 +33,7 @@ pub struct MockNetworkDevice {
 
 /// Prompt style for the mock device
 #[derive(Clone, Debug)]
+#[allow(dead_code)] // Some variants are used in tests but not in this specific test run
 pub enum PromptStyle {
     /// Cisco IOS style: hostname>
     CiscoIOS,
@@ -45,6 +45,7 @@ pub enum PromptStyle {
     Custom(String),
 }
 
+#[allow(dead_code)] // Mock device methods are used in integration tests
 impl MockNetworkDevice {
     /// Create a new mock device on a random available port
     pub fn new() -> Self {
@@ -250,7 +251,7 @@ impl MockNetworkDevice {
     fn handle_client(
         mut socket: TcpStream,
         command_responses: Arc<Mutex<HashMap<String, String>>>,
-        auth_credentials: Arc<Mutex<Vec<(String, String)>>>,
+        _auth_credentials: Arc<Mutex<Vec<(String, String)>>>,
         hostname: Arc<Mutex<String>>,
         prompt_style: Arc<Mutex<PromptStyle>>,
         device_type: String,
@@ -540,6 +541,7 @@ impl NetworkDeviceConnection for MockNetworkDevice {
     }
 }
 
+#[allow(dead_code)] // Used in integration tests
 pub fn setup_mock_device() -> MockNetworkDevice {
     let mut device = MockNetworkDevice::new();
 

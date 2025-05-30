@@ -1,5 +1,4 @@
 use netssh_core::buffer_pool::BufferPool;
-use std::io::Read;
 use std::sync::Arc;
 
 #[test]

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::str::FromStr;
 
 use apalis::prelude::*;
 use apalis_sql::sqlite::SqliteStorage as ApalisSqliteStorage;
@@ -59,7 +60,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .replace("scheduler.db", "apalis_queue.db");
     info!("Connecting to Apalis queue database: {}", apalis_db_url);
 
-    let sqlite_pool = SqlitePool::connect(&apalis_db_url)
+    // Use SqliteConnectOptions to create the Apalis database if it doesn't exist
+    let apalis_connect_options = sqlx::sqlite::SqliteConnectOptions::from_str(&apalis_db_url)
+        .expect("Invalid Apalis database URL")
+        .create_if_missing(true);
+
+    let sqlite_pool = SqlitePool::connect_with(apalis_connect_options)
         .await
         .expect("Failed to connect to SQLite for Apalis");
 

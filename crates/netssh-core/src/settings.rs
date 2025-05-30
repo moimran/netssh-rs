@@ -1,5 +1,6 @@
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use shared_config::WorkspaceConfig;
 use std::fs;
 use std::path::Path;
 use std::sync::RwLock;
@@ -256,6 +257,58 @@ impl Settings {
         *global_settings = settings;
 
         debug!("Settings initialized successfully");
+        Ok(())
+    }
+
+    /// Initialize global settings from shared workspace configuration
+    /// This is the preferred method for new code
+    pub fn init_from_workspace_config() -> Result<(), String> {
+        let workspace_config = WorkspaceConfig::load().map_err(|e| format!("Failed to load workspace config: {}", e))?;
+        let netssh_config = workspace_config.netssh();
+
+        // Convert shared config to our internal Settings structure
+        let settings = Settings {
+            network: NetworkSettings {
+                tcp_connect_timeout_secs: netssh_config.network.tcp_connect_timeout_secs,
+                tcp_read_timeout_secs: netssh_config.network.tcp_read_timeout_secs,
+                tcp_write_timeout_secs: netssh_config.network.tcp_write_timeout_secs,
+                default_ssh_port: netssh_config.network.default_ssh_port,
+                command_response_timeout_secs: netssh_config.network.command_response_timeout_secs,
+                pattern_match_timeout_secs: netssh_config.network.pattern_match_timeout_secs,
+                command_exec_delay_ms: netssh_config.network.command_exec_delay_ms,
+                retry_delay_ms: netssh_config.network.retry_delay_ms,
+                max_retry_attempts: netssh_config.network.max_retry_attempts,
+                device_operation_timeout_secs: netssh_config.network.device_operation_timeout_secs,
+            },
+            ssh: SshSettings {
+                blocking_timeout_secs: netssh_config.ssh.blocking_timeout_secs,
+                auth_timeout_secs: netssh_config.ssh.auth_timeout_secs,
+                keepalive_interval_secs: netssh_config.ssh.keepalive_interval_secs,
+                channel_open_timeout_secs: netssh_config.ssh.channel_open_timeout_secs,
+            },
+            buffer: BufferSettings {
+                read_buffer_size: netssh_config.buffer.read_buffer_size,
+                buffer_pool_size: netssh_config.buffer.buffer_pool_size,
+                buffer_reuse_threshold: netssh_config.buffer.buffer_reuse_threshold,
+                auto_clear_buffer: netssh_config.buffer.auto_clear_buffer,
+            },
+            concurrency: ConcurrencySettings {
+                max_connections: netssh_config.concurrency.max_connections,
+                permit_acquire_timeout_ms: netssh_config.concurrency.permit_acquire_timeout_ms,
+                connection_idle_timeout_secs: netssh_config.concurrency.connection_idle_timeout_secs,
+            },
+            logging: LoggingSettings {
+                enable_session_log: netssh_config.logging.enable_session_log,
+                session_log_path: netssh_config.logging.session_log_path.clone(),
+                log_binary_data: netssh_config.logging.log_binary_data,
+            },
+        };
+
+        // Update the global settings
+        let mut global_settings = SETTINGS.write().map_err(|e| e.to_string())?;
+        *global_settings = settings;
+
+        debug!("Settings initialized from workspace configuration successfully");
         Ok(())
     }
 
