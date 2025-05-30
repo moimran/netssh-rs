@@ -2,7 +2,6 @@ use crate::command_result::{BatchCommandResults, CommandResult, CommandStatus};
 use crate::device_connection::{DeviceConfig, NetworkDeviceConnection};
 use crate::device_factory::DeviceFactory;
 use crate::error::NetsshError;
-use chrono::Utc;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
@@ -134,7 +133,6 @@ impl ParallelExecutionManager {
     ) -> Result<BatchCommandResults, NetsshError> {
         // Initialize batch results
         let mut batch_results = BatchCommandResults::new();
-        batch_results.start_time = Utc::now();
 
         // Keep track of failed devices if using SkipDevice strategy
         let mut failed_devices = HashSet::new();
@@ -189,12 +187,12 @@ impl ParallelExecutionManager {
                             // For each command, create a failure result
                             for cmd in commands {
                                 results.push(CommandResult::failure(
-                                    host.clone(),
+                                    None, // device_id is optional
+                                    host.clone(), // Use host as device_ip
+                                    host.clone(), // Use host as hostname
                                     device_type.clone(),
                                     cmd,
                                     String::new(),
-                                    Utc::now(),
-                                    Utc::now(),
                                     format!("Failed to create connection: {}", err),
                                 ));
                             }
@@ -215,15 +213,14 @@ impl ParallelExecutionManager {
                             // Skip if the device has already failed and we're using SkipDevice strategy
                             if device_failed && failure_strategy == FailureStrategy::SkipDevice {
                                 results.push(CommandResult::skipped(
-                                    host.clone(),
+                                    None, // device_id is optional
+                                    host.clone(), // Use host as device_ip
+                                    host.clone(), // Use host as hostname
                                     device_type.clone(),
                                     cmd,
                                 ));
                                 continue;
                             }
-
-                            // Record start time
-                            let start_time = Utc::now();
 
                             // Absolute timeout in seconds, or use device_config timeout if not specified
                             let timeout_duration = if let Some(timeout) = device_config.timeout {
@@ -238,30 +235,28 @@ impl ParallelExecutionManager {
                             })
                             .await;
 
-                            let end_time = Utc::now();
-
                             match result {
                                 Ok(Ok(output)) => {
                                     // Command succeeded
                                     results.push(CommandResult::success(
-                                        host.clone(),
+                                        None, // device_id is optional
+                                        host.clone(), // Use host as device_ip
+                                        host.clone(), // Use host as hostname
                                         device_type.clone(),
                                         cmd,
                                         output,
-                                        start_time,
-                                        end_time,
                                     ));
                                 }
                                 Ok(Err(err)) => {
                                     // Command failed due to error
                                     device_failed = true;
                                     results.push(CommandResult::failure(
-                                        host.clone(),
+                                        None, // device_id is optional
+                                        host.clone(), // Use host as device_ip
+                                        host.clone(), // Use host as hostname
                                         device_type.clone(),
                                         cmd,
                                         String::new(),
-                                        start_time,
-                                        end_time,
                                         format!("Command execution error: {}", err),
                                     ));
                                 }
@@ -269,10 +264,12 @@ impl ParallelExecutionManager {
                                     // Command timed out
                                     device_failed = true;
                                     results.push(CommandResult::timeout(
-                                        host.clone(),
+                                        None, // device_id is optional
+                                        host.clone(), // Use host as device_ip
+                                        host.clone(), // Use host as hostname
                                         device_type.clone(),
                                         cmd,
-                                        start_time,
+                                        "Command execution timed out".to_string(),
                                     ));
                                 }
                             }
@@ -283,12 +280,12 @@ impl ParallelExecutionManager {
                         // For each command, create a failure result
                         for cmd in commands {
                             results.push(CommandResult::failure(
-                                host.clone(),
+                                None, // device_id is optional
+                                host.clone(), // Use host as device_ip
+                                host.clone(), // Use host as hostname
                                 device_type.clone(),
                                 cmd,
                                 String::new(),
-                                Utc::now(),
-                                Utc::now(),
                                 format!("Failed to connect: {}", err),
                             ));
                         }
@@ -340,9 +337,6 @@ impl ParallelExecutionManager {
                 }
             }
         }
-
-        // Complete the batch results
-        batch_results.complete();
 
         Ok(batch_results)
     }

@@ -1,5 +1,5 @@
 /// Basic Connection Example - Minimal output focused on command results
-use netssh_core::{DeviceConfig, DeviceFactory, NetworkDeviceConnection};
+use netssh_core::{CommandOutput, DeviceConfig, DeviceFactory, NetworkDeviceConnection};
 use std::time::Duration;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -37,6 +37,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n=== HOSTNAME CONFIG ===");
     match device.send_command("show running-config | include hostname").execute() {
         Ok(output) => println!("{}", output.trim()),
+        Err(e) => eprintln!("Error: {}", e),
+    }
+
+    // Example 4: Command with parsing - show version with TextFSM parsing
+    println!("\n=== SHOW VERSION WITH PARSING ===");
+    match device.send_command("show version").parse() {
+        Ok(result) => {
+            println!("Command: {}", result.command);
+            println!("Status: {:?}", result.status);
+            println!("Parse Status: {:?}", result.parse_status);
+
+            if let Some(output) = &result.output {
+                match output {
+                    CommandOutput::Raw(raw_text) => {
+                        println!("Raw Output:\n{}", raw_text);
+                    }
+                    CommandOutput::Parsed(parsed_data) => {
+                        println!("Parsed Data ({} records):", parsed_data.len());
+                        if let Ok(json) = serde_json::to_string_pretty(parsed_data) {
+                            println!("{}", json);
+                        }
+                    }
+                }
+            }
+
+            if let Some(error) = &result.parse_error {
+                println!("Parse Error: {}", error);
+            }
+        },
         Err(e) => eprintln!("Error: {}", e),
     }
 

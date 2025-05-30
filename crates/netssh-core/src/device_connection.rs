@@ -100,6 +100,7 @@ pub struct SendCommand<'a> {
     strip_command: Option<bool>,
     normalize: Option<bool>,
     cmd_verify: Option<bool>,
+    parse_options: Option<crate::ParseOptions>,
 }
 
 impl<'a> SendCommand<'a> {
@@ -115,6 +116,7 @@ impl<'a> SendCommand<'a> {
             strip_command: None,
             normalize: None,
             cmd_verify: None,
+            parse_options: None,
         }
     }
 
@@ -172,6 +174,114 @@ impl<'a> SendCommand<'a> {
             self.normalize,
             self.cmd_verify,
         )
+    }
+
+    /// Execute the command with TextFSM parsing enabled
+    ///
+    /// This method executes the command and attempts to parse the output using TextFSM templates.
+    /// Returns a CommandResult with parsing status and either parsed data or raw output.
+    ///
+    /// # Examples
+    /// ```rust
+    /// // Parse with default options
+    /// let result = device.send_command("show version").parse()?;
+    ///
+    /// // Check parsing status
+    /// match result.parse_status {
+    ///     ParseStatus::Success => println!("Parsing successful"),
+    ///     ParseStatus::Failed => println!("Parsing failed: {:?}", result.parse_error),
+    ///     ParseStatus::NoTemplate => println!("No template found"),
+    ///     ParseStatus::NotAttempted => println!("Parsing not attempted"),
+    /// }
+    /// ```
+    pub fn parse(mut self) -> Result<crate::CommandResult, NetsshError> {
+        use crate::{CommandResult, ParseOptions};
+        use cmdparser::NetworkOutputParser;
+
+        // Enable parsing with default options if not already set
+        if self.parse_options.is_none() {
+            self.parse_options = Some(ParseOptions::enabled());
+        }
+
+        // Execute the command first
+        let output = self.device.send_command_internal(
+            self.command,
+            self.expect_string,
+            self.read_timeout,
+            self.auto_find_prompt,
+            self.strip_prompt,
+            self.strip_command,
+            self.normalize,
+            self.cmd_verify,
+        )?;
+
+        // Get device information for CommandResult
+        let platform_type = self.device.get_device_type().to_string();
+        let device_info = self.device.get_device_info().unwrap_or_else(|_| crate::DeviceInfo {
+            device_type: platform_type.clone(),
+            model: "Unknown".to_string(),
+            version: "Unknown".to_string(),
+            hostname: "Unknown".to_string(),
+            serial: "Unknown".to_string(),
+            uptime: "Unknown".to_string(),
+        });
+
+        let parse_options = self.parse_options.unwrap_or_default();
+
+        // If parsing is enabled, attempt to parse the output
+        if parse_options.enabled {
+            // Create parser with optional custom template directory
+            let template_dir = parse_options.template_dir.as_ref().map(|s| std::path::PathBuf::from(s));
+            let mut parser = NetworkOutputParser::new(template_dir);
+
+            // Attempt to parse the output
+            match parser.parse_output(&platform_type, self.command, &output) {
+                Ok(Some(parsed_data)) => {
+                    // Parsing succeeded - return success with parsed data
+                    Ok(CommandResult::success_with_parsing(
+                        None, // device_id is optional
+                        device_info.hostname.clone(), // Use hostname as device_ip for now
+                        device_info.hostname,
+                        platform_type,
+                        self.command.to_string(),
+                        parsed_data,
+                    ))
+                }
+                Ok(None) => {
+                    // No template found
+                    Ok(CommandResult::success_with_no_template(
+                        None,
+                        device_info.hostname.clone(),
+                        device_info.hostname,
+                        platform_type,
+                        self.command.to_string(),
+                        output,
+                    ))
+                }
+                Err(e) => {
+                    // Parsing failed
+                    Ok(CommandResult::success_with_parse_failure(
+                        None,
+                        device_info.hostname.clone(),
+                        device_info.hostname,
+                        platform_type,
+                        self.command.to_string(),
+                        output,
+                        format!("{}", e),
+                    ))
+                }
+            }
+        } else {
+            // Parsing not enabled, return success without parsing
+            Ok(CommandResult::success(
+                None,
+                device_info.hostname.clone(),
+                device_info.hostname,
+                platform_type,
+                self.command.to_string(),
+                output,
+            ))
+        }
     }
 }
 

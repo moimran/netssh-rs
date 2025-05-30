@@ -1,8 +1,54 @@
 use crate::error::NetsshError;
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use indexmap::IndexMap;
+
+/// Represents the output of a command execution
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CommandOutput {
+    /// Raw string output (when parsing not attempted or failed)
+    Raw(String),
+    /// Parsed structured data (when parsing succeeded)
+    Parsed(Vec<IndexMap<String, serde_json::Value>>),
+}
+
+impl CommandOutput {
+    /// Get the raw string output, regardless of whether it's parsed or not
+    pub fn as_raw(&self) -> Option<&str> {
+        match self {
+            CommandOutput::Raw(s) => Some(s),
+            CommandOutput::Parsed(_) => None,
+        }
+    }
+
+    /// Get the parsed data if available
+    pub fn as_parsed(&self) -> Option<&Vec<IndexMap<String, serde_json::Value>>> {
+        match self {
+            CommandOutput::Raw(_) => None,
+            CommandOutput::Parsed(data) => Some(data),
+        }
+    }
+
+    /// Check if the output contains parsed data
+    pub fn is_parsed(&self) -> bool {
+        matches!(self, CommandOutput::Parsed(_))
+    }
+
+    /// Get parsed data as JSON string
+    pub fn parsed_as_json(&self) -> Option<Result<String, serde_json::Error>> {
+        self.as_parsed().map(|data| serde_json::to_string_pretty(data))
+    }
+
+    /// Get a string representation of the output for display purposes
+    pub fn to_display_string(&self) -> String {
+        match self {
+            CommandOutput::Raw(s) => s.clone(),
+            CommandOutput::Parsed(data) => {
+                serde_json::to_string_pretty(data).unwrap_or_else(|_| "Parse error".to_string())
+            }
+        }
+    }
+}
 
 /// Represents the execution status of a command
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -69,28 +115,24 @@ impl ParseOptions {
 /// Holds the result of executing a command on a device
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandResult {
-    /// Identifier for the device (hostname or IP)
-    pub device_id: String,
-    /// Device type (vendor/model)
-    pub device_type: String,
+    /// Optional device identifier (UUID from database, may not always be available)
+    pub device_id: Option<String>,
+    /// Device IP address
+    pub device_ip: String,
+    /// Device hostname
+    pub hostname: String,
+    /// Platform type (vendor/model)
+    pub platform_type: String,
     /// The command that was executed
     pub command: String,
-    /// Output text from the command
-    pub output: Option<String>,
-    /// Time when command execution started
-    pub start_time: DateTime<Utc>,
-    /// Time when command execution ended
-    pub end_time: DateTime<Utc>,
-    /// Duration of command execution in milliseconds
-    pub duration_ms: u64,
+    /// Command output - either raw string or parsed structured data
+    pub output: Option<CommandOutput>,
     /// Status of command execution
     pub status: CommandStatus,
     /// Error message if command failed
     pub error: Option<String>,
     /// Status of TextFSM parsing
     pub parse_status: ParseStatus,
-    /// Parsed data from TextFSM (if parsing was successful)
-    pub parsed_data: Option<Vec<IndexMap<String, serde_json::Value>>>,
     /// Error message if parsing failed
     pub parse_error: Option<String>,
 }
@@ -98,152 +140,130 @@ pub struct CommandResult {
 impl CommandResult {
     /// Create a new CommandResult for a successful command execution
     pub fn success(
-        device_id: String,
-        device_type: String,
+        device_id: Option<String>,
+        device_ip: String,
+        hostname: String,
+        platform_type: String,
         command: String,
         output: String,
-        start_time: DateTime<Utc>,
-        end_time: DateTime<Utc>,
     ) -> Self {
-        let duration = end_time.signed_duration_since(start_time);
-        let duration_ms = duration.num_milliseconds() as u64;
-
         Self {
             device_id,
-            device_type,
+            device_ip,
+            hostname,
+            platform_type,
             command,
-            output: Some(output),
-            start_time,
-            end_time,
-            duration_ms,
+            output: Some(CommandOutput::Raw(output)),
             status: CommandStatus::Success,
             error: None,
             parse_status: ParseStatus::NotAttempted,
-            parsed_data: None,
             parse_error: None,
         }
     }
 
     /// Create a new CommandResult for a failed command execution
     pub fn failure(
-        device_id: String,
-        device_type: String,
+        device_id: Option<String>,
+        device_ip: String,
+        hostname: String,
+        platform_type: String,
         command: String,
         output: String,
-        start_time: DateTime<Utc>,
-        end_time: DateTime<Utc>,
         error: String,
     ) -> Self {
-        let duration = end_time.signed_duration_since(start_time);
-        let duration_ms = duration.num_milliseconds() as u64;
-
         Self {
             device_id,
-            device_type,
+            device_ip,
+            hostname,
+            platform_type,
             command,
-            output: Some(output),
-            start_time,
-            end_time,
-            duration_ms,
+            output: Some(CommandOutput::Raw(output)),
             status: CommandStatus::Failed,
             error: Some(error),
             parse_status: ParseStatus::NotAttempted,
-            parsed_data: None,
             parse_error: None,
         }
     }
 
     /// Create a new CommandResult for a timed out command execution
     pub fn timeout(
-        device_id: String,
-        device_type: String,
+        device_id: Option<String>,
+        device_ip: String,
+        hostname: String,
+        platform_type: String,
         command: String,
-        start_time: DateTime<Utc>,
+        error_message: String,
     ) -> Self {
-        let end_time = Utc::now();
-        let duration = end_time.signed_duration_since(start_time);
-        let duration_ms = duration.num_milliseconds() as u64;
-
         Self {
             device_id,
-            device_type,
+            device_ip,
+            hostname,
+            platform_type,
             command,
             output: None,
-            start_time,
-            end_time,
-            duration_ms,
             status: CommandStatus::Timeout,
-            error: Some(format!(
-                "Command execution timed out after {} ms",
-                duration_ms
-            )),
+            error: Some(error_message),
             parse_status: ParseStatus::NotAttempted,
-            parsed_data: None,
             parse_error: None,
         }
     }
 
     /// Create a new CommandResult for a skipped command execution
-    pub fn skipped(device_id: String, device_type: String, command: String) -> Self {
-        let now = Utc::now();
-
+    pub fn skipped(
+        device_id: Option<String>,
+        device_ip: String,
+        hostname: String,
+        platform_type: String,
+        command: String,
+    ) -> Self {
         Self {
             device_id,
-            device_type,
+            device_ip,
+            hostname,
+            platform_type,
             command,
             output: None,
-            start_time: now,
-            end_time: now,
-            duration_ms: 0,
             status: CommandStatus::Skipped,
             error: None,
             parse_status: ParseStatus::NotAttempted,
-            parsed_data: None,
             parse_error: None,
         }
     }
 
     /// Create a CommandResult from a command execution error
     pub fn from_error(
-        device_id: String,
-        device_type: String,
+        device_id: Option<String>,
+        device_ip: String,
+        hostname: String,
+        platform_type: String,
         command: String,
         error: NetsshError,
-        start_time: DateTime<Utc>,
         output: Option<String>,
     ) -> Self {
-        let end_time = Utc::now();
-        let duration = end_time.signed_duration_since(start_time);
-        let duration_ms = duration.num_milliseconds() as u64;
-
         // Check if it's a timeout error
         match &error {
             NetsshError::Timeout { .. } => Self {
                 device_id,
-                device_type,
+                device_ip,
+                hostname,
+                platform_type,
                 command,
-                output,
-                start_time,
-                end_time,
-                duration_ms,
+                output: output.map(CommandOutput::Raw),
                 status: CommandStatus::Timeout,
                 error: Some(format!("{}", error)),
                 parse_status: ParseStatus::NotAttempted,
-                parsed_data: None,
                 parse_error: None,
             },
             NetsshError::CommandError(msg) => Self {
                 device_id,
-                device_type,
+                device_ip,
+                hostname,
+                platform_type,
                 command,
-                output,
-                start_time,
-                end_time,
-                duration_ms,
+                output: output.map(CommandOutput::Raw),
                 status: CommandStatus::Failed,
                 error: Some(msg.clone()),
                 parse_status: ParseStatus::NotAttempted,
-                parsed_data: None,
                 parse_error: None,
             },
             NetsshError::CommandErrorWithOutput {
@@ -251,141 +271,98 @@ impl CommandResult {
                 output: cmd_output,
             } => Self {
                 device_id,
-                device_type,
+                device_ip,
+                hostname,
+                platform_type,
                 command,
-                output: Some(cmd_output.clone()),
-                start_time,
-                end_time,
-                duration_ms,
+                output: Some(CommandOutput::Raw(cmd_output.clone())),
                 status: CommandStatus::Failed,
                 error: Some(error_msg.clone()),
                 parse_status: ParseStatus::NotAttempted,
-                parsed_data: None,
                 parse_error: None,
             },
             // All other errors get mapped to Failed status
             _ => Self {
                 device_id,
-                device_type,
+                device_ip,
+                hostname,
+                platform_type,
                 command,
-                output,
-                start_time,
-                end_time,
-                duration_ms,
+                output: output.map(CommandOutput::Raw),
                 status: CommandStatus::Failed,
                 error: Some(format!("{}", error)),
                 parse_status: ParseStatus::NotAttempted,
-                parsed_data: None,
                 parse_error: None,
             },
         }
     }
 
-    /// Create a CommandResult from a command execution result
-    pub fn from_result(
-        device_id: String,
-        device_type: String,
-        command: String,
-        result: Result<String, NetsshError>,
-        start_time: DateTime<Utc>,
-    ) -> Self {
-        match result {
-            Ok(output) => Self::success(
-                device_id,
-                device_type,
-                command,
-                output,
-                start_time,
-                Utc::now(),
-            ),
-            Err(error) => {
-                Self::from_error(device_id, device_type, command, error, start_time, None)
-            }
-        }
-    }
-
     /// Create a CommandResult with successful parsing
     pub fn success_with_parsing(
-        device_id: String,
-        device_type: String,
+        device_id: Option<String>,
+        device_ip: String,
+        hostname: String,
+        platform_type: String,
         command: String,
-        output: String,
         parsed_data: Vec<IndexMap<String, serde_json::Value>>,
-        start_time: DateTime<Utc>,
-        end_time: DateTime<Utc>,
     ) -> Self {
-        let duration = end_time.signed_duration_since(start_time);
-        let duration_ms = duration.num_milliseconds() as u64;
-
         Self {
             device_id,
-            device_type,
+            device_ip,
+            hostname,
+            platform_type,
             command,
-            output: Some(output),
-            start_time,
-            end_time,
-            duration_ms,
+            output: Some(CommandOutput::Parsed(parsed_data)),
             status: CommandStatus::Success,
             error: None,
             parse_status: ParseStatus::Success,
-            parsed_data: Some(parsed_data),
             parse_error: None,
         }
     }
 
     /// Create a CommandResult with failed parsing (but successful command execution)
     pub fn success_with_parse_failure(
-        device_id: String,
-        device_type: String,
+        device_id: Option<String>,
+        device_ip: String,
+        hostname: String,
+        platform_type: String,
         command: String,
         output: String,
         parse_error: String,
-        start_time: DateTime<Utc>,
-        end_time: DateTime<Utc>,
     ) -> Self {
-        let duration = end_time.signed_duration_since(start_time);
-        let duration_ms = duration.num_milliseconds() as u64;
-
         Self {
             device_id,
-            device_type,
+            device_ip,
+            hostname,
+            platform_type,
             command,
-            output: Some(output),
-            start_time,
-            end_time,
-            duration_ms,
-            status: CommandStatus::Success,
+            output: Some(CommandOutput::Raw(output)),
+            status: CommandStatus::Failed, // Set to Failed when parsing fails
             error: None,
             parse_status: ParseStatus::Failed,
-            parsed_data: None,
             parse_error: Some(parse_error),
         }
     }
 
     /// Create a CommandResult when no template was found for parsing
     pub fn success_with_no_template(
-        device_id: String,
-        device_type: String,
+        device_id: Option<String>,
+        device_ip: String,
+        hostname: String,
+        platform_type: String,
         command: String,
         output: String,
-        start_time: DateTime<Utc>,
-        end_time: DateTime<Utc>,
     ) -> Self {
-        let duration = end_time.signed_duration_since(start_time);
-        let duration_ms = duration.num_milliseconds() as u64;
-
         Self {
             device_id,
-            device_type,
+            device_ip,
+            hostname,
+            platform_type,
             command,
-            output: Some(output),
-            start_time,
-            end_time,
-            duration_ms,
+            output: Some(CommandOutput::Raw(output)),
             status: CommandStatus::Success,
             error: None,
             parse_status: ParseStatus::NoTemplate,
-            parsed_data: None,
             parse_error: None,
         }
     }
@@ -398,11 +375,6 @@ impl CommandResult {
     /// Check if parsing was attempted
     pub fn parse_attempted(&self) -> bool {
         self.parse_status != ParseStatus::NotAttempted
-    }
-
-    /// Get parsed data as JSON string
-    pub fn parsed_data_as_json(&self) -> Option<Result<String, serde_json::Error>> {
-        self.parsed_data.as_ref().map(|data| serde_json::to_string_pretty(data))
     }
 }
 
@@ -423,18 +395,11 @@ pub struct BatchCommandResults {
     pub timeout_count: usize,
     /// Number of skipped commands
     pub skipped_count: usize,
-    /// Time when batch execution started
-    pub start_time: DateTime<Utc>,
-    /// Time when batch execution ended
-    pub end_time: DateTime<Utc>,
-    /// Duration of batch execution in milliseconds
-    pub duration_ms: u64,
 }
 
 impl BatchCommandResults {
     /// Create a new empty BatchCommandResults
     pub fn new() -> Self {
-        let now = Utc::now();
         Self {
             results: HashMap::new(),
             device_count: 0,
@@ -443,15 +408,13 @@ impl BatchCommandResults {
             failure_count: 0,
             timeout_count: 0,
             skipped_count: 0,
-            start_time: now,
-            end_time: now,
-            duration_ms: 0,
         }
     }
 
     /// Add a command result to the batch results
     pub fn add_result(&mut self, result: CommandResult) {
-        let device_id = result.device_id.clone();
+        // Use device_ip as the key since device_id is now optional
+        let device_key = result.device_ip.clone();
 
         // Update counters based on result status
         match result.status {
@@ -465,19 +428,12 @@ impl BatchCommandResults {
 
         // Add result to device's results
         self.results
-            .entry(device_id)
+            .entry(device_key)
             .or_insert_with(Vec::new)
             .push(result);
 
         // Update device count
         self.device_count = self.results.len();
-    }
-
-    /// Complete the batch results with timing information
-    pub fn complete(&mut self) {
-        self.end_time = Utc::now();
-        let duration = self.end_time.signed_duration_since(self.start_time);
-        self.duration_ms = duration.num_milliseconds() as u64;
     }
 
     /// Get all results for a specific device
@@ -539,20 +495,19 @@ pub mod utils {
         let mut csv = String::new();
 
         // Add header
-        csv.push_str("device_id,device_type,command,status,duration_ms,start_time,end_time\n");
+        csv.push_str("device_ip,hostname,platform_type,command,status,parse_status\n");
 
         // Add rows
         for (_, device_results) in &results.results {
             for result in device_results {
                 csv.push_str(&format!(
-                    "{},{},{},{:?},{},{},{}\n",
-                    result.device_id,
-                    result.device_type,
+                    "{},{},{},{},{:?},{:?}\n",
+                    result.device_ip,
+                    result.hostname,
+                    result.platform_type,
                     result.command.replace(",", "\\,"),
                     result.status,
-                    result.duration_ms,
-                    result.start_time,
-                    result.end_time
+                    result.parse_status
                 ));
             }
         }
@@ -602,10 +557,18 @@ pub mod utils {
         for result in results.get_command_results(command) {
             if result.status == CommandStatus::Success {
                 if let Some(output) = &result.output {
+                    // Convert output to string for comparison
+                    let output_str = match output {
+                        CommandOutput::Raw(s) => s.clone(),
+                        CommandOutput::Parsed(data) => {
+                            // For parsed data, use JSON representation for comparison
+                            serde_json::to_string_pretty(data).unwrap_or_else(|_| "Parse error".to_string())
+                        }
+                    };
                     output_groups
-                        .entry(output.clone())
+                        .entry(output_str)
                         .or_insert_with(Vec::new)
-                        .push(result.device_id.clone());
+                        .push(result.device_ip.clone());
                 }
             }
         }
@@ -618,9 +581,9 @@ pub mod utils {
         let mut table = String::new();
 
         // Add header
-        table.push_str("+-----------------+-----------------+--------------------------------+--------+-----------+------------------+\n");
-        table.push_str("| Device          | Type            | Command                        | Status | Duration  | Error            |\n");
-        table.push_str("+-----------------+-----------------+--------------------------------+--------+-----------+------------------+\n");
+        table.push_str("+-----------------+-----------------+--------------------------------+--------+-------------+------------------+\n");
+        table.push_str("| Device IP       | Hostname        | Command                        | Status | Parse Status| Error            |\n");
+        table.push_str("+-----------------+-----------------+--------------------------------+--------+-------------+------------------+\n");
 
         // Add rows
         for (_, device_results) in &results.results {
@@ -632,9 +595,16 @@ pub mod utils {
                     CommandStatus::Skipped => "SKIPPED",
                 };
 
+                let parse_status = match result.parse_status {
+                    ParseStatus::Success => "PARSED",
+                    ParseStatus::Failed => "PARSE_FAIL",
+                    ParseStatus::NoTemplate => "NO_TEMPLATE",
+                    ParseStatus::NotAttempted => "NOT_PARSED",
+                };
+
                 // Truncate long values for table display
-                let device = truncate(&result.device_id, 15);
-                let device_type = truncate(&result.device_type, 15);
+                let device_ip = truncate(&result.device_ip, 15);
+                let hostname = truncate(&result.hostname, 15);
                 let command = truncate(&result.command, 30);
                 let error = match &result.error {
                     Some(err) => truncate(err, 16),
@@ -642,30 +612,29 @@ pub mod utils {
                 };
 
                 table.push_str(&format!(
-                    "| {:<15} | {:<15} | {:<30} | {:<6} | {:<9} | {:<16} |\n",
-                    device,
-                    device_type,
+                    "| {:<15} | {:<15} | {:<30} | {:<6} | {:<11} | {:<16} |\n",
+                    device_ip,
+                    hostname,
                     command,
                     status,
-                    format!("{} ms", result.duration_ms),
+                    parse_status,
                     error
                 ));
             }
         }
 
         // Add footer
-        table.push_str("+-----------------+-----------------+--------------------------------+--------+-----------+------------------+\n");
+        table.push_str("+-----------------+-----------------+--------------------------------+--------+-------------+------------------+\n");
 
         // Add summary
         table.push_str(&format!(
-            "Summary: {} devices, {} commands ({} success, {} failed, {} timeout, {} skipped) in {} ms\n",
+            "Summary: {} devices, {} commands ({} success, {} failed, {} timeout, {} skipped)\n",
             results.device_count,
             results.command_count,
             results.success_count,
             results.failure_count,
             results.timeout_count,
-            results.skipped_count,
-            results.duration_ms
+            results.skipped_count
         ));
 
         table

@@ -35,30 +35,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\n=== SHOW VERSION - PARSED OUTPUT ===");
     let parsed_result = service.execute_command_with_parsing("show version", &parse_options);
-    
-    match parsed_result.parse_status {
-        netssh_core::ParseStatus::Success => {
-            if let Some(parsed_data) = &parsed_result.parsed_data {
-                println!("Parsed {} records:", parsed_data.len());
-                for (i, record) in parsed_data.iter().enumerate() {
-                    println!("Record {}:", i + 1);
-                    for (key, value) in record {
-                        println!("  {}: {}", key, value);
-                    }
-                    println!();
-                }
-            }
-        }
-        netssh_core::ParseStatus::NoTemplate => {
-            println!("No TextFSM template found for 'show version' on cisco_ios");
-        }
-        netssh_core::ParseStatus::Failed => {
-            println!("Parsing failed: {:?}", parsed_result.parse_error);
-        }
-        netssh_core::ParseStatus::NotAttempted => {
-            println!("Parsing was not attempted");
-        }
+
+
+    // print json parse data
+    if let Some(parsed_data) = &parsed_result.parsed_data {
+        // Print JSON representation of the parsed data
+        let json_output = serde_json::to_string_pretty(parsed_data)?;
+        println!("JSON Output: {}", json_output);
     }
+
+    
 
     println!("\n=== SHOW IP INTERFACE BRIEF - RAW OUTPUT ===");
     let raw_result = service.execute_command("show ip interface brief")?;

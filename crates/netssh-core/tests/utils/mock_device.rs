@@ -433,16 +433,20 @@ impl NetworkDeviceConnection for MockNetworkDevice {
         Ok(())
     }
 
-    fn send_command(
+    fn send_command<'a>(&'a mut self, command: &'a str) -> netssh_core::device_connection::SendCommand<'a> {
+        netssh_core::device_connection::SendCommand::new(self, command)
+    }
+
+    fn send_command_internal(
         &mut self,
         command: &str,
         _expect_string: Option<&str>,
         _read_timeout: Option<f64>,
+        _auto_find_prompt: Option<bool>,
         _strip_prompt: Option<bool>,
         _strip_command: Option<bool>,
         _normalize: Option<bool>,
-        _use_textfsm: Option<bool>,
-        _use_ttp: Option<bool>,
+        _cmd_verify: Option<bool>,
     ) -> Result<String, NetsshError> {
         // Get the response from the command_responses map
         let response = self
@@ -455,21 +459,13 @@ impl NetworkDeviceConnection for MockNetworkDevice {
         Ok(response)
     }
 
-    fn send_config_commands(&mut self, commands: &[&str]) -> Result<Vec<String>, NetsshError> {
-        let mut responses = Vec::new();
-        for command in commands {
-            responses.push(self.send_command(command, None, None, None, None, None, None, None)?);
-        }
-        Ok(responses)
-    }
-
     fn enter_config_mode(&mut self, _config_command: Option<&str>) -> Result<(), NetsshError> {
-        let _ = self.send_command("configure terminal", None, None, None, None, None, None, None)?;
+        let _ = self.send_command("configure terminal").execute()?;
         Ok(())
     }
 
     fn exit_config_mode(&mut self, _exit_config: Option<&str>) -> Result<(), NetsshError> {
-        let _ = self.send_command("end", None, None, None, None, None, None, None)?;
+        let _ = self.send_command("end").execute()?;
         Ok(())
     }
 
@@ -516,7 +512,11 @@ impl NetworkDeviceConnection for MockNetworkDevice {
         Ok(())
     }
 
-    fn send_config_set(
+    fn send_config_set<'a>(&'a mut self, config_commands: Vec<String>) -> netssh_core::device_connection::SendConfigSet<'a> {
+        netssh_core::device_connection::SendConfigSet::new(self, config_commands)
+    }
+
+    fn send_config_set_internal(
         &mut self,
         config_commands: Vec<String>,
         _exit_config_mode: Option<bool>,
@@ -533,7 +533,7 @@ impl NetworkDeviceConnection for MockNetworkDevice {
     ) -> Result<String, NetsshError> {
         let mut output = String::new();
         for command in config_commands {
-            let response = self.send_command(command).execute()?;
+            let response = self.send_command(&command).execute()?;
             output.push_str(&response);
             output.push('\n');
         }

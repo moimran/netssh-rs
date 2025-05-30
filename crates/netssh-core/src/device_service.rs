@@ -2,7 +2,6 @@ use crate::command_result::{CommandResult, ParseOptions};
 use crate::device_connection::{DeviceInfo, DeviceType, NetworkDeviceConnection};
 use crate::error::NetsshError;
 use crate::vendor_error_patterns;
-use chrono::Utc;
 use std::str::FromStr;
 use tracing::{debug, info, instrument, trace, warn};
 use cmdparser::{NetworkOutputParser, ParseOutputResult};
@@ -136,7 +135,6 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
     /// Execute a command on the device with optional TextFSM parsing
     pub fn execute_command_with_parsing(&mut self, command: &str, parse_options: &ParseOptions) -> CommandResult {
         info!("Executing command with parsing: {} (parsing enabled: {})", command, parse_options.enabled);
-        let start_time = Utc::now();
         let device_type = self.device.get_device_type().to_string();
         let device_id = match &self.device.get_device_info() {
             Ok(info) => info.hostname.clone(),
@@ -157,11 +155,12 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
                     debug!("Found error pattern in command output: {}", error_message);
                     // Return a CommandResult with Failed status
                     return CommandResult::from_error(
-                        device_id,
+                        None, // device_id is optional
+                        device_id.clone(), // Use device_id as device_ip for now
+                        device_id.clone(), // Use device_id as hostname for now
                         device_type,
                         command.to_string(),
                         NetsshError::command_error_with_output(error_message, output.clone()),
-                        start_time,
                         Some(output.clone()),
                     );
                 }
@@ -171,61 +170,66 @@ impl<T: NetworkDeviceConnection> DeviceService<T> {
         // Handle the command result with optional parsing
         match result {
             Ok(output) => {
-                let end_time = Utc::now();
-
                 // If parsing is not enabled, return success without parsing
                 if !parse_options.enabled {
                     return CommandResult::success(
-                        device_id,
+                        None, // device_id is optional
+                        device_id.clone(), // Use device_id as device_ip for now
+                        device_id.clone(), // Use device_id as hostname for now
                         device_type,
                         command.to_string(),
                         output,
-                        start_time,
-                        end_time,
                     );
                 }
 
                 // Attempt TextFSM parsing
                 match self.parse_command_output(&device_type, command, &output, parse_options) {
                     Ok(Some(parsed_data)) => {
-                        info!("Successfully parsed command output with {} records", parsed_data.len());
+                        info!("Successfully parsed command output");
                         CommandResult::success_with_parsing(
-                            device_id,
+                            None, // device_id is optional
+                            device_id.clone(), // Use device_id as device_ip for now
+                            device_id.clone(), // Use device_id as hostname for now
                             device_type,
                             command.to_string(),
-                            output,
                             parsed_data,
-                            start_time,
-                            end_time,
                         )
                     }
                     Ok(None) => {
                         info!("No template found for parsing {} command on {}", command, device_type);
                         CommandResult::success_with_no_template(
-                            device_id,
+                            None, // device_id is optional
+                            device_id.clone(), // Use device_id as device_ip for now
+                            device_id.clone(), // Use device_id as hostname for now
                             device_type,
                             command.to_string(),
                             output,
-                            start_time,
-                            end_time,
                         )
                     }
                     Err(parse_error) => {
                         warn!("Failed to parse command output: {}", parse_error);
                         CommandResult::success_with_parse_failure(
-                            device_id,
+                            None, // device_id is optional
+                            device_id.clone(), // Use device_id as device_ip for now
+                            device_id.clone(), // Use device_id as hostname for now
                             device_type,
                             command.to_string(),
                             output,
                             parse_error.to_string(),
-                            start_time,
-                            end_time,
                         )
                     }
                 }
             }
             Err(error) => {
-                CommandResult::from_error(device_id, device_type, command.to_string(), error, start_time, None)
+                CommandResult::from_error(
+                    None, // device_id is optional
+                    device_id.clone(), // Use device_id as device_ip for now
+                    device_id.clone(), // Use device_id as hostname for now
+                    device_type,
+                    command.to_string(),
+                    error,
+                    None,
+                )
             }
         }
     }

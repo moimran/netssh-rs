@@ -1374,14 +1374,7 @@ impl PyBatchCommandResults {
         self.results.device_count
     }
 
-    /// Get the total duration of the batch execution in milliseconds
-    ///
-    /// Returns:
-    ///     int: Duration in milliseconds
-    #[getter]
-    fn duration_ms(&self) -> u64 {
-        self.results.duration_ms
-    }
+
 
     /// String representation of the batch results
     ///
@@ -1389,12 +1382,11 @@ impl PyBatchCommandResults {
     ///     str: A formatted string describing the batch results
     fn __str__(&self) -> String {
         format!(
-            "BatchCommandResults: {} devices, {} commands ({} success, {} failed), {}ms",
+            "BatchCommandResults: {} devices, {} commands ({} success, {} failed)",
             self.results.device_count,
             self.results.command_count,
             self.results.success_count,
-            self.results.failure_count,
-            self.results.duration_ms
+            self.results.failure_count
         )
     }
 }

@@ -53,7 +53,7 @@ pub use vendors::juniper;
 pub use autodetect::SSHDetect;
 pub use base_connection::BaseConnection;
 pub use buffer_pool::{BorrowedBuffer, BufferPool};
-pub use command_result::{BatchCommandResults, CommandResult, CommandStatus, ParseOptions, ParseStatus};
+pub use command_result::{BatchCommandResults, CommandOutput, CommandResult, CommandStatus, ParseOptions, ParseStatus};
 pub use config::{AdvancedDeviceConfig, AdvancedDeviceConfigBuilder, SharedNetsshConfig, WorkspaceConfig};
 pub use error::NetsshError;
 pub use logging::init_logging;
