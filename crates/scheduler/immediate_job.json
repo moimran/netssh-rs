@@ -1,0 +1,23 @@
+{
+  "job_type": "SshCommand",
+  "payload": {
+    "connection": {
+      "host": "192.168.1.25",
+      "username": "admin",
+      "password": "moimran@123",
+      "secret": "moimran@123",
+      "device_type": "cisco_ios",
+      "port": 22,
+      "timeout_seconds": 60
+    },
+    "commands": [
+      "show version",
+      "show ip interface brief",
+      "show running-config | include hostname"
+    ],
+    "description": "Immediate SSH job for device information gathering"
+  },
+  "schedule": "Immediate",
+  "max_retries": 3,
+  "description": "Execute immediately - Device status check"
+}

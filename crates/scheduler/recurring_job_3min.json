@@ -1,0 +1,28 @@
+{
+  "job_type": "SshCommand",
+  "payload": {
+    "connection": {
+      "host": "192.168.1.25",
+      "username": "admin",
+      "password": "moimran@123",
+      "secret": "moimran@123",
+      "device_type": "cisco_ios",
+      "port": 22,
+      "timeout_seconds": 60
+    },
+    "commands": [
+      "show interfaces status",
+      "show cpu usage",
+      "show environment"
+    ],
+    "description": "Recurring SSH job for continuous monitoring"
+  },
+  "schedule": {
+    "Recurring": {
+      "cron_expression": "0 */3 * * * *",
+      "timezone": null
+    }
+  },
+  "max_retries": 3,
+  "description": "Run every 3 minutes - Continuous device monitoring"
+}

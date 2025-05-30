@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Scheduler Architecture Documentation</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 40px;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+        }
+        h3 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+        .mermaid {
+            text-align: center;
+            margin: 20px 0;
+            background: #fafafa;
+            border: 1px solid #e1e8ed;
+            border-radius: 6px;
+            padding: 20px;
+        }
+        .toc {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .toc li {
+            margin: 8px 0;
+        }
+        .toc a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        .highlight {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        code {
+            background: #f1f3f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+        pre {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature-item {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+        }
+        .section-nav {
+            position: sticky;
+            top: 20px;
+            float: right;
+            width: 200px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-left: 20px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Job Scheduler Architecture Documentation</h1>
+        
+        <div class="toc">
+            <h3>📋 Table of Contents</h3>
+            <ul>
+                <li><a href="#overview">System Architecture Overview</a></li>
+                <li><a href="#user-flows">User Flow Diagrams</a></li>
+                <li><a href="#code-flows">Code Flow Diagrams</a></li>
+                <li><a href="#components">Component Interactions</a></li>
+                <li><a href="#database">Database Schema</a></li>
+                <li><a href="#code-explanation">Code Structure & Implementation</a></li>
+                <li><a href="#deployment">Deployment Architecture</a></li>
+            </ul>
+        </div>
+
+        <section id="overview">
+            <h2>🏗️ System Architecture Overview</h2>
+            <p>The Job Scheduler is a distributed system built with Rust, featuring a modular architecture that separates concerns across multiple layers.</p>
+            
+            <div class="mermaid">
+graph TB
+    subgraph "Client Layer"
+        UI[Web Dashboard]
+        API_CLIENT[API Clients]
+        CLI[CLI Tools]
+    end
+    
+    subgraph "Application Layer"
+        WEB[Web Server<br/>Axum + Tower]
+        API[REST API Layer<br/>Job Management]
+        BOARD[Board Service<br/>Web UI]
+    end
+    
+    subgraph "Business Logic Layer"
+        WORKER[Apalis Workers<br/>Job Processing]
+        SSH[SSH Job Handler<br/>netssh-core]
+        VALIDATION[Job Validation<br/>Business Rules]
+    end
+    
+    subgraph "Infrastructure Layer"
+        QUEUE[(Apalis Queue<br/>SQLite)]
+        STORAGE[(Application Storage<br/>SQLite)]
+        CONFIG[Configuration<br/>Environment/TOML]
+        LOGGING[Structured Logging<br/>Tracing]
+    end
+    
+    subgraph "External Systems"
+        DEVICES[Network Devices<br/>SSH Targets]
+    end
+    
+    UI --> WEB
+    API_CLIENT --> API
+    CLI --> API
+    
+    WEB --> API
+    WEB --> BOARD
+    
+    API --> WORKER
+    API --> STORAGE
+    BOARD --> STORAGE
+    
+    WORKER --> SSH
+    WORKER --> VALIDATION
+    WORKER --> QUEUE
+    WORKER --> STORAGE
+    
+    SSH --> DEVICES
+    
+    API --> CONFIG
+    WORKER --> CONFIG
+    WEB --> CONFIG
+    
+    API --> LOGGING
+    WORKER --> LOGGING
+    SSH --> LOGGING
+    
+    style UI fill:#e1f5fe
+    style API_CLIENT fill:#e1f5fe
+    style CLI fill:#e1f5fe
+    style WEB fill:#f3e5f5
+    style API fill:#f3e5f5
+    style BOARD fill:#f3e5f5
+    style WORKER fill:#e8f5e8
+    style SSH fill:#e8f5e8
+    style VALIDATION fill:#e8f5e8
+    style QUEUE fill:#fff3e0
+    style STORAGE fill:#fff3e0
+    style CONFIG fill:#fff3e0
+    style LOGGING fill:#fff3e0
+    style DEVICES fill:#ffebee
+            </div>
+
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>Web Server</strong><br>
+                    Axum-based HTTP server with middleware for CORS, tracing, and routing
+                </div>
+                <div class="feature-item">
+                    <strong>REST API</strong><br>
+                    RESTful endpoints for job management, health checks, and connection profiles
+                </div>
+                <div class="feature-item">
+                    <strong>Apalis Workers</strong><br>
+                    Background job processing with configurable concurrency
+                </div>
+                <div class="feature-item">
+                    <strong>SSH Handler</strong><br>
+                    Network device command execution using netssh-core library
+                </div>
+                <div class="feature-item">
+                    <strong>Storage Layer</strong><br>
+                    Abstracted storage with SQLite implementation
+                </div>
+                <div class="feature-item">
+                    <strong>Web Dashboard</strong><br>
+                    Real-time job monitoring and management interface
+                </div>
+            </div>
+        </section>
+
+        <section id="user-flows">
+            <h2>👤 User Flow Diagrams</h2>
+            
+            <h3>SSH Job Creation and Execution Flow</h3>
+            <div class="mermaid">
+sequenceDiagram
+    participant User
+    participant WebUI as Web Dashboard
+    participant API as REST API
+    participant Storage as SQLite Storage
+    participant Queue as Apalis Queue
+    participant Worker as SSH Worker
+    participant Device as Network Device
+    
+    User->>WebUI: Access Dashboard
+    WebUI->>API: GET /api/jobs (load existing)
+    API->>Storage: Query jobs
+    Storage-->>API: Return job list
+    API-->>WebUI: Job data
+    WebUI-->>User: Display dashboard
+    
+    User->>API: POST /api/jobs (create SSH job)
+    Note over API: Validate job payload
+    API->>Storage: Save job record (pending)
+    API->>Queue: Enqueue job for processing
+    API-->>User: Return job ID
+    
+    Queue->>Worker: Dequeue job
+    Worker->>Storage: Update status (running)
+    Worker->>Device: SSH connect & authenticate
+    Device-->>Worker: Connection established
+    
+    loop For each command
+        Worker->>Device: Execute command
+        Device-->>Worker: Command output
+        Worker->>Storage: Save command result
+    end
+    
+    Worker->>Device: Close SSH connection
+    Worker->>Storage: Update job status (completed/failed)
+    Worker->>Storage: Save final job result
+    
+    WebUI->>API: GET /api/jobs (auto-refresh)
+    API->>Storage: Query updated jobs
+    Storage-->>API: Return updated list
+    API-->>WebUI: Updated job data
+    WebUI-->>User: Show job completion
+            </div>
+
+            <h3>Job Monitoring and Management Flow</h3>
+            <div class="mermaid">
+flowchart TD
+    START([User Opens Dashboard]) --> LOAD[Load Dashboard]
+    LOAD --> FETCH[Fetch Jobs via API]
+    FETCH --> DISPLAY[Display Job List & Stats]
+
+    DISPLAY --> REFRESH{Auto Refresh<br/>Every 30s}
+    REFRESH -->|Yes| FETCH
+
+    DISPLAY --> MANUAL[Manual Refresh Button]
+    MANUAL --> FETCH
+
+    DISPLAY --> SELECT[Select Job for Details]
+    SELECT --> DETAILS[GET /api/jobs/:id]
+    DETAILS --> LOGS[GET /api/jobs/:id/logs]
+    LOGS --> SHOW[Show Job Details & Logs]
+
+    DISPLAY --> DELETE[Delete Job]
+    DELETE --> CONFIRM{Confirm Deletion}
+    CONFIRM -->|Yes| API_DELETE[DELETE /api/jobs/:id]
+    CONFIRM -->|No| DISPLAY
+    API_DELETE --> FETCH
+
+    style START fill:#e1f5fe
+    style LOAD fill:#f3e5f5
+    style DISPLAY fill:#e8f5e8
+    style REFRESH fill:#fff3e0
+    style SHOW fill:#e8f5e8
+            </div>
+        </section>
+
+        <section id="code-flows">
+            <h2>⚙️ Code Flow Diagrams</h2>
+
+            <h3>Request Processing Flow</h3>
+            <div class="mermaid">
+flowchart TD
+    REQUEST[HTTP Request] --> MIDDLEWARE[Tower Middleware Stack]
+    MIDDLEWARE --> CORS[CORS Layer]
+    CORS --> TRACE[Tracing Layer]
+    TRACE --> ROUTER[Axum Router]
+
+    ROUTER --> API_ROUTES{Route Type}
+    API_ROUTES -->|/api/*| API_HANDLER[API Handlers]
+    API_ROUTES -->|/board/*| BOARD_HANDLER[Board Service]
+    API_ROUTES -->|/health| HEALTH[Health Check]
+
+    API_HANDLER --> EXTRACT[Extract Request Data]
+    EXTRACT --> VALIDATE[Validate Input]
+    VALIDATE --> BUSINESS[Business Logic]
+
+    BUSINESS --> STORAGE_OP[Storage Operations]
+    BUSINESS --> QUEUE_OP[Queue Operations]
+
+    STORAGE_OP --> DB[SQLite Database]
+    QUEUE_OP --> APALIS[Apalis Queue]
+
+    DB --> RESPONSE[Build Response]
+    APALIS --> RESPONSE
+    BOARD_HANDLER --> STATIC[Serve Static HTML]
+    HEALTH --> HEALTH_CHECK[Database Health Check]
+
+    RESPONSE --> JSON[JSON Response]
+    STATIC --> HTML[HTML Response]
+    HEALTH_CHECK --> STATUS[Status Response]
+
+    JSON --> CLIENT[Client]
+    HTML --> CLIENT
+    STATUS --> CLIENT
+
+    style REQUEST fill:#e1f5fe
+    style MIDDLEWARE fill:#f3e5f5
+    style API_HANDLER fill:#e8f5e8
+    style STORAGE_OP fill:#fff3e0
+    style CLIENT fill:#ffebee
+            </div>
+
+            <h3>SSH Job Execution Workflow</h3>
+            <div class="mermaid">
+flowchart TD
+    DEQUEUE[Worker Dequeues Job] --> EXTRACT[Extract Job Payload]
+    EXTRACT --> VALIDATE[Validate SSH Job]
+    VALIDATE --> LOG_START[Log Job Start]
+    LOG_START --> UPDATE_STATUS[Update Status: Running]
+
+    UPDATE_STATUS --> SSH_CONNECT[Create SSH Connection]
+    SSH_CONNECT --> AUTH{Authentication}
+    AUTH -->|Success| ENABLE[Enable Privileged Mode]
+    AUTH -->|Failure| ERROR_AUTH[Log Auth Error]
+
+    ENABLE --> COMMANDS[Execute Commands Loop]
+    ERROR_AUTH --> FAIL_JOB[Mark Job Failed]
+
+    COMMANDS --> CMD_START[Start Command Execution]
+    CMD_START --> CMD_EXEC[Execute Single Command]
+    CMD_EXEC --> CMD_RESULT{Command Result}
+
+    CMD_RESULT -->|Success| LOG_SUCCESS[Log Command Success]
+    CMD_RESULT -->|Error| LOG_ERROR[Log Command Error]
+
+    LOG_SUCCESS --> SAVE_RESULT[Save Command Result]
+    LOG_ERROR --> SAVE_RESULT
+
+    SAVE_RESULT --> MORE_CMDS{More Commands?}
+    MORE_CMDS -->|Yes| CMD_START
+    MORE_CMDS -->|No| CLOSE_SSH[Close SSH Connection]
+
+    CLOSE_SSH --> COMPLETE[Mark Job Completed]
+    FAIL_JOB --> SAVE_ERROR[Save Error Details]
+
+    COMPLETE --> SAVE_FINAL[Save Final Job Result]
+    SAVE_ERROR --> SAVE_FINAL
+
+    SAVE_FINAL --> DONE[Job Processing Complete]
+
+    style DEQUEUE fill:#e1f5fe
+    style VALIDATE fill:#f3e5f5
+    style SSH_CONNECT fill:#e8f5e8
+    style COMMANDS fill:#fff3e0
+    style DONE fill:#e8f5e8
+            </div>
+        </section>
+
+        <section id="components">
+            <h2>🔗 Component Interaction Diagrams</h2>
+
+            <h3>API Layer to Storage Layer Interaction</h3>
+            <div class="mermaid">
+sequenceDiagram
+    participant API as API Handler
+    participant Storage as Storage Trait
+    participant SQLite as SQLite Implementation
+    participant DB as SQLite Database
+
+    API->>Storage: save_job_result(job_result)
+    Storage->>SQLite: save_job_result(job_result)
+    SQLite->>DB: INSERT/UPDATE jobs table
+    DB-->>SQLite: Success/Error
+    SQLite-->>Storage: Result
+    Storage-->>API: Result
+
+    API->>Storage: get_job_result(job_id)
+    Storage->>SQLite: get_job_result(job_id)
+    SQLite->>DB: SELECT from jobs WHERE id
+    DB-->>SQLite: Job data
+    SQLite-->>Storage: JobResult
+    Storage-->>API: JobResult
+            </div>
+        </section>
+
+        <section id="database">
+            <h2>🗄️ Database Schema</h2>
+
+            <div class="mermaid">
+erDiagram
+    JOBS {
+        TEXT id PK
+        TEXT job_type
+        TEXT payload
+        TEXT status
+        DATETIME created_at
+        DATETIME started_at
+        DATETIME completed_at
+        DATETIME scheduled_for
+        TEXT cron_expression
+        INTEGER retry_count
+        INTEGER max_retries
+        TEXT error_message
+        TEXT worker_id
+    }
+
+    JOB_RESULTS {
+        TEXT id PK
+        TEXT job_id FK
+        TEXT command
+        TEXT output
+        TEXT error
+        INTEGER exit_code
+        DATETIME executed_at
+        INTEGER duration_ms
+    }
+
+    JOB_LOGS {
+        INTEGER id PK
+        TEXT job_id FK
+        TEXT level
+        TEXT message
+        DATETIME timestamp
+        TEXT context
+    }
+
+    SSH_CONNECTIONS {
+        TEXT id PK
+        TEXT name
+        TEXT host
+        TEXT username
+        TEXT device_type
+        INTEGER port
+        INTEGER timeout_seconds
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    JOBS ||--o{ JOB_RESULTS : "has many"
+    JOBS ||--o{ JOB_LOGS : "has many"
+            </div>
+
+            <div class="highlight">
+                <strong>Database Schema Details:</strong>
+                <ul>
+                    <li><strong>Jobs Table:</strong> Core job metadata and status tracking</li>
+                    <li><strong>Job Results Table:</strong> Individual command execution results</li>
+                    <li><strong>Job Logs Table:</strong> Detailed logging for debugging and monitoring</li>
+                    <li><strong>SSH Connections Table:</strong> Reusable connection profiles</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="code-explanation">
+            <h2>💻 Code Structure & Implementation</h2>
+
+            <h3>Why Two Database Files?</h3>
+            <div class="highlight">
+                <strong>🔍 Database Separation Strategy</strong>
+                <p>The system uses two separate SQLite database files for architectural and operational reasons:</p>
+
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <strong>scheduler.db</strong><br>
+                        <em>Application Data Storage</em><br>
+                        • Job metadata and results<br>
+                        • SSH connection profiles<br>
+                        • Job execution logs<br>
+                        • Business domain data
+                    </div>
+                    <div class="feature-item">
+                        <strong>apalis_queue.db</strong><br>
+                        <em>Job Queue Management</em><br>
+                        • Apalis framework tables<br>
+                        • Job queue state<br>
+                        • Worker coordination<br>
+                        • Queue-specific metadata
+                    </div>
+                </div>
+            </div>
+
+            <h4>🎯 Benefits of Database Separation</h4>
+            <div class="mermaid">
+graph LR
+    subgraph "Application Database (scheduler.db)"
+        APP_JOBS[Job Records]
+        APP_RESULTS[Command Results]
+        APP_LOGS[Execution Logs]
+        APP_PROFILES[SSH Profiles]
+    end
+
+    subgraph "Queue Database (apalis_queue.db)"
+        QUEUE_JOBS[Queued Jobs]
+        QUEUE_STATE[Queue State]
+        QUEUE_WORKERS[Worker Status]
+        QUEUE_META[Queue Metadata]
+    end
+
+    subgraph "Benefits"
+        ISOLATION[Schema Isolation]
+        MIGRATION[Independent Migrations]
+        SCALING[Separate Scaling]
+        BACKUP[Targeted Backups]
+    end
+
+    APP_JOBS -.-> ISOLATION
+    QUEUE_JOBS -.-> ISOLATION
+    APP_RESULTS -.-> MIGRATION
+    QUEUE_STATE -.-> MIGRATION
+    APP_LOGS -.-> SCALING
+    QUEUE_WORKERS -.-> SCALING
+    APP_PROFILES -.-> BACKUP
+    QUEUE_META -.-> BACKUP
+
+    style APP_JOBS fill:#e8f5e8
+    style QUEUE_JOBS fill:#fff3e0
+    style ISOLATION fill:#e1f5fe
+    style MIGRATION fill:#f3e5f5
+            </div>
+
+            <h3>Key Code Components</h3>
+
+            <h4>🏗️ Main Application Bootstrap</h4>
+            <pre><code>// src/main.rs - Application startup
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 1. Load configuration from environment/files
+    let config = Config::from_env().unwrap_or_default();
+
+    // 2. Initialize structured logging
+    logging::init_logging(&config.logging)?;
+
+    // 3. Set up application storage (scheduler.db)
+    let storage = Arc::new(SqliteStorage::new(&config.database.url).await?);
+
+    // 4. Set up Apalis queue storage (apalis_queue.db)
+    let apalis_db_url = config.database.url.replace("scheduler.db", "apalis_queue.db");
+    let sqlite_pool = SqlitePool::connect(&apalis_db_url).await?;
+    let apalis_storage = ApalisSqliteStorage::new(sqlite_pool);
+
+    // 5. Build worker with configurable concurrency
+    let worker = WorkerBuilder::new("ssh-job-worker")
+        .concurrency(config.worker.concurrency)
+        .data(storage.clone())
+        .backend(apalis_storage.clone())
+        .build_fn(ssh_job_handler);
+
+    // 6. Start concurrent web server and worker
+    tokio::select! {
+        _ = worker.run() => {},
+        _ = axum::serve(listener, app) => {}
+    }
+}</code></pre>
+
+            <h4>🔄 Job Processing Pipeline</h4>
+            <pre><code>// src/jobs/ssh_job.rs - Job execution flow
+pub async fn ssh_job_handler(
+    job: SshJobPayload,
+    storage: Data<Arc<dyn Storage>>,
+) -> Result<JobResult> {
+    let job_id = job.id;
+
+    // 1. Update job status to running
+    storage.update_job_status(job_id, JobStatus::Running).await?;
+
+    // 2. Execute SSH commands
+    match execute_ssh_commands(&job).await {
+        Ok(command_results) => {
+            // 3. Save successful results
+            storage.save_command_results(job_id, &command_results).await?;
+            storage.save_job_result(&job_result).await?;
+        }
+        Err(e) => {
+            // 4. Handle and log errors
+            storage.log_job_message(job_id, "error", &e.to_string(), None).await?;
+        }
+    }
+}</code></pre>
+
+            <h4>🌐 API Layer Structure</h4>
+            <pre><code>// src/api/handlers.rs - Request handling
+pub async fn create_job(
+    State(storage): State<AppState>,
+    Extension(job_queue): Extension<ApalisSqliteStorage<SshJobPayload>>,
+    Json(request): Json<CreateJobRequest>,
+) -> Result<Json<JobResponse>, StatusCode> {
+
+    // 1. Parse and validate job payload
+    let ssh_payload: SshJobPayload = serde_json::from_value(request.payload)?;
+    validate_ssh_job(&ssh_payload)?;
+
+    // 2. Store job record in application database
+    let job_result = JobResult { job_id, status: JobStatus::Pending, ... };
+    storage.save_job_result(&job_result).await?;
+
+    // 3. Enqueue job for processing in queue database
+    job_queue.push(ssh_payload).await?;
+
+    // 4. Return job ID to client
+    Ok(Json(JobResponse { id: job_id, ... }))
+}</code></pre>
+
+            <h4>🗄️ Storage Abstraction</h4>
+            <pre><code>// src/storage/traits.rs - Storage interface
+#[async_trait]
+pub trait Storage: JobStorage + ConnectionStorage + Send + Sync {
+    async fn initialize(&self) -> Result<(), StorageError>;
+    async fn health_check(&self) -> Result<(), StorageError>;
+}
+
+#[async_trait]
+pub trait JobStorage: Send + Sync {
+    async fn save_job_result(&self, result: &JobResult) -> Result<(), StorageError>;
+    async fn get_job_result(&self, job_id: Uuid) -> Result<Option<JobResult>, StorageError>;
+    async fn list_jobs(&self, filter: JobFilter) -> Result<Vec<JobSummary>, StorageError>;
+    async fn save_command_results(&self, job_id: Uuid, results: &[CommandResult]) -> Result<(), StorageError>;
+}</code></pre>
+
+            <h3>🔧 Configuration Management</h3>
+            <div class="highlight">
+                <strong>Flexible Configuration Sources:</strong>
+                <ol>
+                    <li><strong>Environment Variables</strong> - <code>SCHEDULER_*</code> prefix overrides</li>
+                    <li><strong>config.toml File</strong> - Structured configuration</li>
+                    <li><strong>Default Values</strong> - Sensible fallbacks</li>
+                </ol>
+            </div>
+
+            <pre><code>// Configuration hierarchy (highest to lowest priority)
+SCHEDULER_DATABASE_URL=sqlite:custom.db    // Environment variable
+[database]                                 // config.toml file
+url = "sqlite:scheduler.db"
+Config::default()                         // Code defaults</code></pre>
+
+            <h3>🔄 Data Flow Between Databases</h3>
+            <div class="mermaid">
+sequenceDiagram
+    participant API as API Handler
+    participant AppDB as scheduler.db
+    participant QueueDB as apalis_queue.db
+    participant Worker as SSH Worker
+
+    Note over API,Worker: Job Creation Flow
+    API->>AppDB: 1. Save job metadata (pending)
+    API->>QueueDB: 2. Enqueue job payload
+
+    Note over API,Worker: Job Processing Flow
+    Worker->>QueueDB: 3. Dequeue job
+    Worker->>AppDB: 4. Update status (running)
+    Worker->>AppDB: 5. Save command results
+    Worker->>AppDB: 6. Update final status
+    Worker->>QueueDB: 7. Acknowledge completion
+
+    Note over API,Worker: Job Monitoring Flow
+    API->>AppDB: 8. Query job status
+    API->>AppDB: 9. Fetch results & logs
+            </div>
+
+            <h4>📊 Why This Separation Works</h4>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>🔒 Schema Isolation</strong><br>
+                    Apalis manages its own table structure without interfering with application schema
+                </div>
+                <div class="feature-item">
+                    <strong>🔄 Independent Migrations</strong><br>
+                    Application and queue schemas can evolve separately
+                </div>
+                <div class="feature-item">
+                    <strong>📈 Performance Optimization</strong><br>
+                    Queue operations don't impact application data queries
+                </div>
+                <div class="feature-item">
+                    <strong>🛡️ Fault Isolation</strong><br>
+                    Queue corruption doesn't affect historical job data
+                </div>
+            </div>
+
+            <h3>🚨 Error Handling Patterns</h3>
+            <pre><code>// src/error.rs - Centralized error handling
+#[derive(Error, Debug)]
+pub enum SchedulerError {
+    #[error("Database error: {0}")]
+    Database(#[from] sqlx::Error),
+
+    #[error("SSH connection error: {0}")]
+    SshConnection(String),
+
+    #[error("Job validation error: {0}")]
+    Validation(String),
+
+    #[error("Internal error: {0}")]
+    Internal(String),
+}
+
+// Error propagation with context
+pub async fn execute_ssh_commands(job: &SshJobPayload) -> Result<Vec<CommandResult>> {
+    let device = create_ssh_device(&job.connection)
+        .map_err(|e| SchedulerError::SshConnection(format!("Failed to create device: {}", e)))?;
+
+    device.connect()
+        .map_err(|e| SchedulerError::SshConnection(format!("Connection failed: {}", e)))?;
+
+    // Execute commands with proper error handling...
+}</code></pre>
+
+            <h3>🔧 Module Organization</h3>
+            <div class="mermaid">
+graph TD
+    subgraph "src/ - Source Code Structure"
+        MAIN[main.rs<br/>Application Bootstrap]
+        LIB[lib.rs<br/>Public API]
+
+        subgraph "API Layer"
+            API_MOD[api/mod.rs]
+            API_HANDLERS[api/handlers.rs<br/>Request Processing]
+            API_ROUTES[api/routes.rs<br/>URL Routing]
+        end
+
+        subgraph "Business Logic"
+            JOBS_MOD[jobs/mod.rs]
+            SSH_JOB[jobs/ssh_job.rs<br/>SSH Execution]
+            JOB_TYPES[jobs/types.rs<br/>Data Structures]
+        end
+
+        subgraph "Storage Layer"
+            STORAGE_MOD[storage/mod.rs]
+            STORAGE_TRAITS[storage/traits.rs<br/>Interfaces]
+            STORAGE_SQLITE[storage/sqlite.rs<br/>Implementation]
+        end
+
+        subgraph "Infrastructure"
+            CONFIG[config/mod.rs<br/>Configuration]
+            ERROR[error.rs<br/>Error Types]
+            LOGGING[logging.rs<br/>Tracing Setup]
+            BOARD[board/mod.rs<br/>Web UI]
+        end
+    end
+
+    MAIN --> API_MOD
+    MAIN --> JOBS_MOD
+    MAIN --> STORAGE_MOD
+    MAIN --> CONFIG
+    MAIN --> LOGGING
+    MAIN --> BOARD
+
+    API_HANDLERS --> STORAGE_TRAITS
+    SSH_JOB --> STORAGE_TRAITS
+    STORAGE_SQLITE --> STORAGE_TRAITS
+
+    style MAIN fill:#e1f5fe
+    style API_HANDLERS fill:#f3e5f5
+    style SSH_JOB fill:#e8f5e8
+    style STORAGE_SQLITE fill:#fff3e0
+            </div>
+
+            <h4>🎯 Key Design Principles</h4>
+            <div class="highlight">
+                <strong>Architecture Principles Applied:</strong>
+                <ul>
+                    <li><strong>Separation of Concerns</strong> - Each module has a single responsibility</li>
+                    <li><strong>Dependency Injection</strong> - Storage and configuration are injected</li>
+                    <li><strong>Trait-Based Abstractions</strong> - Storage layer is abstracted for testability</li>
+                    <li><strong>Error Propagation</strong> - Errors bubble up with context</li>
+                    <li><strong>Async/Await</strong> - Non-blocking I/O throughout the stack</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="deployment">
+            <h2>🚀 Deployment Architecture</h2>
+
+            <div class="mermaid">
+graph TB
+    subgraph "Host Machine"
+        subgraph "Job Scheduler Process"
+            WEB[Web Server<br/>:8080]
+            WORKER[Apalis Workers<br/>Configurable Concurrency]
+            API[REST API<br/>Axum Framework]
+            BOARD[Web Dashboard<br/>Static HTML]
+        end
+
+        subgraph "Storage"
+            APP_DB[(Application DB<br/>scheduler.db)]
+            QUEUE_DB[(Queue DB<br/>apalis_queue.db)]
+        end
+
+        subgraph "Configuration"
+            CONFIG_FILE[config.toml]
+            ENV_VARS[Environment Variables]
+        end
+    end
+
+    subgraph "External Network"
+        DEVICES[Network Devices<br/>SSH Targets]
+        CLIENTS[API Clients<br/>Web Browsers]
+    end
+
+    WEB --> API
+    WEB --> BOARD
+    API --> APP_DB
+    WORKER --> QUEUE_DB
+    WORKER --> APP_DB
+    WORKER --> DEVICES
+
+    CONFIG_FILE --> WEB
+    CONFIG_FILE --> WORKER
+    ENV_VARS --> WEB
+    ENV_VARS --> WORKER
+
+    CLIENTS --> WEB
+
+    style WEB fill:#e1f5fe
+    style WORKER fill:#f3e5f5
+    style APP_DB fill:#fff3e0
+    style DEVICES fill:#ffebee
+            </div>
+
+            <div class="highlight">
+                <strong>Key Deployment Features:</strong>
+                <ul>
+                    <li>Single process with concurrent web server and worker tasks</li>
+                    <li>SQLite databases for simplicity and reliability</li>
+                    <li>Environment variable configuration support</li>
+                    <li>Built-in health monitoring and structured logging</li>
+                </ul>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#3498db',
+                primaryTextColor: '#2c3e50',
+                primaryBorderColor: '#2980b9',
+                lineColor: '#34495e',
+                secondaryColor: '#ecf0f1',
+                tertiaryColor: '#f8f9fa'
+            }
+        });
+    </script>
+</body>
+</html>
