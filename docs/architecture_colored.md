@@ -129,23 +129,7 @@ classDiagram
         +ssh_key: Option~String~
     }
 
-    %% Service Classes
-    class DeviceService:::serviceClass {
-        +device: NetworkDeviceConnection
-        +connect()
-        +close()
-        +get_device_info()
-        +get_interfaces()
-        +configure_interface()
-        +execute_command()
-    }
 
-    class Interface:::dataClass {
-        +name: String
-        +status: String
-        +ip_address: Option~String~
-        +description: Option~String~
-    }
 
     %% Relationships
     BaseConnection o-- SSHChannel
@@ -165,9 +149,6 @@ classDiagram
     DeviceFactory ..> NetworkDeviceConnection : creates
     DeviceFactory ..> CiscoBaseConnection : creates
     DeviceFactory ..> JuniperBaseConnection : creates
-    
-    DeviceService o-- NetworkDeviceConnection : uses
-    DeviceService ..> Interface : creates
     
     CiscoDeviceConfig --|> DeviceConfig
     JuniperDeviceConfig --|> DeviceConfig
@@ -206,7 +187,3 @@ classDiagram
    - DeviceConfig: Base configuration
    - CiscoDeviceConfig: Cisco-specific configuration
    - JuniperDeviceConfig: Juniper-specific configuration
-9. **Service Classes**:
-   - DeviceService: High-level interface for device operations
-10. **Data Classes**:
-    - Interface: Network interface information model

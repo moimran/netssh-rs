@@ -6,60 +6,120 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 /// Custom error type for parse output operations
 pub type ParseOutputResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-/// Template entry from the index file
+/// Compiled template entry with pre-compiled regex and validated path
 #[derive(Debug, Clone)]
-struct TemplateEntry {
-    /// Template filename
-    template: String,
-    /// Command pattern (may contain regex)
-    command: String,
+struct CompiledTemplateEntry {
+    /// Pre-compiled command regex pattern
+    command_regex: Option<Regex>,
+    /// Original command pattern for fallback
+    command_pattern: String,
+    /// Full path to template file (pre-validated)
+    template_path: PathBuf,
+}
+
+/// Global compiled index cache
+#[derive(Debug, Clone)]
+struct CompiledIndex {
+    /// Platform to compiled templates mapping
+    platform_templates: HashMap<String, Vec<CompiledTemplateEntry>>,
+}
+
+lazy_static::lazy_static! {
+    /// Pre-compiled regex for command pattern normalization
+    static ref COMPLETION_PATTERN: Regex = Regex::new(r"\[\[([^\]]+)\]\]").unwrap();
+
+    /// Global cache for compiled indexes
+    static ref GLOBAL_INDEX_CACHE: Arc<Mutex<HashMap<String, CompiledIndex>>> =
+        Arc::new(Mutex::new(HashMap::new()));
+}
+
+/// Get global index cache
+fn get_global_cache() -> Arc<Mutex<HashMap<String, CompiledIndex>>> {
+    GLOBAL_INDEX_CACHE.clone()
+}
+
+/// Convert completion patterns to regex patterns
+/// Converts "sh[[ow]]" to "sh(o(w)?)?" and "ver[[sion]]" to "ver(s(i(o(n)?)?)?)?)"
+fn convert_completion_to_regex(pattern: &str) -> String {
+    COMPLETION_PATTERN.replace_all(pattern, |caps: &regex::Captures| {
+        let word = &caps[1];
+        let mut result = String::new();
+        for ch in word.chars() {
+            result.push('(');
+            result.push(ch);
+        }
+        result.push_str(&")?".repeat(word.len()));
+        result
+    }).to_string()
+}
+
+/// Normalize command pattern by removing completion brackets and converting to lowercase
+fn normalize_command_pattern(pattern: &str) -> String {
+    COMPLETION_PATTERN.replace_all(pattern, "$1").to_lowercase()
 }
 
 /// Network output parser for TextFSM templates
-/// 
+///
 /// This struct provides functionality to parse network device command outputs
 /// using TextFSM templates. It handles template location, selection, and output parsing.
 #[derive(Debug)]
 pub struct NetworkOutputParser {
     /// Path to the templates directory
     template_dir: PathBuf,
-    /// Whether the index has been loaded
-    index_loaded: bool,
-    /// Platform to templates mapping
-    platform_templates: HashMap<String, Vec<TemplateEntry>>,
 }
 
 impl NetworkOutputParser {
     /// Create a new NetworkOutputParser
-    /// 
+    ///
     /// # Arguments
     /// * `template_dir` - Optional path to template directory. If None, uses default.
     pub fn new(template_dir: Option<PathBuf>) -> Self {
         let default_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("templates");
-        
+
         Self {
             template_dir: template_dir.unwrap_or(default_dir),
-            index_loaded: false,
-            platform_templates: HashMap::new(),
         }
     }
 
-    /// Load the template index file and build a dictionary of templates by platform
-    fn load_template_index(&mut self) -> ParseOutputResult<&HashMap<String, Vec<TemplateEntry>>> {
-        if self.index_loaded {
-            return Ok(&self.platform_templates);
+    /// Get or load the compiled index for this template directory
+    fn get_compiled_index(&self) -> ParseOutputResult<CompiledIndex> {
+        let cache = get_global_cache();
+        let cache_key = self.template_dir.to_string_lossy().to_string();
+
+        // Check if already cached
+        {
+            let cache_guard = cache.lock().unwrap();
+            if let Some(compiled_index) = cache_guard.get(&cache_key) {
+                return Ok(compiled_index.clone());
+            }
         }
 
+        // Load and compile index
+        let compiled_index = self.load_and_compile_index()?;
+
+        // Cache the compiled index
+        {
+            let mut cache_guard = cache.lock().unwrap();
+            cache_guard.insert(cache_key, compiled_index.clone());
+        }
+
+        Ok(compiled_index)
+    }
+
+    /// Load and compile the template index file
+    fn load_and_compile_index(&self) -> ParseOutputResult<CompiledIndex> {
         let index_file = self.template_dir.join("index");
         if !index_file.exists() {
             eprintln!("Index file not found at {}", index_file.display());
-            self.index_loaded = true;
-            return Ok(&self.platform_templates);
+            return Ok(CompiledIndex {
+                platform_templates: HashMap::new(),
+            });
         }
 
         let file = File::open(&index_file)?;
@@ -71,20 +131,20 @@ impl NetworkOutputParser {
         for line in lines.by_ref() {
             let line = line?;
             let trimmed = line.trim();
-            
+
             if trimmed.is_empty() || trimmed.starts_with('#') {
                 continue;
             }
-            
+
             header_line = Some(trimmed.to_string());
             break;
         }
 
         let header = header_line.ok_or("No header found in index file")?;
-        
+
         // Parse header to get column positions
         let headers: Vec<&str> = header.split(',').map(|h| h.trim()).collect();
-        
+
         let template_col = headers.iter().position(|&h| h.to_lowercase() == "template")
             .ok_or("Missing 'template' column in index file")?;
         let platform_col = headers.iter().position(|&h| {
@@ -94,159 +154,151 @@ impl NetworkOutputParser {
         let command_col = headers.iter().position(|&h| h.to_lowercase() == "command")
             .ok_or("Missing 'command' column in index file")?;
 
+        let mut platform_templates: HashMap<String, Vec<CompiledTemplateEntry>> = HashMap::new();
+
         // Parse the remaining lines
         for line in lines {
             let line = line?;
             let trimmed = line.trim();
-            
+
             if trimmed.is_empty() || trimmed.starts_with('#') {
                 continue;
             }
 
             // Parse CSV line (simple split for now, could be enhanced for quoted fields)
             let fields: Vec<&str> = trimmed.split(',').map(|f| f.trim()).collect();
-            
+
             if fields.len() <= template_col.max(platform_col).max(command_col) {
                 continue;
             }
 
-            let template_file = fields[template_col].to_string();
+            let template_files = fields[template_col];
             let platform = fields[platform_col].to_lowercase();
             let command_pattern = fields[command_col];
 
-            // Convert command pattern: remove [[]] completion patterns
-            // sh[[ow]] ver[[sion]] -> show version
-            let command = self.normalize_command_pattern(command_pattern);
+            // Handle multiple template files separated by colons - use only the first one
+            let template_file = template_files.split(':').next().unwrap_or(template_files).to_string();
 
-            let entry = TemplateEntry {
-                template: template_file,
-                command,
+            // Build full template path and validate existence
+            let template_path = self.template_dir.join(&template_file);
+            if !template_path.exists() {
+                // Skip silently - some templates may not exist in this distribution
+                continue;
+            }
+
+            // Convert completion patterns to regex and compile
+            let regex_pattern = convert_completion_to_regex(command_pattern);
+            let command_regex = match Regex::new(&regex_pattern) {
+                Ok(regex) => Some(regex),
+                Err(_) => {
+                    // Skip patterns that can't be compiled (e.g., lookahead/lookbehind)
+                    None
+                }
             };
 
-            self.platform_templates
+            let entry = CompiledTemplateEntry {
+                command_regex,
+                command_pattern: command_pattern.to_string(),
+                template_path,
+            };
+
+            platform_templates
                 .entry(platform)
                 .or_insert_with(Vec::new)
                 .push(entry);
         }
 
-        self.index_loaded = true;
-        println!("Loaded templates for {} platforms", self.platform_templates.len());
-        Ok(&self.platform_templates)
-    }
 
-    /// Normalize command pattern by removing completion brackets
-    /// Converts "sh[[ow]] ver[[sion]]" to "show version"
-    fn normalize_command_pattern(&self, pattern: &str) -> String {
-        let re = Regex::new(r"\[\[([^\]]+)\]\]").unwrap();
-        re.replace_all(pattern, "$1").to_lowercase()
+        Ok(CompiledIndex {
+            platform_templates,
+        })
     }
 
     /// Find the appropriate template for a given platform and command
-    /// 
+    ///
     /// # Arguments
     /// * `platform` - Device platform (e.g., "cisco_ios")
     /// * `command` - Command string (e.g., "show version")
-    /// 
+    ///
     /// # Returns
     /// Path to template file or None if not found
-    pub fn find_template(&mut self, platform: &str, command: &str) -> ParseOutputResult<Option<PathBuf>> {
-        let templates = self.load_template_index()?;
+    pub fn find_template(&self, platform: &str, command: &str) -> ParseOutputResult<Option<PathBuf>> {
+        let compiled_index = self.get_compiled_index()?;
         let platform_lower = platform.to_lowercase();
         let command_lower = command.to_lowercase();
 
-        let platform_entries = match templates.get(&platform_lower) {
-            Some(entries) => entries.clone(),
+        let platform_entries = match compiled_index.platform_templates.get(&platform_lower) {
+            Some(entries) => entries,
             None => {
-                eprintln!("No templates found for platform '{}'", platform);
                 return Ok(None);
             }
         };
 
-        println!(
-            "Looking for command '{}' in platform '{}' with {} templates",
-            command, platform, platform_entries.len()
-        );
-
-        // Clone template_dir to avoid borrowing issues
-        let template_dir = self.template_dir.clone();
-
-        // First try exact regex match
-        for entry in &platform_entries {
-            if let Ok(re) = Regex::new(&entry.command) {
-                if re.is_match(&command_lower) {
-                    let template_path = template_dir.join(&entry.template);
-                    if template_path.exists() {
-                        println!("Found exact match template: {}", template_path.display());
-                        return Ok(Some(template_path));
-                    }
+        // First try pre-compiled regex match (fast!)
+        for entry in platform_entries {
+            if let Some(ref regex) = entry.command_regex {
+                if regex.is_match(&command_lower) {
+                    return Ok(Some(entry.template_path.clone()));
                 }
             }
         }
 
-        // Then try substring match
-        for entry in &platform_entries {
-            if command_lower.contains(&entry.command) || entry.command.contains(&command_lower) {
-                let template_path = template_dir.join(&entry.template);
-                if template_path.exists() {
-                    println!("Found substring match template: {}", template_path.display());
-                    return Ok(Some(template_path));
-                }
+        // Fallback to substring match for patterns that couldn't be compiled as regex
+        for entry in platform_entries {
+            let normalized_pattern = normalize_command_pattern(&entry.command_pattern);
+            if command_lower.contains(&normalized_pattern) || normalized_pattern.contains(&command_lower) {
+                return Ok(Some(entry.template_path.clone()));
             }
         }
 
-        eprintln!("No template found for '{}' command '{}'", platform, command);
         Ok(None)
     }
 
     /// Parse command output using TextFSM
-    /// 
+    ///
     /// # Arguments
     /// * `platform` - Device platform (e.g., "cisco_ios")
     /// * `command` - Command string (e.g., "show version")
     /// * `data` - Command output as string
-    /// 
+    ///
     /// # Returns
     /// Vector of dictionaries containing parsed data, or None if parsing fails
     pub fn parse_output(
-        &mut self,
+        &self,
         platform: &str,
         command: &str,
         data: &str,
     ) -> ParseOutputResult<Option<Vec<IndexMap<String, serde_json::Value>>>> {
         if data.is_empty() {
-            eprintln!("Empty output provided for parsing");
             return Ok(None);
         }
 
         let template_path = match self.find_template(platform, command)? {
             Some(path) => path,
             None => {
-                eprintln!("No template found for {}, {}", platform, command);
                 return Ok(None);
             }
         };
 
-        println!("Parsing output using template: {}", template_path.display());
-        
         let template_file = File::open(&template_path)?;
-        
+
         let mut fsm = TextFSM::new(template_file)?;
         let parsed_data = fsm.parse_text_to_dicts(data)?;
-        
+
         Ok(Some(parsed_data))
     }
 
     /// Parse command output and return as JSON string
-    /// 
+    ///
     /// # Arguments
     /// * `platform` - Device platform (e.g., "cisco_ios")
     /// * `command` - Command string (e.g., "show version")
     /// * `data` - Command output as string
-    /// 
+    ///
     /// # Returns
     /// JSON string of parsed data, or None if parsing fails
     pub fn parse_to_json(
-        &mut self,
+        &self,
         platform: &str,
         command: &str,
         data: &str,
@@ -268,12 +320,12 @@ lazy_static::lazy_static! {
 }
 
 /// Parse command output using TextFSM (function interface)
-/// 
+///
 /// # Arguments
 /// * `platform` - Device platform (e.g., "cisco_ios")
 /// * `command` - Command string (e.g., "show version")
 /// * `data` - Command output as string
-/// 
+///
 /// # Returns
 /// Vector of dictionaries containing parsed data, or None if parsing fails
 pub fn parse_output(
@@ -281,17 +333,17 @@ pub fn parse_output(
     command: &str,
     data: &str,
 ) -> ParseOutputResult<Option<Vec<IndexMap<String, serde_json::Value>>>> {
-    let mut parser = GLOBAL_PARSER.lock().unwrap();
+    let parser = GLOBAL_PARSER.lock().unwrap();
     parser.parse_output(platform, command, data)
 }
 
 /// Parse command output and return as JSON string (function interface)
-/// 
+///
 /// # Arguments
 /// * `platform` - Device platform (e.g., "cisco_ios")
 /// * `command` - Command string (e.g., "show version")
 /// * `data` - Command output as string
-/// 
+///
 /// # Returns
 /// JSON string of parsed data, or None if parsing fails
 pub fn parse_output_to_json(
@@ -299,6 +351,6 @@ pub fn parse_output_to_json(
     command: &str,
     data: &str,
 ) -> ParseOutputResult<Option<String>> {
-    let mut parser = GLOBAL_PARSER.lock().unwrap();
+    let parser = GLOBAL_PARSER.lock().unwrap();
     parser.parse_to_json(platform, command, data)
 }

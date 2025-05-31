@@ -76,7 +76,9 @@ mod tests {
     /// Result of processing a single command directory
     #[derive(Debug)]
     struct DirectoryResult {
+        #[allow(dead_code)]
         path: PathBuf,
+        #[allow(dead_code)]
         template_file: Option<PathBuf>,
         raw_files: Vec<PathBuf>,
         rust_outputs: Vec<(PathBuf, std::result::Result<(), String>)>,
@@ -87,7 +89,9 @@ mod tests {
     #[derive(Debug)]
     struct ComparisonResult {
         raw_file: PathBuf,
+        #[allow(dead_code)]
         rust_file: PathBuf,
+        #[allow(dead_code)]
         python_file: PathBuf,
         matches: bool,
         error: Option<String>,

@@ -176,6 +176,70 @@ impl<'a> SendCommand<'a> {
         )
     }
 
+    /// Execute the command and return a CommandResult with timing and metadata
+    ///
+    /// This method executes the command and returns a structured CommandResult
+    /// with timing information, device metadata, and raw output (no parsing).
+    ///
+    /// # Examples
+    /// ```rust
+    /// // Execute command and get structured result
+    /// let result = device.send_command("show version").execute_with_result()?;
+    /// println!("Duration: {} ms", result.duration_ms().unwrap_or(0));
+    /// ```
+    pub fn execute_with_result(self) -> Result<crate::CommandResult, NetsshError> {
+        use crate::CommandResult;
+        use std::time::Instant;
+
+        // Start timing
+        let start_time = Instant::now();
+
+        // Execute the command
+        let output = self.device.send_command_internal(
+            self.command,
+            self.expect_string,
+            self.read_timeout,
+            self.auto_find_prompt,
+            self.strip_prompt,
+            self.strip_command,
+            self.normalize,
+            self.cmd_verify,
+        )?;
+
+        // Calculate duration
+        let duration_ms = Some(start_time.elapsed().as_millis() as u64);
+
+        // Get device information
+        let platform_type = self.device.get_device_type().to_string();
+        let device_info = self.device.get_device_info().unwrap_or_else(|_| crate::DeviceInfo {
+            device_type: platform_type.clone(),
+            model: "Unknown".to_string(),
+            version: "Unknown".to_string(),
+            hostname: "Unknown".to_string(),
+            serial: "Unknown".to_string(),
+            uptime: "Unknown".to_string(),
+        });
+
+        // Extract hostname, use None if it's "Unknown"
+        let hostname = if device_info.hostname == "Unknown" {
+            None
+        } else {
+            Some(device_info.hostname)
+        };
+
+        // Return CommandResult with raw output (no parsing)
+        // Note: device_ip should be extracted from connection config in the future
+        Ok(CommandResult::success(
+            None, // device_id is optional
+            None, // device_ip - TODO: get from connection config
+            hostname,
+            platform_type,
+            self.command.to_string(),
+            output,
+            duration_ms,
+        ))
+    }
+
     /// Execute the command with TextFSM parsing enabled
     ///
     /// This method executes the command and attempts to parse the output using TextFSM templates.
@@ -197,11 +261,15 @@ impl<'a> SendCommand<'a> {
     pub fn parse(mut self) -> Result<crate::CommandResult, NetsshError> {
         use crate::{CommandResult, ParseOptions};
         use cmdparser::NetworkOutputParser;
+        use std::time::Instant;
 
         // Enable parsing with default options if not already set
         if self.parse_options.is_none() {
             self.parse_options = Some(ParseOptions::enabled());
         }
+
+        // Start timing
+        let start_time = Instant::now();
 
         // Execute the command first
         let output = self.device.send_command_internal(
@@ -215,6 +283,10 @@ impl<'a> SendCommand<'a> {
             self.cmd_verify,
         )?;
 
+        // Calculate total duration
+        let total_duration = start_time.elapsed();
+        let duration_ms = Some(total_duration.as_millis() as u64);
+
         // Get device information for CommandResult
         let platform_type = self.device.get_device_type().to_string();
         let device_info = self.device.get_device_info().unwrap_or_else(|_| crate::DeviceInfo {
@@ -226,13 +298,20 @@ impl<'a> SendCommand<'a> {
             uptime: "Unknown".to_string(),
         });
 
+        // Extract hostname, use None if it's "Unknown"
+        let hostname = if device_info.hostname == "Unknown" {
+            None
+        } else {
+            Some(device_info.hostname.clone())
+        };
+
         let parse_options = self.parse_options.unwrap_or_default();
 
         // If parsing is enabled, attempt to parse the output
         if parse_options.enabled {
             // Create parser with optional custom template directory
             let template_dir = parse_options.template_dir.as_ref().map(|s| std::path::PathBuf::from(s));
-            let mut parser = NetworkOutputParser::new(template_dir);
+            let parser = NetworkOutputParser::new(template_dir);
 
             // Attempt to parse the output
             match parser.parse_output(&platform_type, self.command, &output) {
@@ -240,34 +319,37 @@ impl<'a> SendCommand<'a> {
                     // Parsing succeeded - return success with parsed data
                     Ok(CommandResult::success_with_parsing(
                         None, // device_id is optional
-                        device_info.hostname.clone(), // Use hostname as device_ip for now
-                        device_info.hostname,
+                        None, // device_ip - TODO: get from connection config
+                        hostname.clone(),
                         platform_type,
                         self.command.to_string(),
                         parsed_data,
+                        duration_ms,
                     ))
                 }
                 Ok(None) => {
                     // No template found
                     Ok(CommandResult::success_with_no_template(
                         None,
-                        device_info.hostname.clone(),
-                        device_info.hostname,
+                        None, // device_ip - TODO: get from connection config
+                        hostname.clone(),
                         platform_type,
                         self.command.to_string(),
                         output,
+                        duration_ms,
                     ))
                 }
                 Err(e) => {
                     // Parsing failed
                     Ok(CommandResult::success_with_parse_failure(
                         None,
-                        device_info.hostname.clone(),
-                        device_info.hostname,
+                        None, // device_ip - TODO: get from connection config
+                        hostname.clone(),
                         platform_type,
                         self.command.to_string(),
                         output,
                         format!("{}", e),
+                        duration_ms,
                     ))
                 }
             }
@@ -275,11 +357,12 @@ impl<'a> SendCommand<'a> {
             // Parsing not enabled, return success without parsing
             Ok(CommandResult::success(
                 None,
-                device_info.hostname.clone(),
-                device_info.hostname,
+                None, // device_ip - TODO: get from connection config
+                hostname,
                 platform_type,
                 self.command.to_string(),
                 output,
+                duration_ms,
             ))
         }
     }

@@ -19,24 +19,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut device = DeviceFactory::create_device(&config)?;
     device.connect()?;
 
-    // Example 1: Show version command - full output
-    println!("=== SHOW VERSION ===");
-    match device.send_command("show version").execute() {
-        Ok(output) => println!("{}", output),
+    // Example 1: Show version command with CommandResult
+    println!("=== SHOW VERSION (with CommandResult) ===");
+    match device.send_command("show version").execute_with_result() {
+        Ok(result) => {
+            println!("Command: {}", result.command);
+            println!("Status: {:?}", result.status);
+            println!("Duration: {} ms", result.duration_ms_display());
+            if let Some(output) = &result.output {
+                println!("Output:\n{}", output.to_display_string());
+            }
+        },
         Err(e) => eprintln!("Error: {}", e),
     }
 
-    // Example 2: Show IP interface brief - full output
-    println!("\n=== SHOW IP INTERFACE BRIEF ===");
-    match device.send_command("show ip interface brief").execute() {
-        Ok(output) => println!("{}", output),
+    // Example 2: Show IP interface brief - traditional string output
+    println!("\n=== SHOW IP INTERFACE BRIEF (traditional) ===");
+    match device.send_command("show ip interface brief").execute_with_result() {
+        Ok(result) => {
+            println!("Command: {}", result.command);
+            println!("Duration: {} ms", result.duration_ms_display());
+            // print commandresult
+            if let Ok(json) = result.to_json() {
+                println!("{}", json);
+            }
+            // if let Some(output) = &result.output {
+            //     println!("Output:\n{}", output.to_display_string());
+            // }
+        },
         Err(e) => eprintln!("Error: {}", e),
     }
 
-    // Example 3: Show running config hostname - filtered output
-    println!("\n=== HOSTNAME CONFIG ===");
-    match device.send_command("show running-config | include hostname").execute() {
-        Ok(output) => println!("{}", output.trim()),
+    // Example 3: Show running config hostname with CommandResult
+    println!("\n=== HOSTNAME CONFIG (with CommandResult) ===");
+    match device.send_command("show running-config | include hostname").execute_with_result() {
+        Ok(result) => {
+            println!("Command: {}", result.command);
+            println!("Duration: {} ms", result.duration_ms_display());
+            if let Some(output) = &result.output {
+                println!("Output: {}", output.to_display_string().trim());
+            }
+        },
         Err(e) => eprintln!("Error: {}", e),
     }
 
@@ -44,9 +67,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n=== SHOW VERSION WITH PARSING ===");
     match device.send_command("show version").parse() {
         Ok(result) => {
-            println!("Command: {}", result.command);
-            println!("Status: {:?}", result.status);
-            println!("Parse Status: {:?}", result.parse_status);
+            // Use the new print method for formatted output
+            result.print_summary();
 
             if let Some(output) = &result.output {
                 match output {
@@ -64,6 +86,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             if let Some(error) = &result.parse_error {
                 println!("Parse Error: {}", error);
+            }
+        },
+        Err(e) => eprintln!("Error: {}", e),
+    }
+
+    // Example 5: Demonstrate JSON conversion capabilities
+    println!("\n=== JSON CONVERSION EXAMPLES ===");
+    match device.send_command("show clock").execute_with_result() {
+        Ok(result) => {
+            println!("--- Summary ---");
+            result.print_summary();
+
+            println!("\n--- Output as JSON ---");
+            result.print_output_json();
+
+            println!("\n--- Full CommandResult as JSON (first 500 chars) ---");
+            if let Ok(json) = result.to_json() {
+                let preview = if json.len() > 500 {
+                    format!("{}...", &json[..500])
+                } else {
+                    json
+                };
+                println!("{}", preview);
             }
         },
         Err(e) => eprintln!("Error: {}", e),

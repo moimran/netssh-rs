@@ -7,7 +7,6 @@ pub mod config;
 pub mod device_connection;
 pub mod device_connection_impl;
 pub mod device_factory;
-pub mod device_service;
 pub mod error;
 pub mod logging;
 pub mod parallel_execution;
@@ -73,4 +72,3 @@ pub use vendors::juniper::{JuniperBaseConnection, JuniperDeviceConnection, Junip
 // Re-export new abstraction layer
 pub use device_connection::{DeviceConfig, DeviceInfo, NetworkDeviceConnection, SendCommand, SendConfigSet};
 pub use device_factory::DeviceFactory;
-pub use device_service::{DeviceService, Interface};

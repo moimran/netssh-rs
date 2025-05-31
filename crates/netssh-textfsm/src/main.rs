@@ -72,7 +72,7 @@ fn parse_with_platform_command(
 
     // Create parser with optional template directory
     let template_dir_path = template_dir.map(std::path::PathBuf::from);
-    let mut parser = NetworkOutputParser::new(template_dir_path);
+    let parser = NetworkOutputParser::new(template_dir_path);
 
     // Parse the data
     match parser.parse_to_json(platform, command, &data_content)? {

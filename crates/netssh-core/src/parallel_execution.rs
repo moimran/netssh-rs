@@ -188,12 +188,13 @@ impl ParallelExecutionManager {
                             for cmd in commands {
                                 results.push(CommandResult::failure(
                                     None, // device_id is optional
-                                    host.clone(), // Use host as device_ip
-                                    host.clone(), // Use host as hostname
+                                    Some(host.clone()), // Use host as device_ip
+                                    Some(host.clone()), // Use host as hostname
                                     device_type.clone(),
                                     cmd,
                                     String::new(),
                                     format!("Failed to create connection: {}", err),
+                                    None, // duration_ms - not available in this context
                                 ));
                             }
                             return results;
@@ -214,8 +215,8 @@ impl ParallelExecutionManager {
                             if device_failed && failure_strategy == FailureStrategy::SkipDevice {
                                 results.push(CommandResult::skipped(
                                     None, // device_id is optional
-                                    host.clone(), // Use host as device_ip
-                                    host.clone(), // Use host as hostname
+                                    Some(host.clone()), // Use host as device_ip
+                                    Some(host.clone()), // Use host as hostname
                                     device_type.clone(),
                                     cmd,
                                 ));
@@ -240,11 +241,12 @@ impl ParallelExecutionManager {
                                     // Command succeeded
                                     results.push(CommandResult::success(
                                         None, // device_id is optional
-                                        host.clone(), // Use host as device_ip
-                                        host.clone(), // Use host as hostname
+                                        Some(host.clone()), // Use host as device_ip
+                                        Some(host.clone()), // Use host as hostname
                                         device_type.clone(),
                                         cmd,
                                         output,
+                                        None, // duration_ms - TODO: implement timing
                                     ));
                                 }
                                 Ok(Err(err)) => {
@@ -252,12 +254,13 @@ impl ParallelExecutionManager {
                                     device_failed = true;
                                     results.push(CommandResult::failure(
                                         None, // device_id is optional
-                                        host.clone(), // Use host as device_ip
-                                        host.clone(), // Use host as hostname
+                                        Some(host.clone()), // Use host as device_ip
+                                        Some(host.clone()), // Use host as hostname
                                         device_type.clone(),
                                         cmd,
                                         String::new(),
                                         format!("Command execution error: {}", err),
+                                        None, // duration_ms - TODO: implement timing
                                     ));
                                 }
                                 Err(_) => {
@@ -265,11 +268,12 @@ impl ParallelExecutionManager {
                                     device_failed = true;
                                     results.push(CommandResult::timeout(
                                         None, // device_id is optional
-                                        host.clone(), // Use host as device_ip
-                                        host.clone(), // Use host as hostname
+                                        Some(host.clone()), // Use host as device_ip
+                                        Some(host.clone()), // Use host as hostname
                                         device_type.clone(),
                                         cmd,
                                         "Command execution timed out".to_string(),
+                                        None, // duration_ms - TODO: implement timing
                                     ));
                                 }
                             }
@@ -281,12 +285,13 @@ impl ParallelExecutionManager {
                         for cmd in commands {
                             results.push(CommandResult::failure(
                                 None, // device_id is optional
-                                host.clone(), // Use host as device_ip
-                                host.clone(), // Use host as hostname
+                                Some(host.clone()), // Use host as device_ip
+                                Some(host.clone()), // Use host as hostname
                                 device_type.clone(),
                                 cmd,
                                 String::new(),
                                 format!("Failed to connect: {}", err),
+                                None, // duration_ms - not available in this context
                             ));
                         }
                     }

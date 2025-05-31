@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[test]
 fn test_template_selection() {
     let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates");
-    let mut parser = NetworkOutputParser::new(Some(template_dir));
+    let parser = NetworkOutputParser::new(Some(template_dir));
 
     // Test Cisco ASA show interface template selection
     let template_path = parser.find_template("cisco_asa", "show interface").unwrap();
@@ -41,7 +41,7 @@ fn test_template_selection() {
 #[test]
 fn test_partial_command_matching() {
     let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates");
-    let mut parser = NetworkOutputParser::new(Some(template_dir));
+    let parser = NetworkOutputParser::new(Some(template_dir));
 
     // Test partial command matching - "show int" should match "show interface"
     let template_path = parser.find_template("cisco_asa", "show int").unwrap();
@@ -63,7 +63,7 @@ fn test_cisco_asa_show_interface_parsing() {
         .expect("Failed to read test data file");
 
     let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates");
-    let mut parser = NetworkOutputParser::new(Some(template_dir));
+    let parser = NetworkOutputParser::new(Some(template_dir));
 
     // Test parsing with the parser instance
     let result = parser.parse_output("cisco_asa", "show interface", &raw_data);
@@ -114,7 +114,7 @@ fn test_cisco_xr_show_bgp_neighbors_parsing() {
         .expect("Failed to read test data file");
 
     let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates");
-    let mut parser = NetworkOutputParser::new(Some(template_dir));
+    let parser = NetworkOutputParser::new(Some(template_dir));
 
     // Test parsing with the parser instance
     let result = parser.parse_output("cisco_xr", "show bgp neighbors", &raw_data);
@@ -201,7 +201,7 @@ fn test_global_function_interface() {
 #[test]
 fn test_empty_input_handling() {
     let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates");
-    let mut parser = NetworkOutputParser::new(Some(template_dir));
+    let parser = NetworkOutputParser::new(Some(template_dir));
 
     // Test with empty data
     let result = parser.parse_output("cisco_asa", "show interface", "");
@@ -213,7 +213,7 @@ fn test_empty_input_handling() {
 #[test]
 fn test_invalid_template_directory() {
     let invalid_dir = PathBuf::from("/nonexistent/directory");
-    let mut parser = NetworkOutputParser::new(Some(invalid_dir));
+    let parser = NetworkOutputParser::new(Some(invalid_dir));
 
     // This should not panic, but should return None for template searches
     let result = parser.find_template("cisco_asa", "show interface");
@@ -224,8 +224,8 @@ fn test_invalid_template_directory() {
 /// Test default template directory
 #[test]
 fn test_default_template_directory() {
-    let mut parser = NetworkOutputParser::new(None);
-    
+    let parser = NetworkOutputParser::new(None);
+
     // Should use the default template directory
     let result = parser.find_template("cisco_asa", "show interface");
     assert!(result.is_ok());

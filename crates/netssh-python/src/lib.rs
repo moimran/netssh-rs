@@ -443,6 +443,7 @@ fn py_config_to_rust_config(config: &PyDeviceConfig) -> DeviceConfig {
 #[pyclass(unsendable)]
 struct PyNetworkDevice {
     device: Box<dyn NetworkDeviceConnection + Send>,
+    config: DeviceConfig,
 }
 
 #[pymethods]
@@ -467,7 +468,7 @@ impl PyNetworkDevice {
         let device =
             DeviceFactory::create_device(&rust_config).map_err(netssh_error_to_pyerr_simple)?;
 
-        Ok(Self { device })
+        Ok(Self { device, config: rust_config })
     }
 
     /// Connect to the device
@@ -529,13 +530,15 @@ impl PyNetworkDevice {
                 let cmd = config_command.unwrap_or("configure terminal").to_string();
                 let output_string = String::new();
 
+                let duration_ms = Some((end_time - start_time).num_milliseconds() as u64);
                 Ok(PyCommandResult::from(CommandResult::success(
-                    get_device_hostname(&self.device),
-                    device_type,
-                    cmd,
-                    output_string,
-                    start_time,
-                    end_time,
+                    None, // device_id
+                    Some(self.config.host.clone()), // device_ip
+                    Some(get_device_hostname(&self.device)), // hostname
+                    device_type, // platform_type
+                    cmd, // command
+                    output_string, // output
+                    duration_ms, // duration_ms
                 )))
             }
             Err(err) => {
@@ -551,14 +554,16 @@ impl PyNetworkDevice {
                 // Use output from error if available
                 let output = output_opt.unwrap_or_else(String::new);
 
+                let duration_ms = Some((end_time - start_time).num_milliseconds() as u64);
                 Ok(PyCommandResult::from(CommandResult::failure(
-                    get_device_hostname(&self.device),
-                    device_type,
-                    cmd,
-                    output,
-                    start_time,
-                    end_time,
-                    error_text,
+                    None, // device_id
+                    Some(self.config.host.clone()), // device_ip
+                    Some(get_device_hostname(&self.device)), // hostname
+                    device_type, // platform_type
+                    cmd, // command
+                    output, // output
+                    error_text, // error
+                    duration_ms, // duration_ms
                 )))
             }
         }
@@ -584,13 +589,15 @@ impl PyNetworkDevice {
                 let cmd = exit_command.unwrap_or("exit").to_string();
                 let output_string = String::new();
 
+                let duration_ms = Some((end_time - start_time).num_milliseconds() as u64);
                 Ok(PyCommandResult::from(CommandResult::success(
-                    get_device_hostname(&self.device),
-                    device_type,
-                    cmd,
-                    output_string,
-                    start_time,
-                    end_time,
+                    None, // device_id
+                    Some(self.config.host.clone()), // device_ip
+                    Some(get_device_hostname(&self.device)), // hostname
+                    device_type, // platform_type
+                    cmd, // command
+                    output_string, // output
+                    duration_ms, // duration_ms
                 )))
             }
             Err(err) => {
@@ -606,14 +613,16 @@ impl PyNetworkDevice {
                 // Use output from error if available
                 let output = output_opt.unwrap_or_else(String::new);
 
+                let duration_ms = Some((end_time - start_time).num_milliseconds() as u64);
                 Ok(PyCommandResult::from(CommandResult::failure(
-                    get_device_hostname(&self.device),
-                    device_type,
-                    cmd,
-                    output,
-                    start_time,
-                    end_time,
-                    error_text,
+                    None, // device_id
+                    Some(self.config.host.clone()), // device_ip
+                    Some(get_device_hostname(&self.device)), // hostname
+                    device_type, // platform_type
+                    cmd, // command
+                    output, // output
+                    error_text, // error
+                    duration_ms, // duration_ms
                 )))
             }
         }
@@ -699,13 +708,15 @@ impl PyNetworkDevice {
                 let cmd = "save configuration".to_string();
                 let output_string = String::new();
 
+                let duration_ms = Some((end_time - start_time).num_milliseconds() as u64);
                 Ok(PyCommandResult::from(CommandResult::success(
-                    get_device_hostname(&self.device),
-                    device_type,
-                    cmd,
-                    output_string,
-                    start_time,
-                    end_time,
+                    None, // device_id
+                    Some(self.config.host.clone()), // device_ip
+                    Some(get_device_hostname(&self.device)), // hostname
+                    device_type, // platform_type
+                    cmd, // command
+                    output_string, // output
+                    duration_ms, // duration_ms
                 )))
             }
             Err(err) => {
@@ -721,14 +732,16 @@ impl PyNetworkDevice {
                 // Use output from error if available
                 let output = output_opt.unwrap_or_else(String::new);
 
+                let duration_ms = Some((end_time - start_time).num_milliseconds() as u64);
                 Ok(PyCommandResult::from(CommandResult::failure(
-                    get_device_hostname(&self.device),
-                    device_type,
-                    cmd,
-                    output,
-                    start_time,
-                    end_time,
-                    error_text,
+                    None, // device_id
+                    Some(self.config.host.clone()), // device_ip
+                    Some(get_device_hostname(&self.device)), // hostname
+                    device_type, // platform_type
+                    cmd, // command
+                    output, // output
+                    error_text, // error
+                    duration_ms, // duration_ms
                 )))
             }
         }
@@ -796,13 +809,15 @@ impl PyNetworkDevice {
                 let device_type = self.device.get_device_type().to_string();
                 let cmd = command.to_string();
 
+                let duration_ms = Some((end_time - start_time).num_milliseconds() as u64);
                 Ok(PyCommandResult::from(CommandResult::success(
-                    get_device_hostname(&self.device),
-                    device_type,
-                    cmd,
-                    output.to_string(),
-                    start_time,
-                    end_time,
+                    None, // device_id
+                    Some(self.config.host.clone()), // device_ip
+                    Some(get_device_hostname(&self.device)), // hostname
+                    device_type, // platform_type
+                    cmd, // command
+                    output.to_string(), // output
+                    duration_ms, // duration_ms
                 )))
             }
             Err(err) => {
@@ -818,14 +833,16 @@ impl PyNetworkDevice {
                 // Use output from error if available
                 let output = output_opt.unwrap_or_else(String::new);
 
+                let duration_ms = Some((end_time - start_time).num_milliseconds() as u64);
                 Ok(PyCommandResult::from(CommandResult::failure(
-                    get_device_hostname(&self.device),
-                    device_type,
-                    cmd,
-                    output,
-                    start_time,
-                    end_time,
-                    error_text,
+                    None, // device_id
+                    Some(self.config.host.clone()), // device_ip
+                    Some(get_device_hostname(&self.device)), // hostname
+                    device_type, // platform_type
+                    cmd, // command
+                    output, // output
+                    error_text, // error
+                    duration_ms, // duration_ms
                 )))
             }
         }
@@ -975,13 +992,15 @@ impl PyNetworkDevice {
                 let device_type = self.device.get_device_type().to_string();
                 let cmd = "config set".to_string();
 
+                let duration_ms = Some((end_time - start_time).num_milliseconds() as u64);
                 Ok(PyCommandResult::from(CommandResult::success(
-                    get_device_hostname(&self.device),
-                    device_type,
-                    cmd,
-                    output.to_string(),
-                    start_time,
-                    end_time,
+                    None, // device_id
+                    Some(self.config.host.clone()), // device_ip
+                    Some(get_device_hostname(&self.device)), // hostname
+                    device_type, // platform_type
+                    cmd, // command
+                    output.to_string(), // output
+                    duration_ms, // duration_ms
                 )))
             }
             Err(err) => {
@@ -997,14 +1016,16 @@ impl PyNetworkDevice {
                 // Use output from error if available
                 let output = output_opt.unwrap_or_else(String::new);
 
+                let duration_ms = Some((end_time - start_time).num_milliseconds() as u64);
                 Ok(PyCommandResult::from(CommandResult::failure(
-                    get_device_hostname(&self.device),
-                    device_type,
-                    cmd,
-                    output,
-                    start_time,
-                    end_time,
-                    error_text,
+                    None, // device_id
+                    Some(self.config.host.clone()), // device_ip
+                    Some(get_device_hostname(&self.device)), // hostname
+                    device_type, // platform_type
+                    cmd, // command
+                    output, // output
+                    error_text, // error
+                    duration_ms, // duration_ms
                 )))
             }
         }
@@ -1059,17 +1080,27 @@ struct PyCommandResult {
 impl From<CommandResult> for PyCommandResult {
     fn from(result: CommandResult) -> Self {
         // Convert parsed data to JSON string if available
-        let parsed_data_json = result.parsed_data_as_json()
-            .and_then(|json_result| json_result.ok());
+        let parsed_data_json = if let Some(output) = &result.output {
+            output.parsed_as_json().and_then(|json_result| json_result.ok())
+        } else {
+            None
+        };
+
+        // Convert output to string
+        let output_string = if let Some(output) = &result.output {
+            Some(output.to_display_string())
+        } else {
+            None
+        };
 
         Self {
-            device_id: result.device_id,
-            device_type: result.device_type,
+            device_id: result.device_id.unwrap_or_else(|| "unknown".to_string()),
+            device_type: result.platform_type,
             command: result.command,
-            output: result.output,
-            start_time: result.start_time.to_rfc3339(),
-            end_time: result.end_time.to_rfc3339(),
-            duration_ms: result.duration_ms,
+            output: output_string,
+            start_time: "unknown".to_string(), // No start_time in new CommandResult
+            end_time: "unknown".to_string(),   // No end_time in new CommandResult
+            duration_ms: result.duration_ms.unwrap_or(0),
             status: format!("{:?}", result.status),
             error: result.error,
             parse_status: format!("{:?}", result.parse_status),
@@ -1300,13 +1331,13 @@ impl PyBatchCommandResults {
 
                 csv.push_str(&format!(
                     "{},{},{},{:?},{},{},{},{}\n",
-                    result.device_id,
-                    result.device_type,
+                    result.device_id.as_ref().unwrap_or(&"unknown".to_string()),
+                    result.platform_type,
                     result.command,
                     result.status,
-                    result.duration_ms,
-                    result.start_time,
-                    result.end_time,
+                    result.duration_ms.unwrap_or(0),
+                    "unknown", // start_time not available
+                    "unknown", // end_time not available
                     error_text
                 ));
             }
@@ -1331,7 +1362,8 @@ impl PyBatchCommandResults {
         // Group by device and get the output
         for result in command_results {
             if let Some(output) = &result.output {
-                dict.set_item(&result.device_id, output)?;
+                let device_id = result.device_id.as_ref().map(|s| s.as_str()).unwrap_or("unknown");
+                dict.set_item(device_id, output.to_display_string())?;
             }
         }
 

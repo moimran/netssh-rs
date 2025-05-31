@@ -1,6 +1,7 @@
 use crate::error::NetsshError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::time::Duration;
 use indexmap::IndexMap;
 
 /// Represents the output of a command execution
@@ -45,6 +46,48 @@ impl CommandOutput {
             CommandOutput::Raw(s) => s.clone(),
             CommandOutput::Parsed(data) => {
                 serde_json::to_string_pretty(data).unwrap_or_else(|_| "Parse error".to_string())
+            }
+        }
+    }
+
+    /// Convert output to JSON string (works for both raw and parsed)
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        match self {
+            CommandOutput::Raw(text) => {
+                // For raw text, create a simple JSON object
+                let json_obj = serde_json::json!({
+                    "type": "raw",
+                    "output": text
+                });
+                serde_json::to_string_pretty(&json_obj)
+            }
+            CommandOutput::Parsed(data) => {
+                // For parsed data, return the structured data as JSON
+                let json_obj = serde_json::json!({
+                    "type": "parsed",
+                    "data": data
+                });
+                serde_json::to_string_pretty(&json_obj)
+            }
+        }
+    }
+
+    /// Convert output to compact JSON string (single line)
+    pub fn to_json_compact(&self) -> Result<String, serde_json::Error> {
+        match self {
+            CommandOutput::Raw(text) => {
+                let json_obj = serde_json::json!({
+                    "type": "raw",
+                    "output": text
+                });
+                serde_json::to_string(&json_obj)
+            }
+            CommandOutput::Parsed(data) => {
+                let json_obj = serde_json::json!({
+                    "type": "parsed",
+                    "data": data
+                });
+                serde_json::to_string(&json_obj)
             }
         }
     }
@@ -117,10 +160,10 @@ impl ParseOptions {
 pub struct CommandResult {
     /// Optional device identifier (UUID from database, may not always be available)
     pub device_id: Option<String>,
-    /// Device IP address
-    pub device_ip: String,
-    /// Device hostname
-    pub hostname: String,
+    /// Device IP address (should always be available since we connect to it)
+    pub device_ip: Option<String>,
+    /// Device hostname (may be null if not determinable)
+    pub hostname: Option<String>,
     /// Platform type (vendor/model)
     pub platform_type: String,
     /// The command that was executed
@@ -135,17 +178,20 @@ pub struct CommandResult {
     pub parse_status: ParseStatus,
     /// Error message if parsing failed
     pub parse_error: Option<String>,
+    /// Total duration of the operation in milliseconds (includes parsing time if enabled)
+    pub duration_ms: Option<u64>,
 }
 
 impl CommandResult {
     /// Create a new CommandResult for a successful command execution
     pub fn success(
         device_id: Option<String>,
-        device_ip: String,
-        hostname: String,
+        device_ip: Option<String>,
+        hostname: Option<String>,
         platform_type: String,
         command: String,
         output: String,
+        duration_ms: Option<u64>,
     ) -> Self {
         Self {
             device_id,
@@ -158,18 +204,20 @@ impl CommandResult {
             error: None,
             parse_status: ParseStatus::NotAttempted,
             parse_error: None,
+            duration_ms,
         }
     }
 
     /// Create a new CommandResult for a failed command execution
     pub fn failure(
         device_id: Option<String>,
-        device_ip: String,
-        hostname: String,
+        device_ip: Option<String>,
+        hostname: Option<String>,
         platform_type: String,
         command: String,
         output: String,
         error: String,
+        duration_ms: Option<u64>,
     ) -> Self {
         Self {
             device_id,
@@ -182,17 +230,19 @@ impl CommandResult {
             error: Some(error),
             parse_status: ParseStatus::NotAttempted,
             parse_error: None,
+            duration_ms,
         }
     }
 
     /// Create a new CommandResult for a timed out command execution
     pub fn timeout(
         device_id: Option<String>,
-        device_ip: String,
-        hostname: String,
+        device_ip: Option<String>,
+        hostname: Option<String>,
         platform_type: String,
         command: String,
         error_message: String,
+        duration_ms: Option<u64>,
     ) -> Self {
         Self {
             device_id,
@@ -205,14 +255,15 @@ impl CommandResult {
             error: Some(error_message),
             parse_status: ParseStatus::NotAttempted,
             parse_error: None,
+            duration_ms,
         }
     }
 
     /// Create a new CommandResult for a skipped command execution
     pub fn skipped(
         device_id: Option<String>,
-        device_ip: String,
-        hostname: String,
+        device_ip: Option<String>,
+        hostname: Option<String>,
         platform_type: String,
         command: String,
     ) -> Self {
@@ -227,18 +278,20 @@ impl CommandResult {
             error: None,
             parse_status: ParseStatus::NotAttempted,
             parse_error: None,
+            duration_ms: None,
         }
     }
 
     /// Create a CommandResult from a command execution error
     pub fn from_error(
         device_id: Option<String>,
-        device_ip: String,
-        hostname: String,
+        device_ip: Option<String>,
+        hostname: Option<String>,
         platform_type: String,
         command: String,
         error: NetsshError,
         output: Option<String>,
+        duration_ms: Option<u64>,
     ) -> Self {
         // Check if it's a timeout error
         match &error {
@@ -253,6 +306,7 @@ impl CommandResult {
                 error: Some(format!("{}", error)),
                 parse_status: ParseStatus::NotAttempted,
                 parse_error: None,
+                duration_ms,
             },
             NetsshError::CommandError(msg) => Self {
                 device_id,
@@ -265,6 +319,7 @@ impl CommandResult {
                 error: Some(msg.clone()),
                 parse_status: ParseStatus::NotAttempted,
                 parse_error: None,
+                duration_ms,
             },
             NetsshError::CommandErrorWithOutput {
                 error_msg,
@@ -280,6 +335,7 @@ impl CommandResult {
                 error: Some(error_msg.clone()),
                 parse_status: ParseStatus::NotAttempted,
                 parse_error: None,
+                duration_ms,
             },
             // All other errors get mapped to Failed status
             _ => Self {
@@ -293,6 +349,7 @@ impl CommandResult {
                 error: Some(format!("{}", error)),
                 parse_status: ParseStatus::NotAttempted,
                 parse_error: None,
+                duration_ms,
             },
         }
     }
@@ -300,11 +357,12 @@ impl CommandResult {
     /// Create a CommandResult with successful parsing
     pub fn success_with_parsing(
         device_id: Option<String>,
-        device_ip: String,
-        hostname: String,
+        device_ip: Option<String>,
+        hostname: Option<String>,
         platform_type: String,
         command: String,
         parsed_data: Vec<IndexMap<String, serde_json::Value>>,
+        duration_ms: Option<u64>,
     ) -> Self {
         Self {
             device_id,
@@ -317,18 +375,20 @@ impl CommandResult {
             error: None,
             parse_status: ParseStatus::Success,
             parse_error: None,
+            duration_ms,
         }
     }
 
     /// Create a CommandResult with failed parsing (but successful command execution)
     pub fn success_with_parse_failure(
         device_id: Option<String>,
-        device_ip: String,
-        hostname: String,
+        device_ip: Option<String>,
+        hostname: Option<String>,
         platform_type: String,
         command: String,
         output: String,
         parse_error: String,
+        duration_ms: Option<u64>,
     ) -> Self {
         Self {
             device_id,
@@ -341,17 +401,19 @@ impl CommandResult {
             error: None,
             parse_status: ParseStatus::Failed,
             parse_error: Some(parse_error),
+            duration_ms,
         }
     }
 
     /// Create a CommandResult when no template was found for parsing
     pub fn success_with_no_template(
         device_id: Option<String>,
-        device_ip: String,
-        hostname: String,
+        device_ip: Option<String>,
+        hostname: Option<String>,
         platform_type: String,
         command: String,
         output: String,
+        duration_ms: Option<u64>,
     ) -> Self {
         Self {
             device_id,
@@ -364,6 +426,7 @@ impl CommandResult {
             error: None,
             parse_status: ParseStatus::NoTemplate,
             parse_error: None,
+            duration_ms,
         }
     }
 
@@ -375,6 +438,126 @@ impl CommandResult {
     /// Check if parsing was attempted
     pub fn parse_attempted(&self) -> bool {
         self.parse_status != ParseStatus::NotAttempted
+    }
+
+    /// Get duration in milliseconds
+    pub fn duration_ms(&self) -> Option<u64> {
+        self.duration_ms
+    }
+
+    /// Get duration in milliseconds as a formatted string
+    /// Returns just the number (e.g., "326") instead of "Some(326)"
+    pub fn duration_ms_display(&self) -> String {
+        match self.duration_ms {
+            Some(ms) => ms.to_string(),
+            None => "N/A".to_string(),
+        }
+    }
+
+    /// Get duration as Duration
+    pub fn duration(&self) -> Option<Duration> {
+        self.duration_ms.map(Duration::from_millis)
+    }
+
+    /// Set duration from Duration
+    pub fn set_duration(&mut self, duration: Duration) {
+        self.duration_ms = Some(duration.as_millis() as u64);
+    }
+
+    /// Set duration from milliseconds
+    pub fn set_duration_ms(&mut self, duration_ms: u64) {
+        self.duration_ms = Some(duration_ms);
+    }
+
+    /// Convert the entire CommandResult to JSON string
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
+    }
+
+    /// Convert the entire CommandResult to compact JSON string (single line)
+    pub fn to_json_compact(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    /// Get just the output as JSON (either raw or parsed)
+    pub fn output_to_json(&self) -> Result<Option<String>, serde_json::Error> {
+        match &self.output {
+            Some(output) => Ok(Some(output.to_json()?)),
+            None => Ok(None),
+        }
+    }
+
+    /// Print the CommandResult in a formatted way
+    pub fn print(&self) {
+        println!("=== Command Result ===");
+        println!("Command: {}", self.command);
+        println!("Status: {:?}", self.status);
+        println!("Parse Status: {:?}", self.parse_status);
+        println!("Duration: {} ms", self.duration_ms_display());
+
+        if let Some(device_id) = &self.device_id {
+            println!("Device ID: {}", device_id);
+        }
+        if let Some(device_ip) = &self.device_ip {
+            println!("Device IP: {}", device_ip);
+        }
+        if let Some(hostname) = &self.hostname {
+            println!("Hostname: {}", hostname);
+        }
+        println!("Platform: {}", self.platform_type);
+
+        if let Some(error) = &self.error {
+            println!("Error: {}", error);
+        }
+
+        if let Some(parse_error) = &self.parse_error {
+            println!("Parse Error: {}", parse_error);
+        }
+
+        if let Some(output) = &self.output {
+            println!("\nOutput:");
+            match output {
+                CommandOutput::Raw(text) => {
+                    println!("{}", text);
+                }
+                CommandOutput::Parsed(data) => {
+                    println!("Parsed Data ({} records):", data.len());
+                    if let Ok(json) = serde_json::to_string_pretty(data) {
+                        println!("{}", json);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Print the CommandResult as JSON
+    pub fn print_json(&self) {
+        match self.to_json() {
+            Ok(json) => println!("{}", json),
+            Err(e) => eprintln!("Error converting to JSON: {}", e),
+        }
+    }
+
+    /// Print just the output as JSON
+    pub fn print_output_json(&self) {
+        match self.output_to_json() {
+            Ok(Some(json)) => println!("{}", json),
+            Ok(None) => println!("No output available"),
+            Err(e) => eprintln!("Error converting output to JSON: {}", e),
+        }
+    }
+
+    /// Print a summary of the CommandResult
+    pub fn print_summary(&self) {
+        println!("Command: {} | Status: {:?} | Duration: {} ms | Parse: {:?}",
+                 self.command,
+                 self.status,
+                 self.duration_ms_display(),
+                 self.parse_status);
+
+        if let Some(error) = &self.error {
+            println!("  Error: {}", error);
+        }
     }
 }
 
@@ -413,8 +596,11 @@ impl BatchCommandResults {
 
     /// Add a command result to the batch results
     pub fn add_result(&mut self, result: CommandResult) {
-        // Use device_ip as the key since device_id is now optional
-        let device_key = result.device_ip.clone();
+        // Use device_ip as the key, fallback to hostname, then "unknown"
+        let device_key = result.device_ip
+            .clone()
+            .or_else(|| result.hostname.clone())
+            .unwrap_or_else(|| "unknown".to_string());
 
         // Update counters based on result status
         match result.status {
@@ -502,8 +688,8 @@ pub mod utils {
             for result in device_results {
                 csv.push_str(&format!(
                     "{},{},{},{},{:?},{:?}\n",
-                    result.device_ip,
-                    result.hostname,
+                    result.device_ip.as_deref().unwrap_or("N/A"),
+                    result.hostname.as_deref().unwrap_or("N/A"),
                     result.platform_type,
                     result.command.replace(",", "\\,"),
                     result.status,
@@ -568,7 +754,7 @@ pub mod utils {
                     output_groups
                         .entry(output_str)
                         .or_insert_with(Vec::new)
-                        .push(result.device_ip.clone());
+                        .push(result.device_ip.clone().unwrap_or_else(|| "N/A".to_string()));
                 }
             }
         }
@@ -603,8 +789,8 @@ pub mod utils {
                 };
 
                 // Truncate long values for table display
-                let device_ip = truncate(&result.device_ip, 15);
-                let hostname = truncate(&result.hostname, 15);
+                let device_ip = truncate(result.device_ip.as_deref().unwrap_or("N/A"), 15);
+                let hostname = truncate(result.hostname.as_deref().unwrap_or("N/A"), 15);
                 let command = truncate(&result.command, 30);
                 let error = match &result.error {
                     Some(err) => truncate(err, 16),
